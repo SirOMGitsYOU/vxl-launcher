@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { MinecraftSkinService } from "../services/minecraft-skin-service";
+import { getAvatarUrl, getFallbackAvatarUrl } from "../lib/avatar-utils";
 
 const DEFAULT_STEVE_UUID = "8667ba71b85a4004af54457a9734eed7";
 
@@ -44,10 +45,9 @@ export function useCrafatarAvatar({
         console.error("[useCrafatarAvatar] Failed to load avatar:", error);
         
         if (fallbackToDefault) {
-          // Fallback to default Steve avatar
-          const sizeParam = size ? `&size=${size}` : "";
+          // Fallback to default Steve avatar with primary and fallback support
           setAvatarUrl(
-            `https://crafatar.com/avatars/${DEFAULT_STEVE_UUID}?overlay=true${sizeParam}`
+            getFallbackAvatarUrl(DEFAULT_STEVE_UUID, { overlay: true, size })
           );
         } else {
           setAvatarUrl(null);

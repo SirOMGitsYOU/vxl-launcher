@@ -15,20 +15,17 @@ import { EmptyState } from "../ui/EmptyState";
 import { Icon } from "@iconify/react";
 import { CapeImage } from "./CapeImage";
 import { VanillaCapeImage } from "./VanillaCapeImage";
+import { CapePreview2D } from "./CapePreview2D";
 import { Tooltip } from "../ui/Tooltip";
 import { getPlayerProfileByUuidOrName, getCapesByHashes } from "../../services/cape-service";
 // Removed VirtuosoGrid import - using native scrolling instead
 import { useThemeStore } from "../../store/useThemeStore";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/buttons/Button";
-import { Card } from "../ui/Card";
-import { Modal } from "../ui/Modal";
-import { SkinView3DWrapper } from "../common/SkinView3DWrapper";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
 import gsap from "gsap";
 import { IconButton } from "../ui/buttons/IconButton";
 import { useCapeFavoritesStore } from "../../store/useCapeFavoritesStore";
-import { useGlobalModal } from "../../hooks/useGlobalModal";
 
 
 // Removed ListComponent - using native grid layout instead
@@ -43,9 +40,6 @@ interface CapeItemDisplayProps {
   onDeleteCapeClick?: (cape: CosmeticCape | VanillaCape, e: React.MouseEvent) => void;
   creatorNameCache: Map<string, string>;
   onContextMenu?: (e: React.MouseEvent) => void;
-  activeAccount?: any;
-  showModal?: (id: string, component: ReactNode) => void;
-  hideModal?: (id: string) => void;
   isVanilla?: boolean;
 }
 
@@ -59,45 +53,17 @@ function CapeItemDisplay({
   onDeleteCapeClick,
   creatorNameCache,
   onContextMenu,
-  activeAccount,
-  showModal,
-  hideModal,
   isVanilla = false,
 }: CapeItemDisplayProps) {
+  // No-op click handler - just display the cape preview inline
   const handleCapeClick = useCallback(() => {
-    if (isCurrentlyEquipping || !showModal) return;
-
-    const userSkinUrl = activeAccount?.id
-      ? `https://crafatar.com/skins/${activeAccount.id}`
-      : undefined;
-
-    const capeId = isVanilla ? (cape as VanillaCape).id : (cape as CosmeticCape)._id;
-    const capeUrl = isVanilla ? (cape as VanillaCape).url : `https://cdn.norisk.gg/capes/prod/${capeId}.png`;
-
-    showModal(`cape-preview-${capeId}`, (
-      <Modal
-        title="Cape Preview"
-        onClose={() => hideModal && hideModal(`cape-preview-${capeId}`)}
-        width="md"
-        variant="flat"
-      >
-        <Cape3DPreviewWithToggle
-          skinUrl={userSkinUrl}
-          capeUrl={isVanilla ? capeUrl : undefined}
-          capeId={capeId}
-          isEquipped={false}
-          onEquipCape={() => {
-            onEquipCape(capeId);
-            hideModal && hideModal(`cape-preview-${capeId}`);
-          }}
-        />
-      </Modal>
-    ));
-  }, [cape, isCurrentlyEquipping, activeAccount, showModal, hideModal, onEquipCape, isVanilla]);
+    // Modal removed - cape is displayed inline in the grid
+  }, []);
   const [creatorName, setCreatorName] = useState<string | null>(null);
   const [creatorLoading, setCreatorLoading] = useState<boolean>(false);
   const [isHovered, setIsHovered] = useState(false);
   const accentColor = useThemeStore((state) => state.accentColor);
+  const activeAccount = useMinecraftAuthStore((state) => state.activeAccount);
 
   // Only use favorites for NoRisk capes
   const isFavorite = !isVanilla ? useCapeFavoritesStore((s) => s.isFavorite((cape as CosmeticCape)._id)) : false;
@@ -217,10 +183,10 @@ function CapeItemDisplay({
           }}
         >
           {isVanilla ? (
-            <VanillaCapeImage
-              imageUrl={imageUrl}
-              width={displayWidth}
-              className="rounded-sm block"
+            <CapePreview2D
+              capeUrl={imageUrl}
+              playerUuid={activeAccount?.id}
+              className="rounded-sm block w-full h-full"
             />
           ) : (
             <CapeImage
@@ -337,7 +303,6 @@ export function CapeList({
 }: CapeListProps) {
   const accentColor = useThemeStore((state) => state.accentColor);
   const creatorNameCacheRef = useRef<Map<string, string>>(new Map());
-  const { showModal, hideModal } = useGlobalModal();
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -622,9 +587,6 @@ export function CapeList({
                   onDeleteCapeClick={handleDeleteClickInternal}
                   creatorNameCache={creatorNameCacheRef.current}
                   onContextMenu={(e) => handleCapeContextMenu(cape, e)}
-                  activeAccount={activeAccount}
-                  showModal={(id, component) => showModal(id, component)}
-                  hideModal={(id) => hideModal(id)}
                   isVanilla={isVanilla}
                 />
               );
@@ -660,9 +622,6 @@ export function CapeList({
                 onDeleteCapeClick={handleDeleteClickInternal}
                 creatorNameCache={creatorNameCacheRef.current}
                 onContextMenu={(e) => handleCapeContextMenu(cape, e)}
-                activeAccount={activeAccount}
-                showModal={(id, component) => showModal(id, component)}
-                hideModal={(id) => hideModal(id)}
                 isVanilla={isVanilla}
               />
             );
@@ -710,66 +669,3 @@ export function CapeList({
     </div>
   );
 }
-
-function Cape3DPreviewWithToggle({
-  skinUrl,
-  capeUrl,
-  capeId,
-  onEquipCape,
-  isEquipped = false
-}: {
-  skinUrl?: string;
-  capeUrl?: string; // Optional - falls nicht übergeben, wird CDN URL verwendet
-  capeId: string;
-  onEquipCape: () => void;
-  isEquipped?: boolean; // Optional - für Vanilla Capes relevant
-}) {
-  const [showElytra, setShowElytra] = useState(false);
-
-  // Verwende capeUrl falls übergeben, sonst CDN URL
-  const finalCapeUrl = capeUrl || `https://cdn.norisk.gg/capes/prod/${capeId}.png`;
-
-  return (
-    <div className="p-4">
-      <div style={{ width: 300, height: 380, margin: "0 auto", position: "relative" }}>
-        <IconButton
-          onClick={() => setShowElytra((v) => !v)}
-          variant="ghost"
-          size="sm"
-          className="absolute top-2 right-2 z-10"
-          icon={
-            <Icon
-              icon={showElytra ? "ph:airplane-tilt-fill" : "ph:airplane-tilt-duotone"}
-              className="w-5 h-5"
-            />
-          }
-          title={showElytra ? "Show as Cape" : "Show as Elytra"}
-          aria-label={showElytra ? "Show as Cape" : "Show as Elytra"}
-        />
-        <SkinView3DWrapper
-          skinUrl={skinUrl}
-          capeUrl={finalCapeUrl}
-          enableAutoRotate={true}
-          autoRotateSpeed={0.5}
-          startFromBack={true}
-          zoom={0.9}
-          displayAsElytra={showElytra}
-          width={300}
-          height={380}
-        />
-      </div>
-
-      <div className="flex justify-center mt-4">
-        <Button
-          onClick={onEquipCape}
-          variant="flat"
-          size="lg"
-          className="px-8"
-        >
-          {isEquipped ? 'UNEQUIP CAPE' : 'SELECT CAPE'}
-        </Button>
-      </div>
-    </div>
-  );
-}
-

@@ -22,6 +22,7 @@ import { useProfileStore } from "../../store/profile-store";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
 import { useCrafatarAvatar } from "../../hooks/useCrafatarAvatar";
 import { parseMotdToHtml } from "../../utils/motd-utils";
+import { getAvatarUrl, getFallbackAvatarUrl } from "../../lib/avatar-utils";
 
 // Custom JSX component for tooltip content
 function StandardVersionTooltipContent() {
@@ -623,7 +624,7 @@ export function ProfileCardV2({
                         className={`${isCompact ? 'w-4 h-4' : 'w-5 h-5'} rounded-sm pixelated flex-shrink-0`}
                         style={{ imageRendering: 'pixelated' }}
                         onError={(e) => {
-                          e.currentTarget.src = 'https://crafatar.com/avatars/8667ba71b85a4004af54457a9734eed7?overlay=true';
+                          e.currentTarget.src = getFallbackAvatarUrl('8667ba71b85a4004af54457a9734eed7', { overlay: true });
                         }}
                       />
                     )}
@@ -800,7 +801,7 @@ export function ProfileCardV2({
                     className="w-5 h-5 rounded-sm pixelated flex-shrink-0"
                     style={{ imageRendering: 'pixelated' }}
                     onError={(e) => {
-                      e.currentTarget.src = 'https://crafatar.com/avatars/8667ba71b85a4004af54457a9734eed7?overlay=true';
+                      e.currentTarget.src = getFallbackAvatarUrl('8667ba71b85a4004af54457a9734eed7', { overlay: true });
                     }}
                   />
                 )}

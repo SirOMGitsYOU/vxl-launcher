@@ -12,6 +12,7 @@ import { useMinecraftAuthStore } from "../../../store/minecraft-auth-store";
 import { useCrafatarAvatar } from "../../../hooks/useCrafatarAvatar";
 import type { MinecraftAccount } from "../../../types/minecraft";
 import { cn } from "../../../lib/utils";
+import { getFallbackAvatarUrl } from "../../../lib/avatar-utils";
 
 interface GeneralSettingsTabProps {
   profile: Profile;
@@ -89,7 +90,7 @@ export function GeneralSettingsTab({
         style={{ imageRendering: 'pixelated' }}
         onError={(e) => {
           // Fallback to default Steve head
-          e.currentTarget.src = 'https://crafatar.com/avatars/8667ba71b85a4004af54457a9734eed7?overlay=true';
+          e.currentTarget.src = getFallbackAvatarUrl('8667ba71b85a4004af54457a9734eed7', { overlay: true });
         }}
       />
     );

@@ -36,6 +36,7 @@ import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
 import { Tooltip } from "../ui/Tooltip";
 import { useCrafatarAvatar } from "../../hooks/useCrafatarAvatar";
 import { parseMotdToHtml } from "../../utils/motd-utils";
+import { getFallbackAvatarUrl } from "../../lib/avatar-utils";
 
 type MainTabType = "content" | "worlds" | "logs" | "screenshots";
 type ContentTabType = "mods" | "resourcepacks" | "datapacks" | "shaderpacks" | "nrc";
@@ -469,7 +470,7 @@ export function ProfileDetailViewV2({
                           className="w-5 h-5 rounded-sm pixelated flex-shrink-0"
                           style={{ imageRendering: 'pixelated' }}
                           onError={(e) => {
-                            e.currentTarget.src = 'https://crafatar.com/avatars/8667ba71b85a4004af54457a9734eed7?overlay=true';
+                            e.currentTarget.src = getFallbackAvatarUrl('8667ba71b85a4004af54457a9734eed7', { overlay: true });
                           }}
                         />
                       )}

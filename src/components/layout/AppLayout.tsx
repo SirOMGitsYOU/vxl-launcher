@@ -37,10 +37,11 @@ import { toast } from 'react-hot-toast';
 
 const navItems = [
   { id: "play", icon: "solar:play-bold", label: "Play" },
-  { id: "profiles", icon: "solar:user-id-bold", label: "Profiles" },
-  { id: "mods", icon: "solar:widget-bold", label: "Mods" },
-  { id: "skins", icon: "solar:emoji-funny-circle-bold", label: "Skins" },
-  { id: "capes", icon: "solar:shop-bold", label: "Capes" },
+  { id: "profiles", icon: "lucide:library", label: "Profiles" },
+  { id: "mods", icon: "mdi:jigsaw", label: "Mods" },
+  { id: "vxlstudios", icon: "f7:cube-fill", label: "Voxel Studios" },
+  { id: "skins", icon: "temaki:clothes-hanger", label: "Skins" },
+  { id: "capes", icon: "game-icons:cape", label: "Capes" },
   { id: "settings", icon: "solar:settings-bold", label: "Settings" },
 ];
 

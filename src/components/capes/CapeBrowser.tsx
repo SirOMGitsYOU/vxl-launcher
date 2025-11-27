@@ -1,892 +1,286 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  browseCapes,
-  downloadTemplateAndOpenExplorer,
-  equipCape,
-  getPlayerCapes,
-  unequipCape,
-} from "../../services/cape-service";
-import type {
-  BrowseCapesOptions,
-  CosmeticCape,
-  GetPlayerCapesPayloadOptions,
-  PaginationInfo,
-} from "../../types/noriskCapes";
-import { CapeList } from "./CapeList";
-import type { CapeFiltersData } from "./CapeFilters";
 import { Icon } from "@iconify/react";
-import { open } from "@tauri-apps/plugin-dialog";
-import { convertFileSrc } from "@tauri-apps/api/core";
-import { Modal } from "../ui/Modal";
-import { SkinView3DWrapper } from "../common/SkinView3DWrapper";
 import { Button } from "../ui/buttons/Button";
-import { IconButton } from "../ui/buttons/IconButton";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
-import { SearchWithFilters } from "../ui/SearchWithFilters";
 import { useThemeStore } from "../../store/useThemeStore";
-import { useCapeFavoritesStore } from "../../store/useCapeFavoritesStore";
 import { useVanillaCapeStore } from "../../store/useVanillaCapeStore";
 import type { VanillaCape } from "../../types/vanillaCapes";
-import { useGlobalModal } from "../../hooks/useGlobalModal";
 import { preloadIcons } from "../../lib/icon-utils";
-import { deleteCape } from "../../services/cape-service";
 import { toast } from "react-hot-toast";
-import { UploadCapeModal } from "./UploadCapeModal";
-import { ConfirmDeletionModal } from "./ConfirmDeletionModal";
+import { SkinView3DWrapper } from "../common/SkinView3DWrapper";
+import { CapePreview2D } from "./CapePreview2D";
+import { getSkinUrl } from "../../lib/avatar-utils";
 
 
 
 export function CapeBrowser(): JSX.Element {
-  // Separate state for ALL capes and MY CAPES
-  const [allCapes, setAllCapes] = useState<CosmeticCape[]>([]);
-  const [myCapes, setMyCapes] = useState<CosmeticCape[]>([]);
-  const [allPagination, setAllPagination] = useState<PaginationInfo | null>(null);
-  const [myPagination, setMyPagination] = useState<PaginationInfo | null>(null);
-  // Separate loading states for ALL and MY CAPES
-  const [isLoadingAll, setIsLoadingAll] = useState(false);
-  const [isLoadingMy, setIsLoadingMy] = useState(false);
-  const [isFetchingMoreAll, setIsFetchingMoreAll] = useState(false);
-  const [isFetchingMoreMy, setIsFetchingMoreMy] = useState(false);
-  const [isEquippingCapeId, setIsEquippingCapeId] = useState<string | null>(
-    null,
-  );
-  const [isUploading, setIsUploading] = useState(false);
-  const [isUnequipping, setIsUnequipping] = useState(false);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [filters, setFilters] = useState<CapeFiltersData>({
-    sortBy: "",
-    timeFrame: "",
-    showOwnedOnly: false,
-    showFavoritesOnly: false,
-    showVanillaOnly: false,
-  });
-  const [searchQuery, setSearchQuery] = useState<string>("");
-
-  // Helper functions to get correct setters based on current filter
-  const getCapesSetter = (showOwnedOnly: boolean) =>
-    showOwnedOnly ? setMyCapes : setAllCapes;
-  const getPaginationSetter = (showOwnedOnly: boolean) =>
-    showOwnedOnly ? setMyPagination : setAllPagination;
-
-  const accentColor = useThemeStore((state) => state.accentColor);
-  const { favoriteCapeIds, isFavorite } = useCapeFavoritesStore();
-  const { ownedCapes: vanillaCapes, isLoading: isLoadingVanilla, error: vanillaError, fetchOwnedCapes, equippedCape } = useVanillaCapeStore();
-
-  // Computed loading states based on current filter or search
-  const isLoading = useMemo(() => {
-    // When searching, always use all loading state
-    if (searchQuery && searchQuery.trim() !== "") {
-      return isLoadingAll;
-    }
-    if (filters.showVanillaOnly) {
-      return isLoadingVanilla;
-    }
-    return filters.showOwnedOnly ? isLoadingMy : isLoadingAll;
-  }, [filters.showOwnedOnly, filters.showVanillaOnly, isLoadingMy, isLoadingAll, isLoadingVanilla, searchQuery]);
-
-  const isFetchingMore = useMemo(() => {
-    // When searching, always use all fetching state
-    if (searchQuery && searchQuery.trim() !== "") {
-      return isFetchingMoreAll;
-    }
-    if (filters.showVanillaOnly) {
-      return false; // Vanilla capes don't have pagination
-    }
-    return filters.showOwnedOnly ? isFetchingMoreMy : isFetchingMoreAll;
-  }, [filters.showOwnedOnly, filters.showVanillaOnly, isFetchingMoreMy, isFetchingMoreAll, searchQuery]);
-
-  // Computed equipped cape ID based on current tab
-  const equippedCapeId = useMemo(() => {
-    if (filters.showVanillaOnly) {
-      return equippedCape?.id || null;
-    }
-    // For NoRisk capes, we don't have equipped state yet
-    return null;
-  }, [filters.showVanillaOnly, equippedCape]);
-
-  const { showModal, hideModal } = useGlobalModal();
-
-  // Computed current data based on filter
-  const capesData = useMemo(() => {
-    // For vanilla capes, filter by search query if present
-    if (filters.showVanillaOnly) {
-      let filteredCapes = vanillaCapes;
-
-      if (searchQuery && searchQuery.trim() !== "") {
-        const query = searchQuery.trim().toLowerCase();
-        filteredCapes = vanillaCapes.filter(cape =>
-          cape.name.toLowerCase().includes(query)
-        );
-      }
-
-      // Add "No Cape" option at the beginning
-      const hasEquippedCape = vanillaCapes.some(cape => cape.equipped);
-      const noCapeOption: VanillaCape = {
-        id: "no-cape",
-        name: "No Cape",
-        description: "Remove your equipped cape",
-        url: "", // Empty URL for no cape
-        equipped: !hasEquippedCape, // Equipped if no other cape is equipped
-        category: "special",
-        active: !hasEquippedCape, // Active if no other cape is equipped
-      };
-
-      return [noCapeOption, ...filteredCapes];
-    }
-
-    // When searching NoRisk capes, always show search results from allCapes
-    if (searchQuery && searchQuery.trim() !== "") {
-      return allCapes;
-    }
-
-    // For favorites, let CapeList handle the filtering - just provide all available capes
-    return filters.showOwnedOnly ? myCapes : allCapes;
-  }, [filters.showOwnedOnly, filters.showVanillaOnly, myCapes, allCapes, vanillaCapes, favoriteCapeIds, searchQuery]); // Add searchQuery to trigger re-render when search changes
-
-  const paginationInfo = useMemo(() => {
-    // When searching, always use allPagination for search results
-    if (searchQuery && searchQuery.trim() !== "") {
-      return allPagination;
-    }
-    if (filters.showFavoritesOnly || filters.showVanillaOnly) {
-      return null; // Favorites and vanilla capes don't need pagination
-    }
-    return filters.showOwnedOnly ? myPagination : allPagination;
-  }, [filters.showOwnedOnly, filters.showFavoritesOnly, filters.showVanillaOnly, myPagination, allPagination, searchQuery]);
-
-  // Filter options for SearchWithFilters
-  const sortOptions = [
-    { value: "", label: "Newest", icon: "solar:sort-by-time-linear" },
-    { value: "oldest", label: "Oldest", icon: "mdi:arrow-up-bold-circle-outline" },
-    { value: "mostUsed", label: "Most Used", icon: "solar:heart-bold" },
-  ];
-
-  const filterOptions = [
-    { value: "", label: "All Time", icon: "solar:calendar-mark-linear" },
-    { value: "weekly", label: "Weekly", icon: "mdi:calendar-week-outline" },
-    { value: "monthly", label: "Monthly", icon: "solar:calendar-date-linear" },
-  ];
-
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [previewImagePath, setPreviewImagePath] = useState<string | null>(null);
-  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
-  const [showElytraPreview, setShowElytraPreview] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [uploadWarning, setUploadWarning] = useState<string | null>(null);
-
-
-  // Helper function to format error messages
-  const formatErrorMessage = (error: string): string => {
-    const detailsIndex = error.indexOf("Details:");
-    if (detailsIndex !== -1) {
-      return error.substring(detailsIndex + 8).trim(); // +8 to skip "Details:"
-    }
-    return error; // Fallback to original error if "Details:" not found
-  };
-
-  // Helper function to determine if error is a warning (contains "In Review")
-  const isWarningMessage = (error: string): boolean => {
-    return error.toLowerCase().includes("in review");
-  };
-
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const isLoadingRef = useRef(false);
   const { activeAccount } = useMinecraftAuthStore();
+  const { ownedCapes: vanillaCapes, isLoading, error, fetchOwnedCapes, equipCape, refreshData } = useVanillaCapeStore();
+  const [showPlayer, setShowPlayer] = useState(true);
+  const [showElytra, setShowElytra] = useState(false);
+  const [selectedCape, setSelectedCape] = useState<VanillaCape | null>(null);
+  const [playerSkin, setPlayerSkin] = useState<string | undefined>(undefined);
+  const accentColor = useThemeStore((state) => state.accentColor);
+  const hasInitializedRef = useRef(false);
+
+  // Get equipped cape
+  const equippedCape = vanillaCapes.find(cape => cape.equipped);
+
+  // Set selected cape to equipped cape on mount
+  useEffect(() => {
+    if (equippedCape && !selectedCape) {
+      setSelectedCape(equippedCape);
+    }
+  }, [equippedCape, selectedCape]);
+
+  // Add "No Cape" option at the beginning of capes list
+  const filteredCapes = useMemo(() => {
+    const hasEquippedCape = vanillaCapes.some(cape => cape.equipped);
+    const noCapeOption: VanillaCape = {
+      id: "no-cape",
+      name: "No Cape",
+      description: "Remove your equipped cape",
+      url: "",
+      equipped: !hasEquippedCape,
+      category: "special",
+      active: !hasEquippedCape,
+    };
+
+    return [noCapeOption, ...vanillaCapes];
+  }, [vanillaCapes]);
+
 
   useEffect(() => {
     preloadIcons(["solar:add-square-bold-duotone"]);
   }, []);
 
-  // Initial load for ALL capes
+  // Fetch vanilla capes on mount and when account changes
   useEffect(() => {
-    const loadAllCapes = async () => {
-      if (allCapes.length > 0 || isLoadingAll) return;
-
-      try {
-        setIsLoadingAll(true);
-        const browseOptions: BrowseCapesOptions = {
-          page: 0,
-          page_size: 20,
-          sort_by: undefined,
-          time_frame: undefined,
-        };
-        const response = await browseCapes(browseOptions);
-        setAllCapes(response.capes);
-        setAllPagination(response.pagination);
-      } catch (error) {
-        console.error("Failed to load ALL capes:", error);
-      } finally {
-        setIsLoadingAll(false);
-      }
-    };
-
-    loadAllCapes();
-  }, []); // Only run once on mount
-
-  // Load MY capes when account becomes available
-  useEffect(() => {
-    const loadMyCapes = async () => {
-      if (!activeAccount || myCapes.length > 0 || isLoadingMy) return;
-
-      try {
-        setIsLoadingMy(true);
-        const playerCapesOptions: GetPlayerCapesPayloadOptions = {
-          player_identifier: activeAccount.id,
-        };
-        const response = await getPlayerCapes(playerCapesOptions);
-        setMyCapes(response);
-        setMyPagination({
-          currentPage: 0,
-          pageSize: response.length,
-          totalItems: response.length,
-          totalPages: 1,
-        });
-      } catch (error) {
-        console.error("Failed to load MY capes:", error);
-      } finally {
-        setIsLoadingMy(false);
-      }
-    };
-
-    loadMyCapes();
-  }, [activeAccount]); // Run when activeAccount changes
-
-  // Load VANILLA capes when account becomes available and vanilla tab is active
-  useEffect(() => {
-    if (activeAccount && filters.showVanillaOnly && vanillaCapes.length === 0 && !isLoadingVanilla && !vanillaError) {
+    if (activeAccount) {
       fetchOwnedCapes();
+      hasInitializedRef.current = true;
     }
-  }, [activeAccount, filters.showVanillaOnly, vanillaCapes.length, isLoadingVanilla, vanillaError, fetchOwnedCapes]);
+  }, [activeAccount, fetchOwnedCapes]);
 
-  const hasMoreItems = useMemo(() => {
-    // Search results and vanilla capes don't have pagination
-    if (searchQuery && searchQuery.trim() !== "" || filters.showVanillaOnly) {
-      return false;
-    }
-    return paginationInfo
-      ? paginationInfo.currentPage < paginationInfo.totalPages - 1
-      : false;
-  }, [paginationInfo, searchQuery, filters.showVanillaOnly]);
-
-  const fetchCapesData = useCallback(
-    async (
-      pageToFetch: number,
-      currentFilters: CapeFiltersData,
-      currentSearchQuery: string,
-      append = false,
-    ) => {
-      // Prevent concurrent requests
-      if (isLoadingRef.current) {
-        return;
-      }
-
-      isLoadingRef.current = true;
-
-      if (append) {
-        if (currentFilters.showOwnedOnly) {
-          setIsFetchingMoreMy(true);
-        } else {
-          setIsFetchingMoreAll(true);
-        }
-      } else {
-        if (currentFilters.showOwnedOnly) {
-          setIsLoadingMy(true);
-        } else {
-          setIsLoadingAll(true);
-        }
-      }
-
-      try {
-        let response;
-        const currentActiveAccount = useMinecraftAuthStore.getState().activeAccount;
-
-        // Priority: Search > Owned Only > Browse All
-        if (currentSearchQuery && currentSearchQuery.trim() !== "") {
-          // Search for player capes - this should work regardless of current tab
-          const playerCapesOptions: GetPlayerCapesPayloadOptions = {
-            player_identifier: currentSearchQuery.trim(),
-          };
-          response = await getPlayerCapes(playerCapesOptions);
-
-          // Always use the "all" setters for search results since we're searching globally
-          setAllCapes(response);
-          setAllPagination({
-            currentPage: 0,
-            pageSize: response.length,
-            totalItems: response.length,
-            totalPages: 1,
-          });
-        } else if (currentFilters.showOwnedOnly && currentActiveAccount) {
-          // Load user's own capes
-          const playerCapesOptions: GetPlayerCapesPayloadOptions = {
-            player_identifier: currentActiveAccount.id,
-          };
-          response = await getPlayerCapes(playerCapesOptions);
-          const setCapes = getCapesSetter(currentFilters.showOwnedOnly);
-          const setPagination = getPaginationSetter(currentFilters.showOwnedOnly);
-          setCapes(response);
-          setPagination({
-            currentPage: 0,
-            pageSize: response.length,
-            totalItems: response.length,
-            totalPages: 1,
-          });
-        } else {
-          // Browse all capes
-          const browseOptions: BrowseCapesOptions = {
-            page: pageToFetch,
-            page_size: 20,
-            sort_by:
-              currentFilters.sortBy === "" ? undefined : currentFilters.sortBy,
-            time_frame:
-              currentFilters.timeFrame === ""
-                ? undefined
-                : currentFilters.timeFrame,
-          };
-          response = await browseCapes(browseOptions);
-
-          // Get the correct setters based on current filter
-          const setCapes = getCapesSetter(currentFilters.showOwnedOnly);
-          const setPagination = getPaginationSetter(currentFilters.showOwnedOnly);
-
-          // Update data with proper state management
-          setCapes((prevActualCapes) => {
-            const newCapes = append ? [...prevActualCapes, ...response.capes] : response.capes;
-            // Check if the data is actually different
-            if (prevActualCapes.length === newCapes.length &&
-                prevActualCapes.every((cape, index) => cape._id === newCapes[index]._id)) {
-              return prevActualCapes; // Return same reference to prevent re-render
-            }
-            return newCapes;
-          });
-          setPagination(response.pagination);
-        }
-      } catch (err: any) {
-        console.error("Error fetching capes:", err);
-        const errorMessage =
-          err?.message || "Failed to load capes. Please try again later.";
-        toast.error(errorMessage);
-        if (!append) {
-          const setCapes = getCapesSetter(currentFilters.showOwnedOnly);
-          const setPagination = getPaginationSetter(currentFilters.showOwnedOnly);
-          setCapes([]);
-          setPagination(null);
-        }
-      } finally {
-        isLoadingRef.current = false;
-        if (append) {
-          if (currentFilters.showOwnedOnly) {
-            setIsFetchingMoreMy(false);
-          } else {
-            setIsFetchingMoreAll(false);
-          }
-        } else {
-          if (currentFilters.showOwnedOnly) {
-            setIsLoadingMy(false);
-          } else {
-            setIsLoadingAll(false);
-          }
-        }
-      }
-    },
-    [], // Stable callback
-  );
-
-  // Handle filter/search changes that require reloading data
+  // Fetch player skin
   useEffect(() => {
-    const handleFilterChange = async () => {
-      if (isLoadingRef.current) return;
-
-      // For sort/filter changes, reload the current view
-      if (currentPage === 0) {
-        const currentData = filters.showOwnedOnly ? myCapes : allCapes;
-        if (currentData.length > 0) {
-          if (filters.showOwnedOnly) {
-            setIsLoadingMy(true);
-          } else {
-            setIsLoadingAll(true);
-          }
-          try {
-            await fetchCapesData(0, filters, searchQuery, false);
-          } catch (error) {
-            console.error("Failed to reload data:", error);
-          } finally {
-            if (filters.showOwnedOnly) {
-              setIsLoadingMy(false);
-            } else {
-              setIsLoadingAll(false);
-            }
-          }
-        }
-      }
-    };
-
-    handleFilterChange();
-  }, [filters.sortBy, filters.timeFrame]); // Only trigger on actual filter changes
-
-  // Pagination useEffect
-  useEffect(() => {
-    const handlePagination = async () => {
-      if (currentPage > 0 && !isLoadingRef.current) {
-        if (filters.showOwnedOnly) {
-          setIsFetchingMoreMy(true);
-        } else {
-          setIsFetchingMoreAll(true);
-        }
-        try {
-          await fetchCapesData(currentPage, filters, searchQuery, true);
-        } catch (error) {
-          console.error("Failed to load more data:", error);
-        } finally {
-          if (filters.showOwnedOnly) {
-            setIsFetchingMoreMy(false);
-          } else {
-            setIsFetchingMoreAll(false);
-          }
-        }
-      }
-    };
-
-    handlePagination();
-  }, [currentPage]);
-
-  const loadMoreCapes = useCallback(() => {
-    if (hasMoreItems && !isFetchingMore) {
-      setCurrentPage((prevPage) => prevPage + 1);
-    }
-  }, [hasMoreItems, isFetchingMore, paginationInfo, currentPage]);
-
-  const handleSortChange = (value: string) => {
-    const newFilters = { ...filters, sortBy: value || undefined };
-    const hasMajorFilterChanged = newFilters.sortBy !== filters.sortBy;
-
-    setFilters(newFilters);
-    if (hasMajorFilterChanged) {
-      setSearchQuery("");
-      setCurrentPage(0);
-      // Trigger reload with new sort filter
-      if (!isLoadingRef.current) {
-        if (filters.showOwnedOnly) {
-          setIsLoadingMy(true);
-          fetchCapesData(0, newFilters, "", false).finally(() => {
-            setIsLoadingMy(false);
-          });
-        } else if (!filters.showFavoritesOnly) {
-          setIsLoadingAll(true);
-          fetchCapesData(0, newFilters, "", false).finally(() => {
-            setIsLoadingAll(false);
-          });
-        }
-      }
-    } else if (currentPage !== 0) {
-      setCurrentPage(0);
-    }
-  };
-
-  const handleFilterChange = (value: string) => {
-    const newFilters = { ...filters, timeFrame: value || undefined };
-    const hasMajorFilterChanged = newFilters.timeFrame !== filters.timeFrame;
-
-    setFilters(newFilters);
-    if (hasMajorFilterChanged) {
-      setSearchQuery("");
-      setCurrentPage(0);
-      // Trigger reload with new time frame filter
-      if (!isLoadingRef.current) {
-        if (filters.showOwnedOnly) {
-          setIsLoadingMy(true);
-          fetchCapesData(0, newFilters, "", false).finally(() => {
-            setIsLoadingMy(false);
-          });
-        } else if (!filters.showFavoritesOnly) {
-          setIsLoadingAll(true);
-          fetchCapesData(0, newFilters, "", false).finally(() => {
-            setIsLoadingAll(false);
-          });
-        }
-      }
-    } else if (currentPage !== 0) {
-      setCurrentPage(0);
-    }
-  };
-
-  const handleSearchChange = (value: string) => {
-    const previousValue = searchQuery;
-    setSearchQuery(value);
-
-    // If search is being cleared (from non-empty to empty), immediately reload default capes
-    if (previousValue.trim() !== "" && value.trim() === "") {
-      setCurrentPage(0);
-      // Clear search results and trigger reload of default capes
-      setAllCapes([]);
-      setAllPagination(null);
-      // Force a reload by triggering search with empty value
-      if (!isLoadingRef.current) {
-        setIsLoadingAll(true);
-        fetchCapesData(0, filters, "", false).finally(() => {
-          setIsLoadingAll(false);
-        });
-      }
-    }
-  };
-
-  const handleSearchEnter = (value: string) => {
-    // Immediately trigger search when Enter is pressed
-    // This bypasses the debouncing for instant search
-    if (!isLoadingRef.current) {
-      fetchCapesData(0, filters, value, false);
-    }
-  };
-
-
-  const refreshCurrentView = () => {
-    console.log("[CapeBrowser] Refreshing current view...");
-    // Clear current view data and reload
-    setCurrentPage(0);
-
-    if (!isLoadingRef.current) {
-      if (searchQuery && searchQuery.trim() !== "") {
-        // When searching, clear search results and reload
-        setAllCapes([]);
-        setAllPagination(null);
-        setIsLoadingAll(true);
-        fetchCapesData(0, filters, searchQuery, false).finally(() => {
-          setIsLoadingAll(false);
-        });
-      } else if (filters.showOwnedOnly) {
-        setMyCapes([]);
-        setMyPagination(null);
-        setIsLoadingMy(true);
-        fetchCapesData(0, filters, "", false).finally(() => {
-          setIsLoadingMy(false);
-        });
-      } else if (!filters.showFavoritesOnly) {
-        setAllCapes([]);
-        setAllPagination(null);
-        setIsLoadingAll(true);
-        fetchCapesData(0, filters, "", false).finally(() => {
-          setIsLoadingAll(false);
-        });
-      }
-      // Favorites don't need clearing as they're computed from existing data
-    }
-  };
-
-  const handleEquipCape = async (capeHash: string) => {
-    setIsEquippingCapeId(capeHash);
-
-    let promise;
-    if (filters.showVanillaOnly) {
-      // For vanilla capes, use the vanilla store
-      // Special handling for "no-cape" option - unequip all capes
-      const actualCapeId = capeHash === "no-cape" ? null : capeHash;
-      promise = useVanillaCapeStore.getState().equipCape(actualCapeId);
-    } else {
-      // For NoRisk capes, use the regular equip function
-      promise = equipCape(capeHash);
-    }
-
-    toast.promise(promise, {
-      loading: "Equipping cape...",
-      success: () => {
-        setIsEquippingCapeId(null);
-        return "Cape equipped successfully!";
-      },
-      error: (err: any) => {
-        setIsEquippingCapeId(null);
-        console.error("Error equipping cape:", err);
-        return `Failed to equip cape: ${err.message || "Unknown error"}`;
-      },
-    });
-  };
-
-  const handleUnequipCape = async () => {
-    setIsUnequipping(true);
-    try {
-      await unequipCape();
-      toast.success("Cape unequipped successfully!");
-    } catch (err: any) {
-      console.error("Error unequipping cape:", err);
-      toast.error(`Failed to unequip cape: ${err.message || "Unknown error"}`);
-    } finally {
-      setIsUnequipping(false);
-    }
-  };
-
-  const handleDeleteCapeClick = (cape: CosmeticCape) => {
-    showModal('delete-cape-modal', (
-      <ConfirmDeletionModal
-        capeToDelete={cape}
-        onConfirmDelete={async () => {
-          try {
-            await deleteCape(cape._id);
-            toast.success("Cape deleted successfully!");
-            refreshCurrentView();
-            hideModal('delete-cape-modal');
-          } catch (err: any) {
-            console.error("Error deleting cape:", err);
-            toast.error(`Failed to delete cape: ${err.message || "Unknown error"}`);
-          }
-        }}
-        onCancelDelete={() => hideModal('delete-cape-modal')}
-      />
-    ));
-  };
-
-  const handleUploadClick = async () => {
-    try {
-      const selectedFile = await open({
-        multiple: false,
-        directory: false,
-        filters: [{ name: "PNG Images", extensions: ["png"] }],
-      });
-      if (!selectedFile) return;
-      const filePath = selectedFile as string;
-      setPreviewImagePath(filePath);
+    if (activeAccount) {
       try {
-        const imageUrl = convertFileSrc(filePath);
-        setPreviewImageUrl(imageUrl);
-        setShowPreviewModal(true);
-
-        // Show modal using global modal system
-        showModal('upload-cape-modal', (
-          <UploadCapeModal
-            previewImageUrl={imageUrl}
-            previewImagePath={filePath}
-            formatErrorMessage={formatErrorMessage}
-            isWarningMessage={isWarningMessage}
-            onCancelUpload={handleCancelUpload}
-          />
-        ));
-      } catch (err: any) {
-        console.error("Error creating preview URL:", err);
-        toast.error(`Couldn't preview file: ${err.message || "Unknown error"}`);
+        const skinUrl = getSkinUrl(activeAccount.id);
+        console.log('[CapeBrowser] Setting player skin URL:', skinUrl);
+        setPlayerSkin(skinUrl);
+      } catch (error) {
+        console.error('Failed to fetch player skin:', error);
+        setPlayerSkin(undefined);
       }
-    } catch (err: any) {
-      console.error("Error selecting cape file:", err);
-      toast.error(
-        `Failed to select cape file: ${err.message || "Unknown error"}`,
-      );
     }
-  };
+  }, [activeAccount]);
 
-  const handleCancelUpload = () => {
-    hideModal('upload-cape-modal');
-    setPreviewImagePath(null);
-    setPreviewImageUrl(null);
-    setShowPreviewModal(false);
-    setShowElytraPreview(false);
-    setUploadError(null);
-    setUploadWarning(null);
-    setIsUploading(false);
-  };
+  const handleSelectCape = useCallback((cape: VanillaCape) => {
+    setSelectedCape(cape);
+  }, []);
 
+  const handleEquipCape = useCallback(async (cape: VanillaCape) => {
+    try {
+      const actualCapeId = cape.id === "no-cape" ? null : cape.id;
+      await equipCape(actualCapeId);
+      toast.success("Cape equipped successfully!");
+    } catch (error) {
+      console.error("Error equipping cape:", error);
+      toast.error(`Failed to equip cape: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  }, [equipCape]);
 
-  const handleDownloadTemplate = async () => {
-    const promise = downloadTemplateAndOpenExplorer();
-    toast.promise(promise, {
-      loading: "Downloading template...",
-      success: "Template downloaded and folder opened!",
-      error: (err: any) =>
-        `Failed to download template: ${err.message || "Unknown error"}`,
-    });
-  };
-
-  const capesForList = useMemo(() => {
-    return capesData; // Return the same reference if data hasn't changed
-  }, [capesData]);
+  const handleRefresh = useCallback(async () => {
+    try {
+      await refreshData();
+      toast.success("Capes refreshed!");
+    } catch (error) {
+      console.error("Error refreshing capes:", error);
+      toast.error("Failed to refresh capes");
+    }
+  }, [refreshData]);
 
   return (
-    <div className="h-full flex flex-col overflow-hidden p-4 relative">
-      <div className="flex-1 overflow-y-auto no-scrollbar">
-        {/* Group Tabs */}
-        <div className="mb-4">
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  onClick={() => {
-                    const newFilters = { ...filters, showOwnedOnly: false, showFavoritesOnly: false, showVanillaOnly: false };
-                    setFilters(newFilters);
-                    setSearchQuery("");
-                    setCurrentPage(0);
-                    if (!isLoadingRef.current) {
-                      setIsLoadingAll(true);
-                      fetchCapesData(0, newFilters, "", false).finally(() => {
-                        setIsLoadingAll(false);
-                      });
-                    }
-                  }}
-                  className={`px-3 py-1 rounded-lg font-minecraft text-2xl transition-all duration-200 flex items-center gap-2 border-2 ${
-                    !filters.showOwnedOnly && !filters.showFavoritesOnly && !filters.showVanillaOnly
-                      ? 'text-white'
-                      : 'text-white/70 bg-black/30 hover:bg-black/40 border-white/10 hover:border-white/20'
-                  }`}
-                  style={{
-                    backgroundColor: (!filters.showOwnedOnly && !filters.showFavoritesOnly && !filters.showVanillaOnly) ? `${accentColor.value}20` : undefined,
-                    borderColor: (!filters.showOwnedOnly && !filters.showFavoritesOnly && !filters.showVanillaOnly) ? accentColor.value : undefined,
-                  }}
-                >
-                  <span className="lowercase">all</span>
-                </button>
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="p-4 border-b border-white/10 flex items-center justify-between">
+        <h2 className="text-3xl font-minecraft text-white">Vanilla Capes</h2>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-white/70 font-minecraft text-xl">
+              <input
+                type="checkbox"
+                checked={showPlayer}
+                onChange={(e) => setShowPlayer(e.target.checked)}
+                className="w-4 h-4"
+              />
+              Show Player
+            </label>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-white/70 font-minecraft text-xl">
+              <input
+                type="checkbox"
+                checked={showElytra}
+                onChange={(e) => setShowElytra(e.target.checked)}
+                className="w-4 h-4"
+              />
+              Show Elytra
+            </label>
+          </div>
+          <Button
+            onClick={handleRefresh}
+            disabled={isLoading}
+            size="sm"
+          >
+            <Icon icon="solar:refresh-bold" className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
 
-                <button
-                  onClick={() => {
-                    if (!activeAccount) return;
-                    const newFilters = { ...filters, showOwnedOnly: true, showFavoritesOnly: false, showVanillaOnly: false };
-                    setFilters(newFilters);
-                    setSearchQuery("");
-                    setCurrentPage(0);
-                    if (!isLoadingRef.current && activeAccount) {
-                      setIsLoadingMy(true);
-                      fetchCapesData(0, newFilters, "", false).finally(() => {
-                        setIsLoadingMy(false);
-                      });
-                    }
-                  }}
-                  disabled={!activeAccount}
-                  className={`px-3 py-1 rounded-lg font-minecraft text-2xl transition-all duration-200 flex items-center gap-2 border-2 ${
-                    filters.showOwnedOnly && !filters.showFavoritesOnly && !filters.showVanillaOnly
-                      ? 'text-white'
-                      : 'text-white/70 bg-black/30 hover:bg-black/40 border-white/10 hover:border-white/20'
-                  } ${!activeAccount ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  style={{
-                    backgroundColor: (filters.showOwnedOnly && !filters.showFavoritesOnly && !filters.showVanillaOnly) ? `${accentColor.value}20` : undefined,
-                    borderColor: (filters.showOwnedOnly && !filters.showFavoritesOnly && !filters.showVanillaOnly) ? accentColor.value : undefined,
-                  }}
-                  title={!activeAccount ? "No active Minecraft account" : undefined}
-                >
-                  <span className="lowercase">my capes</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    const newFilters = { ...filters, showOwnedOnly: false, showFavoritesOnly: true, showVanillaOnly: false };
-                    setFilters(newFilters);
-                    setSearchQuery("");
-                    setCurrentPage(0);
-                  }}
-                  className={`px-3 py-1 rounded-lg font-minecraft text-2xl transition-all duration-200 flex items-center gap-2 border-2 ${
-                    filters.showFavoritesOnly && !filters.showVanillaOnly
-                      ? 'text-white'
-                      : 'text-white/70 bg-black/30 hover:bg-black/40 border-white/10 hover:border-white/20'
-                  }`}
-                  style={{
-                    backgroundColor: (filters.showFavoritesOnly && !filters.showVanillaOnly) ? `${accentColor.value}20` : undefined,
-                    borderColor: (filters.showFavoritesOnly && !filters.showVanillaOnly) ? accentColor.value : undefined,
-                  }}
-                >
-                  <span className="lowercase">favorites</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    if (!activeAccount) return;
-                    const newFilters = { ...filters, showOwnedOnly: false, showFavoritesOnly: false, showVanillaOnly: true };
-                    setFilters(newFilters);
-                    setSearchQuery("");
-                    setCurrentPage(0);
-                  }}
-                  disabled={!activeAccount}
-                  className={`px-3 py-1 rounded-lg font-minecraft text-2xl transition-all duration-200 flex items-center gap-2 border-2 ${
-                    filters.showVanillaOnly
-                      ? 'text-white'
-                      : 'text-white/70 bg-black/30 hover:bg-black/40 border-white/10 hover:border-white/20'
-                  } ${!activeAccount ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  style={{
-                    backgroundColor: filters.showVanillaOnly ? `${accentColor.value}20` : undefined,
-                    borderColor: filters.showVanillaOnly ? accentColor.value : undefined,
-                  }}
-                  title={!activeAccount ? "No active Minecraft account" : undefined}
-                >
-                  <span className="lowercase">vanilla</span>
-                </button>
+      {/* Main content */}
+      <div className="flex-1 overflow-hidden flex gap-4 p-4">
+        {/* Left Side - Player Preview */}
+        <div className="w-1/3 bg-black/30 rounded-lg overflow-hidden border border-white/10 flex flex-col">
+          {/* 3D Preview */}
+          <div className="flex-1 bg-black/50 relative flex items-center justify-center">
+            {selectedCape ? (
+              <div className="w-full h-full relative">
+                <SkinView3DWrapper
+                  skinUrl={playerSkin}
+                  capeUrl={selectedCape.id === "no-cape" ? undefined : selectedCape.url}
+                  enableAutoRotate={true}
+                  autoRotateSpeed={0.3}
+                  displayAsElytra={showElytra}
+                  zoom={0.9}
+                  enableRotate={true}
+                  enableZoom={false}
+                  enablePan={false}
+                  horizontalRotationOnly={true}
+                />
               </div>
+            ) : (
+              <div className="text-center">
+                <Icon icon="solar:cape-bold" className="w-16 h-16 text-white/30 mx-auto mb-2" />
+                <p className="font-minecraft text-white/70">Select a cape to preview</p>
+              </div>
+            )}
+          </div>
+
+          {/* Cape Info and Equip Button */}
+          <div className="p-4 border-t border-white/10 bg-black/20">
+            <h3 className="text-xl font-minecraft text-white mb-3 lowercase">
+              {selectedCape?.name || 'No Cape Selected'}
+            </h3>
+
+            {selectedCape && selectedCape.id !== "no-cape" && (
+              <Button
+                onClick={() => handleEquipCape(selectedCape)}
+                disabled={isLoading || selectedCape.equipped}
+                size="md"
+                className="w-full"
+              >
+                {isLoading ? (
+                  <>
+                    <Icon icon="solar:refresh-bold" className="w-4 h-4 mr-2 animate-spin" />
+                    Equipping...
+                  </>
+                ) : selectedCape.equipped ? (
+                  'Currently Equipped'
+                ) : (
+                  'Equip This Cape'
+                )}
+              </Button>
+            )}
+
+            {selectedCape && selectedCape.id === "no-cape" && (
+              <Button
+                onClick={() => handleEquipCape(selectedCape)}
+                disabled={isLoading || !equippedCape}
+                size="md"
+                className="w-full"
+              >
+                {isLoading ? (
+                  <>
+                    <Icon icon="solar:refresh-bold" className="w-4 h-4 mr-2 animate-spin" />
+                    Removing...
+                  </>
+                ) : !equippedCape ? (
+                  'No Cape Equipped'
+                ) : (
+                  'Remove Cape'
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Right Side - Cape Grid */}
+        <div className="w-2/3 overflow-hidden flex flex-col">
+          {/* Error state */}
+          {error && (
+            <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 mb-4">
+              <p className="text-red-300 font-minecraft text-sm">{error}</p>
             </div>
-            {/* Search & Filters */}
-            <div className="mb-6 pb-4 border-b border-white/10">
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  {!filters.showVanillaOnly ? (
-                    <SearchWithFilters
-                      placeholder="Search player..."
-                      searchValue={searchQuery}
-                      onSearchChange={handleSearchChange}
-                      onSearchEnter={handleSearchEnter}
-                      sortOptions={sortOptions}
-                      sortValue={filters.sortBy || ""}
-                      onSortChange={handleSortChange}
-                      filterOptions={filterOptions}
-                      filterValue={filters.timeFrame || ""}
-                      onFilterChange={handleFilterChange}
-                    />
-                  ) : (
-                    <SearchWithFilters
-                      placeholder="Search vanilla cape..."
-                      searchValue={searchQuery}
-                      onSearchChange={handleSearchChange}
-                      onSearchEnter={handleSearchEnter}
-                      sortOptions={[]} // No sorting options for vanilla capes
-                      sortValue=""
-                      onSortChange={() => {}} // No-op
-                      filterOptions={[]} // No time frame filters for vanilla capes
-                      filterValue=""
-                      onFilterChange={() => {}} // No-op
-                    />
-                  )}
-                </div>
+          )}
 
-                {/* Action Buttons */}
-                <div className="flex items-center gap-3">
-                  {activeAccount && (
-                    <>
-                      <button
-                        onClick={handleDownloadTemplate}
-                        className="flex items-center gap-2 px-4 py-2 bg-black/30 hover:bg-black/40 text-white/70 hover:text-white border border-white/10 hover:border-white/20 rounded-lg font-minecraft text-2xl lowercase transition-all duration-200"
-                        title="Download Cape Template"
-                      >
-                        <div className="w-4 h-4 flex items-center justify-center">
-                          <Icon icon="solar:download-bold" className="w-4 h-4" />
-                        </div>
-                        <span>template</span>
-                      </button>
-
-                      <button
-                        onClick={handleUploadClick}
-                        className="flex items-center gap-2 px-4 py-2 bg-black/30 hover:bg-black/40 text-white/70 hover:text-white border border-white/10 hover:border-white/20 rounded-lg font-minecraft text-2xl lowercase transition-all duration-200"
-                        title="Upload Cape"
-                      >
-                        <div className="w-4 h-4 flex items-center justify-center">
-                          <Icon icon="solar:upload-bold" className="w-4 h-4" />
-                        </div>
-                        <span>upload</span>
-                      </button>
-                    </>
-                  )}
+          {/* Cape Grid */}
+          <div className="flex-1 overflow-y-auto">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <Icon icon="solar:refresh-bold" className="w-8 h-8 animate-spin text-white/50 mx-auto mb-2" />
+                  <p className="text-white/70 font-minecraft">Loading capes...</p>
                 </div>
               </div>
-            </div>
-
-            {/* Cape List */}
-            <CapeList
-              capes={capesForList}
-              onEquipCape={handleEquipCape}
-              isLoading={isLoading}
-              isEquippingCapeId={isEquippingCapeId}
-              equippedCapeId={equippedCapeId}
-              searchQuery={searchQuery}
-              canDelete={(filters.showOwnedOnly && !!activeAccount) && !(searchQuery && searchQuery.trim() !== "") && !filters.showVanillaOnly}
-              onDeleteCape={handleDeleteCapeClick}
-              loadMoreItems={loadMoreCapes}
-              hasMoreItems={hasMoreItems}
-              isFetchingMore={isFetchingMore}
-              onTriggerUpload={activeAccount ? handleUploadClick : undefined}
-              onDownloadTemplate={activeAccount ? handleDownloadTemplate : undefined}
-              groupFavoritesInHeader={filters.showFavoritesOnly}
-              showFavoritesOnly={filters.showFavoritesOnly}
-              isVanilla={filters.showVanillaOnly}
-            />
+            ) : filteredCapes.length === 0 ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <Icon icon="solar:sad-bold" className="w-12 h-12 text-white/30 mx-auto mb-2" />
+                  <p className="text-white/70 font-minecraft">No capes found</p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-3">
+                {filteredCapes.map((cape) => (
+                  <div
+                    key={cape.id}
+                    onClick={() => handleSelectCape(cape)}
+                    className={`p-3 rounded-lg cursor-pointer transition-all border-2 ${
+                      selectedCape?.id === cape.id
+                        ? `border-[${accentColor.value}] bg-black/40`
+                        : 'border-white/10 hover:border-white/20 bg-black/20 hover:bg-black/30'
+                    }`}
+                    style={{
+                      borderColor: selectedCape?.id === cape.id ? accentColor.value : undefined,
+                    }}
+                  >
+                    <div className="aspect-square rounded mb-2 overflow-hidden bg-black/40 flex items-center justify-center">
+                      <CapePreview2D
+                        capeUrl={cape.url}
+                        playerUuid={activeAccount?.id}
+                        className="w-full h-full"
+                      />
+                    </div>
+                    <h4 className="text-2xl font-minecraft text-white text-center lowercase break-words line-clamp-2 leading-none">
+                      {cape.name}
+                    </h4>
+                    {cape.equipped && (
+                      <div className="mt-1 text-center">
+                        <span className="text-xs px-2 py-1 bg-green-500/20 text-green-400 rounded font-minecraft">
+                          ✓
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

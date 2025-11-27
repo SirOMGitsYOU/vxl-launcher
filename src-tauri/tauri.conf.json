@@ -45,8 +45,7 @@
           "'self'",
           "https://api.iconify.design",
           "https://*.modrinth.com",
-          "https://sessionserver.mojang.com",
-          "https://*.norisk.gg"
+          "https://sessionserver.mojang.com"
         ],
         "img-src": [
           "'self'",
@@ -54,13 +53,11 @@
           "http://asset.localhost",
           "https://*.modrinth.com",
           "https://cdn.modrinth.com",
-          "https://*.norisk.gg",
           "https://textures.minecraft.net",
           "http://textures.minecraft.net",
-          "https://crafatar.com",
+          "https://avatar.vxl.to",
           "https://media.forgecdn.net",
-          "data:",
-          "https://qr-generator-putuwaw.vercel.app"
+          "data:"
         ]
       },
       "assetProtocol": {
