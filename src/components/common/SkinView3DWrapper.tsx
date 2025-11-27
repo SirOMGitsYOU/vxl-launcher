@@ -24,7 +24,7 @@ interface SkinView3DWrapperProps {
   horizontalRotationOnly?: boolean;
 }
 
-const DEFAULT_STEVE_SKIN_URL = 'https://crafatar.com/skins/8667ba71b358a38efd67f79b3cc33b1f'; // Steve UUID
+const DEFAULT_STEVE_SKIN_URL = 'https://avatar.vxl.to//skins/8667ba71b358a38efd67f79b3cc33b1f'; // Steve UUID
 const FALLBACK_STEVE_SKIN_URL = 'https://avatars.cloudhaven.gg/skins/8667ba71b358a38efd67f79b3cc33b1f';
 
 // Helper function to convert skin variant to skinview3d model
