@@ -81,7 +81,7 @@ export const SkinView3DWrapper: React.FC<SkinView3DWrapperProps> = ({
           skinLoadedSuccessfullyRef.current = true;
         } else {
           // If we can't extract UUID, try CloudHaven fallback directly
-          const cloudhavenUrl = url.replace('crafatar.com', 'avatars.cloudhaven.gg');
+          const cloudhavenUrl = url.replace('avatar.vxl.to', 'avatars.cloudhaven.gg');
           console.log(`[SkinView3D] Attempting CloudHaven fallback: ${cloudhavenUrl}`);
           await viewer.loadSkin(cloudhavenUrl);
           skinLoadedSuccessfullyRef.current = true;
