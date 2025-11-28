@@ -14,56 +14,6 @@ export const fetchNewsAndChangelogs = (): Promise<BlogPost[]> => {
 };
 
 /**
- * Initiates the Discord account linking process.
- *
- * @returns A promise that resolves when the command is successfully sent.
- * @throws If the backend command fails.
- */
-export const discordAuthLink = (): Promise<void> => {
-  return invoke('discord_auth_link');
-};
-
-/**
- * Checks the Discord account linking status.
- *
- * @returns A promise that resolves to a boolean indicating if a Discord account is linked.
- * @throws If the backend command fails.
- */
-export const discordAuthStatus = (): Promise<boolean> => {
-  return invoke('discord_auth_status');
-};
-
-/**
- * Unlinks the currently linked Discord account.
- *
- * @returns A promise that resolves when the unlinking process is successful.
- * @throws If the backend command fails.
- */
-export const discordAuthUnlink = (): Promise<void> => {
-  return invoke('discord_auth_unlink');
-};
-
-/**
- * Gets the mobile app token for NoRisk mobile app linking.
- *
- * @returns A promise that resolves to the mobile app token string.
- * @throws If the backend command fails.
- */
-export const getMobileAppToken = (): Promise<string> => {
-  return invoke('get_mobile_app_token');
-};
-
-/**
- * Resets the mobile app token for NoRisk mobile app linking.
- *
- * @returns A promise that resolves to the new mobile app token string.
- * @throws If the backend command fails.
- */
-export const resetMobileAppToken = (): Promise<string> => {
-  return invoke('reset_mobile_app_token');
-};
-
-/**
  * Checks if an application update is available.
  * Uses the beta channel setting from the launcher configuration.
  *

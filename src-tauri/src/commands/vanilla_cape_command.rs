@@ -25,21 +25,32 @@ pub async fn get_owned_vanilla_capes() -> Result<Vec<VanillaCape>, CommandError>
 
     let cape_api = VanillaCapeApi::new();
     
-    let result = cape_api
+    let owned_capes = cape_api
         .get_owned_capes(&active_account.access_token)
         .await
         .map_err(|e| {
             debug!("Failed to get owned vanilla capes: {:?}", e);
             CommandError::from(e)
-        });
+        })?;
 
-    if result.is_ok() {
-        debug!("Command completed: get_owned_vanilla_capes");
-    } else {
-        debug!("Command failed: get_owned_vanilla_capes");
+    let equipped_cape = cape_api
+        .get_currently_equipped_cape(&active_account.access_token)
+        .await
+        .map_err(|e| {
+            debug!("Failed to get currently equipped vanilla cape: {:?}", e);
+            CommandError::from(e)
+        })?;
+
+    // Mark the equipped cape in the owned capes list
+    let mut result_capes = owned_capes;
+    if let Some(equipped) = equipped_cape {
+        if let Some(cape) = result_capes.iter_mut().find(|c| c.id == equipped.id) {
+            cape.equipped = true;
+        }
     }
 
-    result
+    debug!("Command completed: get_owned_vanilla_capes - found {} capes", result_capes.len());
+    Ok(result_capes)
 }
 
 #[tauri::command]

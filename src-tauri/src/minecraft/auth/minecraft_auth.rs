@@ -10,7 +10,6 @@ use chrono::{DateTime, Duration, Utc};
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use log::error;
 use log::info;
-use machineid_rs::{Encryption, HWIDComponent, IdBuilder};
 use p256::ecdsa::signature::Signer;
 use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
 use p256::pkcs8::{DecodePrivateKey, EncodePrivateKey, LineEnding};
@@ -28,13 +27,6 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use crate::config::{ProjectDirsExt, HTTP_CLIENT, LAUNCHER_DIRECTORY};
-use crate::minecraft::api::NoRiskApi;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct NoRiskTokenClaims {
-    exp: usize,
-    username: String,
-}
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Credentials {
@@ -43,61 +35,7 @@ pub struct Credentials {
     pub access_token: String,
     pub refresh_token: String,
     pub expires: DateTime<Utc>,
-    pub norisk_credentials: NoRiskCredentials,
     pub active: bool,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct NoRiskCredentials {
-    pub production: Option<NoRiskToken>,
-    pub experimental: Option<NoRiskToken>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct NoRiskToken {
-    pub value: String,
-    //TODO habs nichts hinbekommen jetzt erstmal bei jedem restart, pub expires: DateTime<Utc>,
-}
-
-impl NoRiskCredentials {
-    pub async fn get_token(&self) -> Result<String> {
-        Ok(self
-            .production
-            .as_ref()
-            .ok_or(AppError::NoCredentialsError)?
-            .value
-            .clone())
-    }
-
-    /// Gets the appropriate NoRisk token based on the experimental mode setting.
-    ///
-    /// # Arguments
-    /// * `is_experimental` - Whether to retrieve the experimental token.
-    ///
-    /// # Returns
-    /// A `Result` containing the token string if found, or an `AppError::NoCredentialsError`
-    /// if the required token is not present.
-    pub fn get_token_for_mode(&self, is_experimental: bool) -> Result<String> {
-        let token_option = if is_experimental {
-            self.experimental.as_ref()
-        } else {
-            self.production.as_ref()
-        };
-
-        token_option
-            .map(|token| token.value.clone())
-            .ok_or_else(|| {
-                error!(
-                    "No NoRisk token found for {} mode.",
-                    if is_experimental {
-                        "experimental"
-                    } else {
-                        "production"
-                    }
-                );
-                AppError::NoCredentialsError
-            })
-    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -488,13 +426,6 @@ impl MinecraftAuthStore {
             access_token: minecraft_token.access_token,
             refresh_token: oauth_token.value.refresh_token,
             expires: oauth_token.date + Duration::seconds(oauth_token.value.expires_in as i64),
-            norisk_credentials: match existing_account {
-                Some(account) => account.norisk_credentials.clone(),
-                None => NoRiskCredentials {
-                    production: None,
-                    experimental: None,
-                },
-            },
         };
 
         info!(
@@ -507,129 +438,6 @@ impl MinecraftAuthStore {
         Ok(credentials)
     }
 
-    pub(crate) async fn refresh_norisk_token_if_necessary(
-        &self,
-        creds: &Credentials,
-        force_update: bool,
-        experimental_mode: bool,
-    ) -> Result<Credentials> {
-        info!(
-            "[Token Refresh] Starting NoRisk token refresh check for user: {}",
-            creds.username
-        );
-        let mut maybe_update = false;
-
-        if !force_update {
-            // Choose token based on experimental mode
-            let token_ref = if experimental_mode {
-                &creds.norisk_credentials.experimental
-            } else {
-                &creds.norisk_credentials.production
-            };
-
-            if let Some(token) = token_ref {
-                let key = DecodingKey::from_secret(&[]);
-                let mut validation = Validation::new(Algorithm::HS256);
-                validation.insecure_disable_signature_validation();
-                match decode::<NoRiskTokenClaims>(&token.value, &key, &validation) {
-                    Ok(data) => {
-                        info!(
-                            "[Token Refresh] Token expiration check - Expires at: {}",
-                            data.claims.exp
-                        );
-                        if data.claims.username != creds.username {
-                            info!(
-                                "[Token Refresh] Username mismatch detected - Old: {}, New: {}",
-                                data.claims.username, creds.username
-                            );
-                            maybe_update = true;
-                        }
-                    }
-                    Err(error) => {
-                        maybe_update = true;
-                        info!("[Token Refresh] Error decoding token: {:?}", error);
-                    }
-                };
-            } else {
-                info!("[Token Refresh] No token found for the selected mode");
-                maybe_update = true;
-            }
-        }
-
-        if force_update || maybe_update {
-            // Generate privacy-friendly hashed system identifier
-            // Hash a salt string with HWID for consistent but anonymous identification
-            let hwid = IdBuilder::new(Encryption::SHA256)
-                .add_component(HWIDComponent::SystemID)
-                .build("NRC")
-                .map_err(|e| AppError::Other(format!("HWID Error {:?}", e)))?;
-
-            // Create deterministic hash by combining salt with HWID
-            use sha2::{Sha256, Digest};
-            let mut hasher = Sha256::new();
-            hasher.update(b"norisk-device-salt");
-            hasher.update(&hwid);
-            let system_id = format!("{:x}", hasher.finalize());
-
-            info!(
-                "[Token Refresh] Refreshing token - Force: {}, Maybe: {}, SystemID: {}",
-                force_update, maybe_update, system_id
-            );
-
-            // Use NoRiskApi for token refresh with proper error handling
-            info!("[NoRisk Token] Starting token refresh using NoRiskApi");
-
-            // Use the experimental_mode parameter instead of hardcoded value
-            info!(
-                "[NoRisk Token] Mode: {}",
-                if experimental_mode {
-                    "Experimental"
-                } else {
-                    "Production"
-                }
-            );
-
-            match NoRiskApi::refresh_norisk_token_v3(
-                &system_id,
-                &creds.username,
-                &creds.access_token,
-                &creds.id.to_string().replace("-", ""), // UUID without dashes
-                true,
-                experimental_mode,
-            )
-            .await
-            {
-                Ok(norisk_token) => {
-                    info!("[NoRisk Token] Successfully refreshed token");
-                    let mut copied_credentials = creds.clone();
-
-                    if experimental_mode {
-                        info!("[NoRisk Token] Storing token in experimental credentials");
-                        copied_credentials.norisk_credentials.experimental = Some(norisk_token);
-                    } else {
-                        info!("[NoRisk Token] Storing token in production credentials");
-                        copied_credentials.norisk_credentials.production = Some(norisk_token);
-                    }
-
-                    // Update the account in storage
-                    info!("[NoRisk Token] Updating account in storage");
-                    self.update_or_insert(copied_credentials.clone()).await?;
-
-                    info!("[Token Refresh] Token refresh completed successfully");
-                    Ok(copied_credentials)
-                }
-                Err(e) => {
-                    info!("[NoRisk Token] Token refresh failed: {:?}", e);
-                    info!("[NoRisk Token] Falling back to original credentials");
-                    // Return the original credentials if token refresh fails
-                    Ok(creds.clone())
-                }
-            }
-        } else {
-            info!("[Token Refresh] Token is still valid, no refresh needed");
-            Ok(creds.clone())
-        }
-    }
 
     async fn refresh_token(&self, creds: &Credentials) -> Result<Option<Credentials>> {
         info!(
@@ -676,7 +484,6 @@ impl MinecraftAuthStore {
             access_token: minecraft_token.access_token,
             refresh_token: oauth_token.value.refresh_token,
             expires: oauth_token.date + Duration::seconds(oauth_token.value.expires_in as i64),
-            norisk_credentials: creds.clone().norisk_credentials,
             active: creds.clone().active,
         };
 
@@ -726,7 +533,7 @@ impl MinecraftAuthStore {
 
             // Refresh tokens if needed
             let updated_account = self
-                .update_norisk_and_microsoft_token(&creds, experimental_mode)
+                .update_microsoft_token(&creds)
                 .await?;
 
             if let Some(updated) = updated_account {
@@ -785,13 +592,12 @@ impl MinecraftAuthStore {
         Ok(())
     }
 
-    pub async fn update_norisk_and_microsoft_token(
+    pub async fn update_microsoft_token(
         &self,
         creds: &Credentials,
-        experimental_mode: bool,
     ) -> Result<Option<Credentials>> {
         info!(
-            "[Token Check] Starting token validation check for user: {}",
+            "[Token Check] Starting Microsoft token validation check for user: {}",
             creds.username
         );
         info!(
@@ -809,14 +615,7 @@ impl MinecraftAuthStore {
                 Ok(val) => {
                     return if val.is_some() {
                         info!("[Token Check] Successfully refreshed Microsoft token");
-                        Ok(Some(
-                            self.refresh_norisk_token_if_necessary(
-                                &val.unwrap().clone(),
-                                false,
-                                experimental_mode,
-                            )
-                            .await?,
-                        ))
+                        Ok(val)
                     } else {
                         info!("[Token Check] Failed to refresh Microsoft token - No credentials found");
                         Err(AppError::NoCredentialsError)
@@ -838,11 +637,7 @@ impl MinecraftAuthStore {
             }
         } else {
             info!("[Token Check] Microsoft token is still valid");
-            info!("[Token Check] Checking NoRisk token status");
-            Ok(Some(
-                self.refresh_norisk_token_if_necessary(&creds.clone(), false, experimental_mode)
-                    .await?,
-            ))
+            Ok(Some(creds.clone()))
         }
     }
 
@@ -877,7 +672,7 @@ impl MinecraftAuthStore {
             );
             // Refresh credentials if needed
             let updated_account = self
-                .update_norisk_and_microsoft_token(&account, is_experimental)
+                .update_microsoft_token(&account)
                 .await?;
 
             if let Some(updated) = updated_account {

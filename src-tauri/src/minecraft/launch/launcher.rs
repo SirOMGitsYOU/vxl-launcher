@@ -299,46 +299,6 @@ impl MinecraftLauncher {
             command.arg(format!("-Dnorisk.profile.name={}", p.name));
         }
 
-        if let Some(creds) = &self.credentials {
-            if has_norisk_pack {
-                // Get the appropriate NoRisk token based on experimental mode setting
-                if let Some(norisk_token) = if params.is_experimental_mode {
-                    info!("[NoRisk Launcher] Using experimental mode token");
-                    creds
-                        .norisk_credentials
-                        .experimental
-                        .as_ref()
-                        .map(|t| &t.value)
-                } else {
-                    info!("[NoRisk Launcher] Using production mode token");
-                    creds
-                        .norisk_credentials
-                        .production
-                        .as_ref()
-                        .map(|t| &t.value)
-                } {
-                    info!("[NoRisk Launcher] Adding NoRisk token to launch parameters");
-                    command.arg(format!("-Dnorisk.token={}", norisk_token));
-                } else {
-                    info!("[NoRisk Launcher] No NoRisk token available for the selected mode");
-                }
-
-                // Add experimental mode parameter
-                info!(
-                    "[NoRisk Launcher] Setting experimental mode: {}",
-                    params.is_experimental_mode
-                );
-                command.arg(format!(
-                    "-Dnorisk.experimental={}",
-                    params.is_experimental_mode
-                ));
-            } else {
-                info!("[NoRisk Launcher] No NoRisk pack selected, skipping NoRisk token and experimental mode parameters");
-            }
-        } else {
-            info!("[NoRisk Launcher] No credentials available, skipping NoRisk parameters");
-        }
-
         // Add Fabric specific mods folder argument if loader is Fabric
         // Note: When using -Dfabric.addMods (prototype), this is still harmless and allows user mods in mods/.
         if let Some(p_ref) = &profile {

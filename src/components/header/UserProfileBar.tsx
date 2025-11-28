@@ -9,7 +9,6 @@ import { CurrentAccountDisplay } from "../account/CurrentAccountDisplay";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { MinecraftAccountManager } from "../account/MinecraftAccountManager";
 import { IconButton } from "../ui/buttons/IconButton";
-import { useSocialsModalStore } from "../../store/socials-modal-store";
 import { Icon } from "@iconify/react";
 
 interface UserProfileBarProps {
@@ -22,7 +21,6 @@ export function UserProfileBar({ className }: UserProfileBarProps) {
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const { initializeAccounts } = useMinecraftAuthStore();
   const [_, setMounted] = useState(false);
-  const { openModal: openSocialsModal } = useSocialsModalStore();
 
   useEffect(() => {
     setMounted(true);
@@ -62,18 +60,7 @@ export function UserProfileBar({ className }: UserProfileBarProps) {
             className="h-10"
           />
         </div>
-
-        <IconButton 
-          icon={<Icon icon="solar:link-linear" className="w-5 h-5" />}
-          onClick={openSocialsModal}
-          variant="flat"
-          size="sm"
-          aria-label="Open Social Accounts"
-          className="text-white/70 hover:text-white h-10 w-10"
-        />
       </div>
-
-  
 
       <Dropdown
         ref={dropdownRef}

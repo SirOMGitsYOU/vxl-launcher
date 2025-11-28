@@ -97,12 +97,6 @@ use tauri::{
 // Import path commands
 use commands::path_commands::{get_launcher_directory, resolve_image_path};
 
-// Import cape commands
-use commands::cape_command::{
-    browse_capes, delete_cape, download_template_and_open_explorer, equip_cape, get_player_capes,
-    unequip_cape, upload_cape, add_favorite_cape, remove_favorite_cape, get_capes_by_hashes,
-};
-
 // Import vanilla cape commands
 use commands::vanilla_cape_command::{
     get_owned_vanilla_capes, get_currently_equipped_vanilla_cape, equip_vanilla_cape,
@@ -450,14 +444,11 @@ async fn main() {
             get_base64_with_metadata_from_skin_source_command,
             fetch_crafty_gg_skin_texture,
             set_discord_state,
-            browse_capes,
-            get_player_capes,
-            equip_cape,
-            delete_cape,
-            upload_cape,
-            unequip_cape,
-            add_favorite_cape,
-            remove_favorite_cape,
+            get_owned_vanilla_capes,
+            get_currently_equipped_vanilla_cape,
+            equip_vanilla_cape,
+            get_vanilla_cape_info,
+            refresh_vanilla_cape_data,
             is_content_installed,
             batch_check_content_installed,
             check_for_group_migration_command,
@@ -498,23 +489,13 @@ async fn main() {
             commands::minecraft_command::add_skin_locally,
             commands::minecraft_command::get_base64_from_skin_source_command,
             commands::file_command::get_image_preview,
-            download_template_and_open_explorer,
             get_all_profiles_and_last_played,
             get_local_content,
             install_local_content_to_profile,
             switch_content_version,
             commands::minecraft_command::get_starlight_skin_render,
             commands::minecraft_command::get_crafatar_avatar,
-            commands::nrc_commands::discord_auth_link,
-            commands::nrc_commands::discord_auth_status,
-            commands::nrc_commands::discord_auth_unlink,
-            commands::nrc_commands::submit_crash_log_command,
             commands::nrc_commands::log_message_command,
-            commands::nrc_commands::get_mobile_app_token,
-            commands::nrc_commands::reset_mobile_app_token,
-            get_capes_by_hashes,
-            get_owned_vanilla_capes,
-            get_currently_equipped_vanilla_cape,
             equip_vanilla_cape,
             get_vanilla_cape_info,
             refresh_vanilla_cape_data,
