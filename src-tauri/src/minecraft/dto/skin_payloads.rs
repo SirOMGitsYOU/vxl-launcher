@@ -53,3 +53,9 @@ pub struct AddLocalSkinCommandPayload {
     pub target_skin_variant: SkinModelVariant,
     pub description: Option<String>,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SkinSourceWithMetadata {
+    pub base64_data: String,
+    pub variant: SkinModelVariant,
+}

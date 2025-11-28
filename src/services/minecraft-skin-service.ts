@@ -103,6 +103,9 @@ export class MinecraftSkinService {
             sourceDetails = { type: "Profile", details: { query: skinInput } };
         } else if (UUID_REGEX.test(skinInput)) {
             sourceDetails = { type: "Profile", details: { query: skinInput } };
+        } else if (skinInput.startsWith("iVBORw0KGgo") || /^[A-Za-z0-9+/=]+$/.test(skinInput)) {
+            // Detect base64 data (PNG starts with iVBORw0KGgo or is valid base64)
+            sourceDetails = { type: "Base64", details: { base64_content: skinInput } };
         } else {
             let isHttpUrl = false;
             let isFileProtocolUrl = false;

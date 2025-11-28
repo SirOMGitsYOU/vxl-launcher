@@ -1736,10 +1736,21 @@ pub fn extract_skin_info_from_profile(
         })?;
 
     let skin_url = skin_texture_info.url;
+    
+    // Debug: Log the raw metadata
+    debug!(
+        "[MC Utils] Skin metadata for profile {}: {:?}",
+        profile.name, skin_texture_info.metadata
+    );
+    
     let skin_variant = skin_texture_info
         .metadata
         .and_then(|meta| meta.model) // model is Option<String>
         .map_or(SkinModelVariant::Classic, |model_str| {
+            debug!(
+                "[MC Utils] Model string for profile {}: '{}'",
+                profile.name, model_str
+            );
             if model_str.to_lowercase() == "slim" {
                 SkinModelVariant::Slim
             } else {
@@ -1822,6 +1833,72 @@ pub async fn get_base64_from_skin_source(source: &SkinSource) -> Result<String> 
         SkinSource::Base64(base64_content_data) => {
             debug!("[MC Utils] Processing Base64 source");
             Ok(base64_content_data.base64_content.clone())
+        }
+    }
+}
+
+/// Gets base64 encoded skin data along with variant metadata from a skin source.
+/// This is useful for preview operations where we need to know the skin variant.
+pub async fn get_base64_with_metadata_from_skin_source(source: &SkinSource) -> Result<(String, SkinModelVariant)> {
+    use crate::minecraft::dto::skin_payloads::SkinModelVariant;
+    use crate::minecraft::api::mc_api::MinecraftApiService;
+
+    match source {
+        SkinSource::Profile(profile_data) => {
+            debug!(
+                "[MC Utils] Processing Profile source with metadata for query: {}",
+                profile_data.query
+            );
+
+            let api_service = MinecraftApiService::new();
+            let profile = api_service
+                .get_profile_by_name_or_uuid(&profile_data.query)
+                .await?;
+
+            let (skin_url, variant, _) = extract_skin_info_from_profile(&profile)?;
+            let base64_data = fetch_image_as_base64(&skin_url).await?;
+            Ok((base64_data, variant))
+        }
+        SkinSource::Url(url_data) => {
+            debug!(
+                "[MC Utils] Processing URL source with metadata: {}",
+                url_data.url
+            );
+            // For URLs, we can't determine variant, so default to Classic
+            let base64_data = fetch_image_as_base64(&url_data.url).await?;
+            Ok((base64_data, SkinModelVariant::Classic))
+        }
+        SkinSource::FilePath(filepath_data) => {
+            debug!(
+                "[MC Utils] Processing FilePath source with metadata: {}",
+                filepath_data.path
+            );
+
+            let mut corrected_path_string = filepath_data.path.clone();
+            if cfg!(windows) {
+                if corrected_path_string.starts_with("/")
+                    && corrected_path_string.len() > 2
+                    && corrected_path_string.chars().nth(2) == Some(':')
+                {
+                    corrected_path_string.remove(0);
+                }
+            }
+            let corrected_path = PathBuf::from(corrected_path_string);
+
+            let file_content = tokio::fs::read(&corrected_path).await.map_err(|e| {
+                error!(
+                    "[MC Utils] Failed to read skin file from path {:?}: {}",
+                    corrected_path, e
+                );
+                AppError::Io(e)
+            })?;
+            // For file paths, we can't determine variant, so default to Classic
+            Ok((base64_encode_bytes(&file_content), SkinModelVariant::Classic))
+        }
+        SkinSource::Base64(base64_content_data) => {
+            debug!("[MC Utils] Processing Base64 source with metadata");
+            // For base64 data, we can't determine variant, so default to Classic
+            Ok((base64_content_data.base64_content.clone(), SkinModelVariant::Classic))
         }
     }
 }

@@ -14,6 +14,7 @@ import { Input } from "../ui/Input";
 import { Checkbox } from "../ui/Checkbox";
 import { toast } from "react-hot-toast";
 import { open } from "@tauri-apps/plugin-dialog";
+import { invoke } from "@tauri-apps/api/core";
 import { MinecraftSkinService } from "../../services/minecraft-skin-service";
 import { SkinView3DWrapper } from "../common/SkinView3DWrapper";
 import { SearchStyleInput } from "../ui/Input";
@@ -123,7 +124,7 @@ export const AddSkinModal = memo(
       }
     };
 
-    const parseWebsiteUrl = (url: URL, originalInput: string): { finalUrl: string; targetName: string } => {
+    const parseWebsiteUrl = async (url: URL, originalInput: string): Promise<{ finalUrl: string; targetName: string }> => {
       let finalUrl = originalInput;
       let targetName = "";
 
@@ -154,8 +155,18 @@ export const AddSkinModal = memo(
         const craftySkinsMatch = url.pathname.match(/\/skins\/([a-f0-9\-]+)/i);
         if (craftySkinsMatch) {
           const uuid = craftySkinsMatch[1];
+          // Crafty.gg provides texture data via .json endpoint (use backend to avoid CORS)
+          let textureData = "";
+          try {
+            textureData = await invoke<string>("fetch_crafty_gg_skin_texture", { uuid });
+            console.log(`[AddSkinModal] Fetched texture from Crafty.gg JSON endpoint`);
+          } catch (fetchError) {
+            console.error("[AddSkinModal] Failed to fetch Crafty.gg skin texture:", fetchError);
+            throw new Error("Failed to fetch skin from Crafty.gg. Please try again.");
+          }
           targetName = uuid;
-          finalUrl = uuid;
+          // Return the base64 data directly - it will be handled as Base64 source
+          finalUrl = textureData;
           console.log(`[AddSkinModal] Processing Crafty.gg skin URL: ${uuid}`);
         } else {
           const craftyProfileMatch = url.pathname.match(/\/@([^\/]+)/i);
@@ -229,6 +240,9 @@ export const AddSkinModal = memo(
           sourceDetails = { type: "Profile", details: { query: trimmedInput } };
         } else if (UUID_REGEX.test(trimmedInput)) {
           sourceDetails = { type: "Profile", details: { query: trimmedInput } };
+        } else if (trimmedInput.startsWith("iVBORw0KGgo") || /^[A-Za-z0-9+/=]+$/.test(trimmedInput)) {
+          // Detect base64 data (PNG starts with iVBORw0KGgo or is valid base64)
+          sourceDetails = { type: "Base64", details: { base64_content: trimmedInput } };
         } else {
           let isHttpUrl = false;
           let isFileProtocolUrl = false;
@@ -239,7 +253,7 @@ export const AddSkinModal = memo(
             if (parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:") {
               isHttpUrl = true;
               // Parse website-specific URLs
-              const parsed = parseWebsiteUrl(parsedUrl, trimmedInput);
+              const parsed = await parseWebsiteUrl(parsedUrl, trimmedInput);
               finalUrl = parsed.finalUrl;
               targetName = parsed.targetName;
             } else if (parsedUrl.protocol === "file:") {
@@ -256,7 +270,12 @@ export const AddSkinModal = memo(
           }
 
           if (isHttpUrl) {
-            sourceDetails = { type: "Url", details: { url: finalUrl } };
+            // Check if finalUrl is base64 data (from website parsing like Crafty.gg)
+            if (finalUrl.startsWith("iVBORw0KGgo") || /^[A-Za-z0-9+/=]+$/.test(finalUrl)) {
+              sourceDetails = { type: "Base64", details: { base64_content: finalUrl } };
+            } else {
+              sourceDetails = { type: "Url", details: { url: finalUrl } };
+            }
           } else if (isFileProtocolUrl) {
             sourceDetails = { type: "FilePath", details: { path: pathFromUrlIfFileProtocol } };
           } else {
@@ -266,7 +285,34 @@ export const AddSkinModal = memo(
         }
 
         // Get base64 data from the source
-        const base64Data = await MinecraftSkinService.getBase64FromSkinSource(sourceDetails);
+        // For Profile sources (username/UUID), use the metadata-aware function to get variant
+        let base64Data: string;
+        let detectedVariant: "slim" | "classic" | null = null;
+
+        if (sourceDetails.type === "Base64") {
+          // Base64 data is already available, use it directly
+          base64Data = sourceDetails.details.base64_content;
+          console.log(`[AddSkinModal] Using base64 data directly from Crafty.gg`);
+        } else if (sourceDetails.type === "Profile") {
+          try {
+            console.log(`[AddSkinModal] Fetching profile data for: ${sourceDetails.details.query}`);
+            const result = await invoke<{ base64_data: string; variant: string }>(
+              "get_base64_with_metadata_from_skin_source_command",
+              { source: sourceDetails }
+            );
+            console.log(`[AddSkinModal] Backend returned variant: ${result.variant}`);
+            base64Data = result.base64_data;
+            detectedVariant = (result.variant === "slim" ? "slim" : "classic") as "slim" | "classic";
+            console.log(`[AddSkinModal] Detected skin variant from profile: ${detectedVariant}`);
+            // Auto-set the variant based on the profile metadata
+            setIsSlimVariant(detectedVariant === "slim");
+          } catch (err) {
+            console.error("[AddSkinModal] Failed to get metadata, falling back to standard method:", err);
+            base64Data = await MinecraftSkinService.getBase64FromSkinSource(sourceDetails);
+          }
+        } else {
+          base64Data = await MinecraftSkinService.getBase64FromSkinSource(sourceDetails);
+        }
 
         // If targetName wasn't set by website parsing, generate it from the input
         if (!targetName.trim()) {
@@ -392,6 +438,14 @@ export const AddSkinModal = memo(
             throw new Error("Skin source (Username, UUID, URL, or File Path) cannot be empty.");
           }
 
+          // If we have preview base64 data (from Crafty.gg or other sources), use it directly
+          if (previewBase64Url && previewBase64Url.startsWith("data:image/png;base64,")) {
+            const base64Data = previewBase64Url.replace("data:image/png;base64,", "");
+            const targetName = previewSkinName || "Unnamed_Skin";
+            console.log("[AddSkinModal] Saving skin with base64 data from preview");
+            return await onAdd(base64Data, targetName, variant, null);
+          }
+
           // Use the same name generation logic as in the original code
           let targetName = "";
           let finalUrl = trimmedInput;
@@ -407,7 +461,7 @@ export const AddSkinModal = memo(
             try {
               const url = new URL(trimmedInput);
               // Parse website-specific URLs
-              const parsed = parseWebsiteUrl(url, trimmedInput);
+              const parsed = await parseWebsiteUrl(url, trimmedInput);
               finalUrl = parsed.finalUrl;
               targetName = parsed.targetName;
             } catch (e) {

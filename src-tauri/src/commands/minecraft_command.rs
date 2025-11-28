@@ -1,3 +1,4 @@
+use crate::config::HTTP_CLIENT;
 use crate::error::{AppError, CommandError};
 use crate::minecraft::api::fabric_api::FabricApi;
 use crate::minecraft::api::forge_api::ForgeApi;
@@ -24,7 +25,7 @@ use uuid::Uuid;
 use crate::minecraft::dto::skin_payloads::{
     AddLocalSkinCommandPayload, SkinSource,
 };
-use crate::utils::mc_utils::{extract_skin_info_from_profile, get_base64_from_skin_source};
+use crate::utils::mc_utils::{extract_skin_info_from_profile, get_base64_from_skin_source, get_base64_with_metadata_from_skin_source};
 use chrono::Utc;
 // --- End New Imports ---
 
@@ -698,6 +699,84 @@ pub async fn get_base64_from_skin_source_command(
     );
 
     Ok(base64_data)
+}
+
+#[tauri::command]
+pub async fn get_base64_with_metadata_from_skin_source_command(
+    source: SkinSource,
+) -> Result<crate::minecraft::dto::skin_payloads::SkinSourceWithMetadata, CommandError> {
+    debug!(
+        "[CMD] get_base64_with_metadata_from_skin_source_command: Processing source type: {:?}",
+        source
+    );
+
+    let (base64_data, variant) = get_base64_with_metadata_from_skin_source(&source).await?;
+
+    debug!(
+        "[CMD] get_base64_with_metadata_from_skin_source_command: Successfully extracted base64 data ({} characters) with variant: {}",
+        base64_data.len(),
+        variant
+    );
+
+    Ok(crate::minecraft::dto::skin_payloads::SkinSourceWithMetadata {
+        base64_data,
+        variant,
+    })
+}
+
+#[tauri::command]
+pub async fn fetch_crafty_gg_skin_texture(uuid: String) -> Result<String, CommandError> {
+    debug!(
+        "[CMD] fetch_crafty_gg_skin_texture: Fetching texture for UUID: {}",
+        uuid
+    );
+
+    // Crafty.gg provides texture data via JSON endpoint
+    let url = format!("https://crafty.gg/skins/{}.json", uuid);
+    
+    debug!("[CMD] fetch_crafty_gg_skin_texture: Requesting URL: {}", url);
+
+    let response = HTTP_CLIENT
+        .get(&url)
+        .header("User-Agent", "Eclipse-Launcher")
+        .send()
+        .await
+        .map_err(|e| {
+            error!("[CMD] fetch_crafty_gg_skin_texture: Failed to fetch Crafty.gg skin: {}", e);
+            CommandError::from(crate::error::AppError::Other(format!(
+                "Failed to fetch Crafty.gg skin: {}",
+                e
+            )))
+        })?;
+
+    if !response.status().is_success() {
+        error!("[CMD] fetch_crafty_gg_skin_texture: Crafty.gg returned status: {}", response.status());
+        return Err(CommandError::from(crate::error::AppError::Other(format!(
+            "Crafty.gg returned status: {}",
+            response.status()
+        ))));
+    }
+
+    let data: serde_json::Value = response.json().await.map_err(|e| {
+        error!("[CMD] fetch_crafty_gg_skin_texture: Failed to parse Crafty.gg response: {}", e);
+        CommandError::from(crate::error::AppError::Other(format!(
+            "Failed to parse Crafty.gg response: {}",
+            e
+        )))
+    })?;
+
+    let texture = data
+        .get("texture")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| {
+            error!("[CMD] fetch_crafty_gg_skin_texture: No texture field in Crafty.gg response");
+            CommandError::from(crate::error::AppError::Other(
+                "No texture field in Crafty.gg response".to_string(),
+            ))
+        })?;
+
+    debug!("[CMD] fetch_crafty_gg_skin_texture: Successfully fetched texture from Crafty.gg");
+    Ok(texture.to_string())
 }
 
 #[tauri::command]
