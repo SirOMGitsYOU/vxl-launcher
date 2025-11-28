@@ -14,6 +14,8 @@ import { Icon } from '@iconify/react';
 import { SearchWithFilters } from '../../ui/SearchWithFilters';
 import { CheckboxV2 } from '../../ui/CheckboxV2';
 import { gsap } from "gsap";
+import { ModPlatform } from '../../../types/unified';
+import { CURSEFORGE_MODPACK_CATEGORIES, CURSEFORGE_MOD_CATEGORIES, CURSEFORGE_RESOURCEPACK_CATEGORIES, CURSEFORGE_DATAPACK_CATEGORIES } from '../../../constants/curseforge-categories';
 
 // Re-define UIDynamicFilterGroup if it's specific to the sidebar and not used elsewhere globally
 // For now, assuming it might be defined in the parent or a shared types file if used elsewhere.
@@ -102,7 +104,7 @@ const AccordionItem: React.FC<AccordionItemProps> = ({
         ref={buttonRef}
         onClick={toggleAccordion}
         className={cn(
-          "w-full px-3 py-2.5 text-left font-minecraft text-white flex justify-between items-center focus:outline-none transition-colors lowercase text-2xl",
+          "w-full px-3 py-2.5 text-left font-minecraft text-white flex justify-between items-center focus:outline-none transition-colors lowercase text-3xl",
           isOpen && "border-b border-white/10", 
           "hover:bg-white/5",
           "relative z-10"
@@ -148,12 +150,14 @@ const FilterOption = ({
   isSelected,
   onClick,
   accentColor,
+  modSource,
 }: {
   label: string;
   icon?: React.ReactNode | string;
   isSelected: boolean;
   onClick: () => void;
   accentColor: AccentColor;
+  modSource: ModPlatform;
 }) => {
   const buttonRef = React.useRef<HTMLButtonElement>(null);
 
@@ -181,7 +185,7 @@ const FilterOption = ({
       ref={buttonRef}
       onClick={handleClick}
       className={cn(
-        "w-full flex items-center justify-between p-1.5 text-xl font-minecraft transition-colors duration-200 cursor-pointer rounded-md mb-1 bg-black/20 border border-white/10 hover:border-white/20",
+        "w-full flex items-center justify-between p-1.5 text-md font-minecraft-ten transition-colors duration-200 cursor-pointer rounded-md mb-1 bg-black/20 border border-white/10 hover:border-white/20",
         isSelected ? "text-white" : "text-gray-300 hover:text-white"
       )}
       style={{
@@ -198,7 +202,7 @@ const FilterOption = ({
         ) : icon ? (
           <span className="mr-1.5 flex-shrink-0">{icon}</span>
         ) : null}
-        <span className="truncate">{label}</span>
+        <span className="truncate">{modSource === ModPlatform.Modrinth ? label.charAt(0).toUpperCase() + label.slice(1) : label}</span>
       </span>
       {isSelected && (
         <Icon
@@ -236,6 +240,8 @@ interface ModrinthFilterSidebarV2Props {
   onClientRequiredToggle: () => void;
   filterServerRequired: boolean;
   onServerRequiredToggle: () => void;
+  // Mod Source
+  modSource: ModPlatform;
 }
 
 export const ModrinthFilterSidebarV2: React.FC<ModrinthFilterSidebarV2Props> = ({
@@ -259,6 +265,7 @@ export const ModrinthFilterSidebarV2: React.FC<ModrinthFilterSidebarV2Props> = (
   onClientRequiredToggle,
   filterServerRequired,
   onServerRequiredToggle,
+  modSource,
 }) => {
   // Extract the 'Categories' group if it exists
   const categoriesGroup = dynamicFilterGroups.find(
@@ -345,6 +352,7 @@ export const ModrinthFilterSidebarV2: React.FC<ModrinthFilterSidebarV2Props> = (
                   isSelected={selectedGameVersions.includes(gv.version)}
                   onClick={() => onGameVersionToggle(gv.version)}
                   accentColor={accentColor}
+                  modSource={modSource}
                 />
               ))}
               
@@ -364,8 +372,8 @@ export const ModrinthFilterSidebarV2: React.FC<ModrinthFilterSidebarV2Props> = (
           </div>
         </AccordionItem>
 
-        {/* Hardcoded Categories filter for project types other than 'datapack' */}
-        {projectType !== 'datapack' && (
+        {/* Modrinth Categories filter */}
+        {modSource === ModPlatform.Modrinth && (
           <AccordionItem
             key={categoriesGroup?.headerValue || "categories_filter_accordion"} // Use a fallback key
             title={categoriesGroup?.accordionTitle || "Categories"} // Use a fallback title
@@ -382,6 +390,7 @@ export const ModrinthFilterSidebarV2: React.FC<ModrinthFilterSidebarV2Props> = (
                     isSelected={currentSelectedCategories.includes(cat.name)}
                     onClick={() => onCategoryToggle(cat.name)}
                     accentColor={accentColor}
+                    modSource={modSource}
                   />
                 ))
               ) : (
@@ -389,6 +398,33 @@ export const ModrinthFilterSidebarV2: React.FC<ModrinthFilterSidebarV2Props> = (
                   No category options available.
                 </p>
               )}
+            </div>
+          </AccordionItem>
+        )}
+
+        {/* CurseForge Categories filter */}
+        {modSource === ModPlatform.CurseForge && (
+          <AccordionItem
+            key="curseforge-categories"
+            title="Categories"
+            defaultOpen={currentSelectedCategories.length > 0}
+            activeCount={currentSelectedCategories.length}
+          >
+            <div className="space-y-1 pr-1 overflow-y-auto hide-scrollbar max-h-96">
+              {(projectType === 'modpack' ? CURSEFORGE_MODPACK_CATEGORIES : 
+                projectType === 'mod' ? CURSEFORGE_MOD_CATEGORIES : 
+                projectType === 'resourcepack' ? CURSEFORGE_RESOURCEPACK_CATEGORIES : 
+                projectType === 'datapack' ? CURSEFORGE_DATAPACK_CATEGORIES :
+                []).map(cat => (
+                <FilterOption
+                  key={cat.name}
+                  label={cat.name}
+                  isSelected={currentSelectedCategories.includes(cat.name)}
+                  onClick={() => onCategoryToggle(cat.name)}
+                  accentColor={accentColor}
+                  modSource={modSource}
+                />
+              ))}
             </div>
           </AccordionItem>
         )}
@@ -409,6 +445,7 @@ export const ModrinthFilterSidebarV2: React.FC<ModrinthFilterSidebarV2Props> = (
                   isSelected={currentSelectedLoaders.includes(loader.name)}
                   onClick={() => onLoaderToggle(loader.name)}
                   accentColor={accentColor}
+                  modSource={modSource}
                 />
               );
             })}
@@ -433,6 +470,7 @@ export const ModrinthFilterSidebarV2: React.FC<ModrinthFilterSidebarV2Props> = (
                   isSelected={currentSelectedCategories.includes(cat.name)}
                   onClick={() => onCategoryToggle(cat.name)}
                   accentColor={accentColor}
+                  modSource={modSource}
                 />
               )) : (
                 <p className="text-xs text-gray-500 italic p-1 text-center">No options for {group.accordionTitle}.</p>
@@ -453,6 +491,7 @@ export const ModrinthFilterSidebarV2: React.FC<ModrinthFilterSidebarV2Props> = (
               isSelected={filterClientRequired}
               onClick={onClientRequiredToggle}
               accentColor={accentColor}
+              modSource={modSource}
             />
             <FilterOption
               label="Server"
@@ -460,6 +499,7 @@ export const ModrinthFilterSidebarV2: React.FC<ModrinthFilterSidebarV2Props> = (
               isSelected={filterServerRequired}
               onClick={onServerRequiredToggle}
               accentColor={accentColor}
+              modSource={modSource}
             />
           </div>
         </AccordionItem>

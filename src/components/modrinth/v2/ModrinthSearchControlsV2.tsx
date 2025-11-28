@@ -158,7 +158,10 @@ export const ModrinthSearchControlsV2: React.FC<
           {/* Platform Selection Buttons - ganz rechts */}
           <div className="flex items-center gap-1 border border-white/10 rounded-lg p-0.5">
             <button
-              onClick={() => onModSourceChange(ModPlatform.Modrinth)}
+              onClick={() => {
+                onModSourceChange(ModPlatform.Modrinth);
+                onClearAllFilters();
+              }}
               className={cn(
                 "flex items-center gap-1.5 px-2 py-1 rounded-md font-minecraft text-2xl lowercase transition-all duration-200 min-h-[2.5rem]",
                 modSource === ModPlatform.Modrinth
@@ -176,7 +179,10 @@ export const ModrinthSearchControlsV2: React.FC<
             </button>
 
             <button
-              onClick={() => onModSourceChange(ModPlatform.CurseForge)}
+              onClick={() => {
+                onModSourceChange(ModPlatform.CurseForge);
+                onClearAllFilters();
+              }}
               className={cn(
                 "flex items-center gap-1.5 px-2 py-1 rounded-md font-minecraft text-2xl lowercase transition-all duration-200 min-h-[2.5rem]",
                 modSource === ModPlatform.CurseForge

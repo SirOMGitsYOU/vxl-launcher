@@ -340,29 +340,39 @@ export function ModrinthSearchV2({
               const curseForgeProjects = await VXLStudiosService.getVXLStudiosCurseForgeProjects(modIds);
               
               // Convert CurseForgeMod objects to UnifiedModSearchResult format
-              convertedProjects = curseForgeProjects.map(proj => ({
-                project_id: proj.id.toString(),
-                project_type: proj.classId === 4471 ? 'modpack' : proj.classId === 6 ? 'mod' : proj.classId === 12 ? 'resourcepack' : 'mod',
-                slug: proj.slug || proj.name.toLowerCase().replace(/\s+/g, '-'),
-                title: proj.name,
-                description: proj.summary,
-                author: proj.authors?.[0]?.name || null,
-                categories: proj.categories?.map(c => c.name) || [],
-                display_categories: proj.categories?.map(c => c.name) || [],
-                client_side: 'required' as const,
-                server_side: 'required' as const,
-                downloads: proj.downloadCount,
-                follows: proj.thumbsUpCount,
-                icon_url: proj.logo?.thumbnailUrl || null,
-                latest_version: null,
-                date_created: proj.dateCreated,
-                date_modified: proj.dateModified,
-                license: 'Unknown',
-                gallery: [],
-                versions: [],
-                source: ModPlatform.CurseForge,
-                project_url: `https://www.curseforge.com/minecraft/mods/${proj.slug || proj.id}`,
-              }));
+              convertedProjects = curseForgeProjects.map(proj => {
+                // Determine project type
+                const projectType = proj.classId === 4471 ? 'modpack' : proj.classId === 6 ? 'mod' : proj.classId === 12 ? 'resourcepack' : 'mod';
+                
+                // Extract version IDs from latestFiles
+                const versionIds = proj.latestFiles?.map(file => file.id.toString()) || [];
+                
+                return {
+                  project_id: proj.id.toString(),
+                  project_type: projectType,
+                  slug: proj.slug || proj.name.toLowerCase().replace(/\s+/g, '-'),
+                  title: proj.name,
+                  description: proj.summary,
+                  author: proj.authors?.[0]?.name || null,
+                  categories: proj.categories?.map(c => c.name) || [],
+                  display_categories: proj.categories?.map(c => c.name) || [],
+                  client_side: 'required' as const,
+                  server_side: 'required' as const,
+                  downloads: proj.downloadCount,
+                  follows: proj.thumbsUpCount,
+                  icon_url: proj.logo?.thumbnailUrl || null,
+                  latest_version: null,
+                  date_created: proj.dateCreated,
+                  date_modified: proj.dateModified,
+                  license: 'Unknown',
+                  gallery: [],
+                  versions: versionIds,
+                  source: ModPlatform.CurseForge,
+                  project_url: projectType === 'modpack' 
+                    ? `https://www.curseforge.com/minecraft/modpacks/${proj.slug || proj.id}`
+                    : `https://www.curseforge.com/minecraft/mods/${proj.slug || proj.id}`,
+                };
+              });
               
               // Cache the results
               vxlStudiosCache.curseforge = convertedProjects;
@@ -416,7 +426,7 @@ export function ModrinthSearchV2({
     }
   }, [useVXLStudiosData, availableProjectTypes, projectType]);
 
-  // Filter VXL Studios projects by project type and search term
+  // Filter VXL Studios projects by project type, search term, and all other filters
   useEffect(() => {
     if (!useVXLStudiosData || allVXLStudiosProjects.length === 0) return;
 
@@ -434,11 +444,40 @@ export function ModrinthSearchV2({
       );
     }
 
-    console.log('[ModrinthSearchV2] Filtered VXL Studios projects:', filtered.length, 'by type:', projectType, 'search:', searchTerm);
+    // Filter by categories
+    if (currentSelectedCategories.length > 0) {
+      filtered = filtered.filter(proj =>
+        currentSelectedCategories.some(cat => proj.categories?.includes(cat))
+      );
+    }
+
+    // Filter by game versions
+    if (selectedGameVersions.length > 0) {
+      filtered = filtered.filter(proj =>
+        Array.isArray(proj.versions) && proj.versions.some(v => selectedGameVersions.some(gv => v.game_versions?.includes(gv)))
+      );
+    }
+
+    // Filter by loaders
+    if (currentSelectedLoaders.length > 0) {
+      filtered = filtered.filter(proj =>
+        Array.isArray(proj.versions) && proj.versions.some(v => currentSelectedLoaders.some(loader => v.loaders?.includes(loader)))
+      );
+    }
+
+    // Filter by environment (client/server required)
+    if (filterClientRequired) {
+      filtered = filtered.filter(proj => proj.client_side === 'required');
+    }
+    if (filterServerRequired) {
+      filtered = filtered.filter(proj => proj.server_side === 'required');
+    }
+
+    console.log('[ModrinthSearchV2] Filtered VXL Studios projects:', filtered.length, 'by type:', projectType, 'search:', searchTerm, 'categories:', currentSelectedCategories, 'gameVersions:', selectedGameVersions, 'loaders:', currentSelectedLoaders);
     setSearchResults(filtered);
     setTotalHits(filtered.length);
     setOffset(filtered.length);
-  }, [useVXLStudiosData, allVXLStudiosProjects, projectType, searchTerm]);
+  }, [useVXLStudiosData, allVXLStudiosProjects, projectType, searchTerm, currentSelectedCategories, selectedGameVersions, currentSelectedLoaders, filterClientRequired, filterServerRequired]);
 
   // Define preferred loader order
   const preferredLoaderOrder = ['fabric', 'forge', 'quilt', 'neoforge'];
@@ -470,8 +509,10 @@ export function ModrinthSearchV2({
   }, [gameVersionsData, showAllGameVersionsSidebar, gameVersionSearchTerm]); // Use new state here
 
   // Dynamically generate filter groups based on headers for the current project type
+  // Note: CurseForge doesn't support category filtering, so we only show categories for Modrinth
   const dynamicFilterGroups = useMemo<UIDynamicFilterGroup[]>(() => {
-    if (!allCategoriesData.length || !projectType) return [];
+    // Don't show categories for CurseForge as it doesn't support them properly
+    if (modSource === ModPlatform.CurseForge || !allCategoriesData.length || !projectType) return [];
 
     const categoriesForProjectType = allCategoriesData.filter(cat => cat.project_type === projectType);
     const headers = [...new Set(categoriesForProjectType.map(cat => cat.header))];
@@ -499,7 +540,7 @@ export function ModrinthSearchV2({
       if (indexB !== -1) return 1;
       return a.accordionTitle.localeCompare(b.accordionTitle);
     });
-  }, [allCategoriesData, projectType]);
+  }, [allCategoriesData, projectType, modSource]);
 
   // Global cache for regular search results (session-level, cleared on app restart)
   const searchCache = useMemo(() => {
@@ -3536,6 +3577,7 @@ export function ModrinthSearchV2({
           onClientRequiredToggle={() => setFilterClientRequired(!filterClientRequired)}
           filterServerRequired={filterServerRequired}
           onServerRequiredToggle={() => setFilterServerRequired(!filterServerRequired)}
+          modSource={modSource}
         />
       )}
 
