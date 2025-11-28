@@ -31,7 +31,7 @@ use chrono::Utc;
 use log::{error, info, trace, warn};
 use sanitize_filename::sanitize;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::path::PathBuf;
 use sysinfo::System;
 use tauri_plugin_dialog::DialogExt;
@@ -46,7 +46,6 @@ pub struct CreateProfileParams {
     game_version: String,
     loader: String,
     loader_version: Option<String>,
-    selected_norisk_pack_id: Option<String>,
     use_shared_minecraft_folder: Option<bool>,
 }
 
@@ -57,11 +56,9 @@ pub struct UpdateProfileParams {
     loader: Option<String>,
     loader_version: Option<String>,
     settings: Option<ProfileSettings>,
-    selected_norisk_pack_id: Option<String>,
     group: Option<String>,
     clear_group: Option<bool>,
     use_shared_minecraft_folder: Option<bool>,
-    clear_selected_norisk_pack: Option<bool>,
     norisk_information: Option<crate::state::profile_state::NoriskInformation>,
     preferred_account_id: Option<String>,
     clear_preferred_account: Option<bool>,
@@ -151,8 +148,6 @@ pub async fn create_profile(params: CreateProfileParams) -> Result<Uuid, Command
         settings: ProfileSettings::default(),
         state: ProfileState::NotInstalled,
         mods: Vec::new(),
-        selected_norisk_pack_id: params.selected_norisk_pack_id.clone(),
-        disabled_norisk_mods_detailed: HashSet::new(),
         source_standard_profile_id: None,
         use_shared_minecraft_folder: params.use_shared_minecraft_folder.unwrap_or(false),
         group: None,
@@ -659,20 +654,7 @@ async fn try_update_profile(id: Uuid, params: UpdateProfileParams) -> Result<(),
         profile.settings = settings; // Assuming ProfileSettings is Clone or params.settings is not used after this
     }
 
-    // Handle selected_norisk_pack_id based on clear_selected_norisk_pack and new value
-    if params.clear_selected_norisk_pack == Some(true) {
-        info!("Clearing selected_norisk_pack_id for profile {}", id);
-        profile.selected_norisk_pack_id = None;
-    } else if let Some(pack_id) = &params.selected_norisk_pack_id {
-        info!(
-            "Updating selected_norisk_pack_id to: {} for profile {}",
-            pack_id, id
-        );
-        profile.selected_norisk_pack_id = Some(pack_id.clone());
-    } else {
-        info!("selected_norisk_pack_id not explicitly changed or cleared for profile {}. Current: {:?}", id, profile.selected_norisk_pack_id);
-        // No change to selected_norisk_pack_id if neither clear is true nor a new value is provided
-    }
+    // Handle selected_norisk_pack_id - Removed: No pre-installed modpacks
 
     // Handle group based on clear_group and new value
     if params.clear_group == Some(true) {
@@ -949,30 +931,7 @@ pub async fn get_norisk_packs_resolved() -> Result<NoriskModpacksConfig, Command
     Ok(resolved_config)
 }
 
-#[tauri::command]
-pub async fn set_norisk_mod_status(
-    profile_id: Uuid,
-    pack_id: String,
-    mod_id: String,
-    game_version: String,
-    loader_str: String, // Receive loader as string from frontend
-    disabled: bool,
-) -> Result<(), CommandError> {
-    info!(
-        "Received command set_norisk_mod_status: profile={}, pack={}, mod={}, mc={}, loader={}, disabled={}",
-        profile_id, pack_id, mod_id, game_version, loader_str, disabled
-    );
-    let state = State::get().await?;
-
-    // Convert loader string to ModLoader enum
-    let loader = ModLoader::from_str(&loader_str)?;
-
-    state
-        .profile_manager
-        .set_norisk_mod_status(profile_id, pack_id, mod_id, game_version, loader, disabled)
-        .await?;
-    Ok(())
-}
+// Removed: set_norisk_mod_status command - No pre-installed modpacks
 
 // Command to update the version of a Modrinth mod in a profile
 #[tauri::command]
@@ -1579,14 +1538,12 @@ pub async fn copy_profile(params: CopyProfileParams) -> Result<Uuid, CommandErro
         settings: source_profile.settings.clone(),
         state: ProfileState::NotInstalled, // Neues Profil ist noch nicht installiert
         mods: source_profile.mods.clone(), // Kopiere die Modrinth-Mods aus dem Quellprofil
-        selected_norisk_pack_id: source_profile.selected_norisk_pack_id.clone(),
-        disabled_norisk_mods_detailed: source_profile.disabled_norisk_mods_detailed.clone(),
         source_standard_profile_id: None, // Manual copies are independent and not linked to standard profiles
         group: source_profile.group.clone(),
         use_shared_minecraft_folder: params.use_shared_minecraft_folder.unwrap_or(source_profile.should_use_shared_minecraft_folder()),
         is_standard_version: false,
         description: source_profile.description.clone(),
-        norisk_information: source_profile.norisk_information.clone(),
+        norisk_information: None, // No pre-installed packs
         banner: source_profile.banner.clone(),
         background: source_profile.background.clone(),
         modpack_info: source_profile.modpack_info.clone(),

@@ -59,64 +59,7 @@ impl ModloaderFactory {
         }
 
         // 2. Check for Norisk pack policy
-        if let Some(selected_pack_id) = &profile.selected_norisk_pack_id {
-            if let Some(config) = norisk_pack_config {
-                if let Ok(resolved_pack) = config.get_resolved_pack_definition(selected_pack_id) {
-                    if let Some(policy) = &resolved_pack.loader_policy {
-                        let loader_key = profile.loader.as_str();
-                        let mut resolved_version: Option<String> = None;
-                        
-                        // Helper to read version from a loader map
-                        let get_ver = |m: &std::collections::HashMap<String, crate::integrations::norisk_packs::LoaderSpec>| {
-                            m.get(loader_key).and_then(|s| s.version.clone())
-                        };
-                        
-                        // 1) Exact MC version match
-                        if let Some(loader_map) = policy.by_minecraft.get(minecraft_version) {
-                            resolved_version = get_ver(loader_map);
-                        }
-                        
-                        // 2) Wildcard pattern like "1.21.*"
-                        if resolved_version.is_none() {
-                            for (pat, loader_map) in &policy.by_minecraft {
-                                if pat.ends_with(".*") {
-                                    let prefix = &pat[..pat.len() - 2];
-                                    if minecraft_version.starts_with(prefix) {
-                                        resolved_version = get_ver(loader_map);
-                                        if resolved_version.is_some() { break; }
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // 3) Prefix match (e.g., "1.21")
-                        if resolved_version.is_none() {
-                            for (pat, loader_map) in &policy.by_minecraft {
-                                if !pat.ends_with(".*") && minecraft_version.starts_with(pat) {
-                                    resolved_version = get_ver(loader_map);
-                                    if resolved_version.is_some() { break; }
-                                }
-                            }
-                        }
-                        
-                        // 4) Default fallback
-                        if resolved_version.is_none() {
-                            resolved_version = policy
-                                .default
-                                .get(loader_key)
-                                .and_then(|s| s.version.clone());
-                        }
-
-                        if let Some(version) = resolved_version {
-                            return ResolvedLoaderVersion {
-                                version: Some(version),
-                                reason: LoaderVersionReason::NoriskPack,
-                            };
-                        }
-                    }
-                }
-            }
-        }
+        // Removed: No pre-installed modpacks - norisk pack loader policy skipped
 
         // 3. Fall back to profile's default loader version
         if let Some(profile_version) = &profile.loader_version {

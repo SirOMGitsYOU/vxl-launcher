@@ -9,11 +9,12 @@ interface NavButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   icon: React.ReactNode;
   isActive?: boolean;
   variant?: "default" | "secondary" | "ghost";
+  isDisabled?: boolean;
 }
 
 export const NavButton = forwardRef<HTMLButtonElement, NavButtonProps>(
   (
-    { className, icon, isActive = false, variant = "default", ...props },
+    { className, icon, isActive = false, variant = "default", isDisabled = false, ...props },
     ref,
   ) => {
     const buttonRef = useRef<HTMLButtonElement>(null);
@@ -52,6 +53,7 @@ export const NavButton = forwardRef<HTMLButtonElement, NavButtonProps>(
       "w-16 h-16 rounded-md text-white flex items-center justify-center",
       "text-shadow-sm",
       "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-1 focus-visible:ring-offset-black/20",
+      isDisabled && "opacity-40 cursor-not-allowed",
     );
 
     const activeStateClasses = cn(
@@ -61,7 +63,7 @@ export const NavButton = forwardRef<HTMLButtonElement, NavButtonProps>(
         "hover:translate-y-[-2px] hover:shadow-[0_8px_0_rgba(0,0,0,0.2),0_10px_20px_rgba(0,0,0,0.25)]",
         "active:translate-y-[2px] active:shadow-[0_3px_0_rgba(0,0,0,0.15),0_4px_8px_rgba(0,0,0,0.2)]",
       ],
-      "hover:brightness-110 active:brightness-90",
+      !isDisabled && "hover:brightness-110 active:brightness-90",
     );
     
     const activeStateStyles: React.CSSProperties = variant === "ghost" ? {} : {
@@ -78,7 +80,7 @@ export const NavButton = forwardRef<HTMLButtonElement, NavButtonProps>(
         "hover:translate-y-[-2px]",
         "active:translate-y-[1px]",
       ],
-      "hover:brightness-110 active:brightness-90",
+      !isDisabled && "hover:brightness-110 active:brightness-90",
     );
 
     const nonActiveStateStyles: React.CSSProperties = {};
@@ -97,6 +99,7 @@ export const NavButton = forwardRef<HTMLButtonElement, NavButtonProps>(
           className,
         )}
         style={isActive ? activeStateStyles : { ...nonActiveStateStyles, borderColor: "transparent" }}
+        disabled={isDisabled}
         {...props}
       >
         <span

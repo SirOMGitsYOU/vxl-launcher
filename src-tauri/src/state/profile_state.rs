@@ -129,10 +129,6 @@ pub struct Profile {
     pub state: ProfileState, // Aktueller Status
     #[serde(default)] // Add default for backward compatibility when loading old profiles
     pub mods: Vec<Mod>, // List of mods for this profile
-    #[serde(default)] // Add default for backward compatibility
-    pub selected_norisk_pack_id: Option<String>, // ID of the selected Norisk Pack (e.g., "norisk-prod")
-    #[serde(default)] // Keep track of disabled mods per pack/version/loader context
-    pub disabled_norisk_mods_detailed: HashSet<NoriskModIdentifier>, // Changed field
     /// Optional: If this profile was created from a standard profile, store its original ID
     #[serde(default)]
     pub source_standard_profile_id: Option<Uuid>,
@@ -1541,59 +1537,7 @@ impl ProfileManager {
     }
 
     // Set the enabled/disabled status of a specific mod within a Norisk Pack for a profile's specific context
-    pub async fn set_norisk_mod_status(
-        &self,
-        profile_id: Uuid,
-        pack_id: String,
-        mod_id: String,
-        game_version: String,
-        loader: ModLoader,
-        disabled: bool,
-    ) -> Result<()> {
-        info!(
-            "Setting disabled state for pack mod '{}' (Pack: '{}', MC: {}, Loader: {:?}) for profile {} to {}",
-            mod_id, pack_id, game_version, loader, profile_id, disabled
-        );
-
-        let mut profiles = self.profiles.write().await;
-
-        if let Some(profile) = profiles.get_mut(&profile_id) {
-            let identifier = NoriskModIdentifier {
-                pack_id,
-                mod_id: mod_id.clone(),
-                game_version,
-                loader,
-            };
-
-            let changed;
-            if disabled {
-                changed = profile.disabled_norisk_mods_detailed.insert(identifier);
-            } else {
-                changed = profile.disabled_norisk_mods_detailed.remove(&identifier);
-            }
-
-            if changed {
-                info!(
-                    "Successfully {} pack mod '{}' for profile {}",
-                    if disabled { "disabled" } else { "enabled" },
-                    mod_id,
-                    profile_id
-                );
-                drop(profiles);
-                self.save_profiles().await?;
-            } else {
-                info!(
-                    "Pack mod '{}' for profile {} was already {}",
-                    mod_id,
-                    profile_id,
-                    if disabled { "disabled" } else { "enabled" }
-                );
-            }
-            Ok(())
-        } else {
-            Err(AppError::ProfileNotFound(profile_id))
-        }
-    }
+    // Removed: set_norisk_mod_status - No pre-installed modpacks
 
     // Utility Funktionen
     pub async fn list_profiles(&self) -> Result<Vec<Profile>> {
@@ -2756,6 +2700,12 @@ impl ProfileManager {
         // Reset state to not installed for user copy
         editable_copy.state = ProfileState::NotInstalled;
 
+        // Remove norisk pack information - no pre-installed packs
+        editable_copy.norisk_information = None;
+        
+        // Clear all mods from standard profile - users should add their own
+        editable_copy.mods = Vec::new();
+
         // Create the profile using existing create_profile method
         let new_id = self.create_profile(editable_copy).await?;
         
@@ -2812,12 +2762,6 @@ impl ProfileManager {
                 changed = true;
             }
             
-            // Force update NoRisk pack selection if different
-            if copy.selected_norisk_pack_id != standard_profile.selected_norisk_pack_id {
-                info!("Updating NoRisk pack for copy {}: {:?} -> {:?}", copy_id, copy.selected_norisk_pack_id, standard_profile.selected_norisk_pack_id);
-                copy.selected_norisk_pack_id = standard_profile.selected_norisk_pack_id.clone();
-                changed = true;
-            }
             
             // Force update banner if different
             if copy.banner != standard_profile.banner {
@@ -2844,6 +2788,13 @@ impl ProfileManager {
             if copy.path != standard_profile.path {
                 info!("Updating path for copy {}: '{}' -> '{}'", copy_id, copy.path, standard_profile.path);
                 copy.path = standard_profile.path.clone();
+                changed = true;
+            }
+            
+            // Clear norisk pack information - no pre-installed packs
+            if copy.norisk_information.is_some() {
+                info!("Clearing norisk_information for copy {}", copy_id);
+                copy.norisk_information = None;
                 changed = true;
             }
             

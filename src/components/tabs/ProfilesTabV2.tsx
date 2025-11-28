@@ -80,8 +80,8 @@ export function ProfilesTabV2() {
       icon: "solar:widget-add-bold",
       tooltip: "Create new profile",
       onClick: () => {
-        // Pass current group as default, but not if it's "all" or "server"
-        const defaultGroup = (activeGroup === "all" || activeGroup === "server") ? null : activeGroup;
+        // Pass current group as default, but not if it's "all"
+        const defaultGroup = (activeGroup === "all") ? null : activeGroup;
         openWizard(defaultGroup);
         navigate("/profiles");
       },
@@ -100,11 +100,11 @@ export function ProfilesTabV2() {
     return Array.from(uniqueGroups).sort();
   };
 
-  // Helper function to check if a group belongs to NRC
-  const isNrcGroup = (groupName: string | null): boolean => {
+  // Helper function to check if a group belongs to VXL
+  const isVxlGroup = (groupName: string | null): boolean => {
     if (!groupName) return false;
     const normalized = groupName.toLowerCase();
-    return normalized === "nrc" || normalized === "noriskclient" || normalized === "norisk client";
+    return normalized === "vxl";
   };
 
   // Calculate group counts based on current search/filter
@@ -112,8 +112,7 @@ export function ProfilesTabV2() {
     if (groupId === "all") return profiles.length;
     
     // Handle default groups
-    if (groupId === "nrc") return profiles.filter(p => isNrcGroup(p.group)).length;
-    if (groupId === "server") return profiles.filter(p => p.group === "SERVER").length;
+    if (groupId === "vxl") return profiles.filter(p => isVxlGroup(p.group)).length;
     if (groupId === "modpacks") return profiles.filter(p => p.group === "MODPACKS").length;
     
     // Handle dynamic groups (groupId is normalized lowercase, compare with profile.group in lowercase)
@@ -124,8 +123,7 @@ export function ProfilesTabV2() {
   const createGroups = (): GroupTab[] => {
     const defaultGroups: GroupTab[] = [
       { id: "all", name: "All", count: getFilteredCountForGroup("all") },
-      { id: "nrc", name: "NRC", count: getFilteredCountForGroup("nrc") },
-      { id: "server", name: "SERVER", count: getFilteredCountForGroup("server") },
+      { id: "vxl", name: "VXL", count: getFilteredCountForGroup("vxl") },
       { id: "modpacks", name: "MODPACKS", count: getFilteredCountForGroup("modpacks") },
     ];
 
@@ -133,8 +131,8 @@ export function ProfilesTabV2() {
     const uniqueGroups = getUniqueProfileGroups();
     const dynamicGroups: GroupTab[] = uniqueGroups
       .filter(group => 
-        !["server", "modpacks"].includes(group) && // Exclude SERVER and MODPACKS (already normalized)
-        !isNrcGroup(group) // Exclude all NRC variations
+        !["modpacks"].includes(group) && // Exclude MODPACKS (already normalized)
+        !isVxlGroup(group) // Exclude VXL
       )
       .map(group => ({
         id: group, // group is already lowercase from getUniqueProfileGroups
@@ -243,15 +241,6 @@ export function ProfilesTabV2() {
     );
   }
 
-  if (profiles.length === 0) {
-    return (
-      <EmptyState
-        icon="solar:widget-bold"
-        message="No profiles found"
-      />
-    );
-  }
-
   // Filter profiles based on search query, active group, and version filter
   const filteredProfiles = profiles.filter((profile) => {
     // Search filter
@@ -261,8 +250,7 @@ export function ProfilesTabV2() {
     
     // Group filter
     const matchesGroup = activeGroup === "all" || 
-      (activeGroup === "nrc" && isNrcGroup(profile.group)) ||
-      (activeGroup === "server" && profile.group === "SERVER") ||
+      (activeGroup === "vxl" && isVxlGroup(profile.group)) ||
       (activeGroup === "modpacks" && profile.group === "MODPACKS") ||
       (profile.group && profile.group.toLowerCase() === activeGroup);
     
@@ -372,25 +360,34 @@ export function ProfilesTabV2() {
       </div>
 
       {/* Profile list */}
-      <div className={
-        layoutMode === "list" 
-          ? "space-y-3"
-          : layoutMode === "grid"
-          ? "grid grid-cols-2 gap-3" 
-          : "grid grid-cols-3 gap-3"
-      }>
-                 {sortedProfiles.map((profile) => (
-           <ProfileCardV2
-             key={profile.id}
-             profile={profile}
-             onSettings={handleSettings}
-             onMods={handleMods}
-             onDelete={handleDeleteProfile}
-             onOpenFolder={handleOpenFolder}
-             layoutMode={layoutMode}
-           />
-         ))}
-      </div>
+      {sortedProfiles.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center">
+          <EmptyState
+            icon="lucide:library"
+            message="No profiles found"
+          />
+        </div>
+      ) : (
+        <div className={
+          layoutMode === "list" 
+            ? "space-y-3"
+            : layoutMode === "grid"
+            ? "grid grid-cols-2 gap-3" 
+            : "grid grid-cols-3 gap-3"
+        }>
+          {sortedProfiles.map((profile) => (
+            <ProfileCardV2
+              key={profile.id}
+              profile={profile}
+              onSettings={handleSettings}
+              onMods={handleMods}
+              onDelete={handleDeleteProfile}
+              onOpenFolder={handleOpenFolder}
+              layoutMode={layoutMode}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Bottom tip */}
       </div>

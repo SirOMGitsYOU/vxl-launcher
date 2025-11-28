@@ -1225,8 +1225,6 @@ pub async fn process_curseforge_pack_from_zip(pack_path: &Path) -> Result<(Profi
         },
         state: ProfileState::NotInstalled,
         mods: Vec::new(),
-        selected_norisk_pack_id: None,
-        disabled_norisk_mods_detailed: std::collections::HashSet::new(),
         source_standard_profile_id: None,
         group: Some("MODPACKS".to_string()),
         is_standard_version: false,

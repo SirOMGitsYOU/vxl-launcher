@@ -71,11 +71,13 @@ export const refreshNrcDataOnMount = async (): Promise<void> => {
     }
 
     try {
-      const standardProfiles = await refreshStandardVersions();
-      console.log("Standard Versions updated successfully on mount!");
-      // Store the standard profiles in the profile store
-      useProfileStore.setState({ standardProfiles });
-      standardVersionsSuccess = true;
+      // Disabled: No pre-installed standard profiles
+      // const standardProfiles = await refreshStandardVersions();
+      // console.log("Standard Versions updated successfully on mount!");
+      // // Store the standard profiles in the profile store
+      // useProfileStore.setState({ standardProfiles });
+      // standardVersionsSuccess = true;
+      console.log("Standard Versions fetch disabled - no pre-installed profiles");
     } catch (error) {
       console.error("Failed to refresh Standard Versions on mount:", error);
     }

@@ -332,95 +332,7 @@ pub async fn check_content_installed(params: CheckContentParams) -> Result<Conte
     );
 
     // --- Norisk Pack Check (if applicable) ---
-    if let Some(pack_id) = &profile.selected_norisk_pack_id {
-        debug!(
-            "Profile {} has selected Norisk Pack: {}. Checking pack definition...",
-            params.profile_id, pack_id
-        );
-        let config = state.norisk_pack_manager.get_config().await;
-        match config.get_resolved_pack_definition(pack_id) {
-            Ok(resolved_pack) => {
-                for norisk_mod in &resolved_pack.mods {
-                    let mut is_potential_project_match = false;
-                    if let (
-                        Some(pid_arg),
-                        norisk_packs::NoriskModSourceDefinition::Modrinth {
-                            project_id: norisk_pid,
-                            ..
-                        },
-                    ) = (&params.project_id, &norisk_mod.source)
-                    {
-                        if pid_arg == norisk_pid {
-                            is_potential_project_match = true;
-                        }
-                    }
-                    // TODO: Add project matching for other source types if needed
-
-                    if is_potential_project_match {
-                        if let Some(loader_map) = norisk_mod.compatibility.get(target_game_version)
-                        {
-                            if let Some(target) = loader_map.get(target_loader_str) {
-                                status.is_included_in_norisk_pack = true;
-
-                                // Check if the SPECIFIC version NUMBER requested matches the pack identifier
-                                if let Some(v_num_arg) = &params.pack_version_number {
-                                    // Use the new field
-                                    // TODO: Comparison might need adjustment for non-Modrinth sources if identifier format differs
-                                    if v_num_arg == &target.identifier {
-                                        debug!("Specific version number {} IS the one defined in the pack (identifier: {}).", v_num_arg, target.identifier);
-                                        status.is_specific_version_in_pack = true;
-                                    }
-                                }
-
-                                // New addition: Add NoRiskPackItemDetails
-                                let mod_identifier = norisk_mod.id.clone();
-
-                                // Create a proper NoriskModIdentifier
-                                let norisk_mod_identifier =
-                                    crate::state::profile_state::NoriskModIdentifier {
-                                        pack_id: pack_id.clone(),
-                                        mod_id: mod_identifier.clone(),
-                                        game_version: target_game_version.to_string(),
-                                        loader: crate::state::profile_state::ModLoader::from_str(
-                                            target_loader_str,
-                                        )
-                                        .unwrap_or(profile.loader.clone()),
-                                    };
-
-                                // Check if it's disabled in the profile
-                                let is_pack_mod_enabled = !profile
-                                    .disabled_norisk_mods_detailed
-                                    .contains(&norisk_mod_identifier);
-
-                                status.norisk_pack_item_details = Some(NoRiskPackItemDetails {
-                                    is_enabled: is_pack_mod_enabled,
-                                    norisk_mod_identifier: Some(norisk_mod_identifier),
-                                });
-
-                                if status.is_specific_version_in_pack {
-                                    break; // Found specific version in pack
-                                }
-                            }
-                        }
-                    }
-                    if status.is_specific_version_in_pack {
-                        break; // Found specific version in pack
-                    }
-                }
-                if status.is_included_in_norisk_pack {
-                    debug!("Found content (some version) in Norisk Pack definition.");
-                } else {
-                    debug!(
-                        "Content not found in the definition of Norisk Pack '{}' for MC {} / {}",
-                        pack_id, target_game_version, target_loader_str
-                    );
-                }
-            }
-            Err(e) => {
-                warn!("Could not resolve Norisk Pack definition for pack ID '{}': {}. Skipping pack check.", pack_id, e);
-            }
-        }
-    }
+    // Removed: No pre-installed modpacks - skipping pack check entirely
 
     // --- Installed Check (Type-Dependent) ---
     let target_type = params.project_type.as_deref().unwrap_or("mod");
@@ -1731,75 +1643,7 @@ async fn process_mod_requests(
             }
         };
 
-        // Check if included in NoRisk Pack
-        if let Some(pack_id) = &profile.selected_norisk_pack_id {
-            let state = State::get().await?;
-            let config = state.norisk_pack_manager.get_config().await;
-
-            if let Ok(resolved_pack) = config.get_resolved_pack_definition(pack_id) {
-                for norisk_mod in &resolved_pack.mods {
-                    let mut is_potential_project_match = false;
-                    if let (
-                        Some(pid_arg),
-                        norisk_packs::NoriskModSourceDefinition::Modrinth {
-                            project_id: norisk_pid,
-                            ..
-                        },
-                    ) = (&request.project_id, &norisk_mod.source)
-                    {
-                        if pid_arg == norisk_pid {
-                            is_potential_project_match = true;
-                        }
-                    }
-
-                    if is_potential_project_match {
-                        if let Some(loader_map) = norisk_mod.compatibility.get(target_game_version)
-                        {
-                            if let Some(target) = loader_map.get(target_loader_str) {
-                                status.is_included_in_norisk_pack = true;
-
-                                // Check specific version match
-                                if let Some(v_num_arg) = &request.pack_version_number {
-                                    if v_num_arg == &target.identifier {
-                                        status.is_specific_version_in_pack = true;
-                                    }
-                                }
-
-                                // Add NoRiskPackItemDetails
-                                let mod_identifier = norisk_mod.id.clone();
-
-                                let norisk_mod_identifier =
-                                    crate::state::profile_state::NoriskModIdentifier {
-                                        pack_id: pack_id.clone(),
-                                        mod_id: mod_identifier.clone(),
-                                        game_version: target_game_version.to_string(),
-                                        loader: crate::state::profile_state::ModLoader::from_str(
-                                            target_loader_str,
-                                        )
-                                        .unwrap_or(profile.loader.clone()),
-                                    };
-
-                                let is_pack_mod_enabled = !profile
-                                    .disabled_norisk_mods_detailed
-                                    .contains(&norisk_mod_identifier);
-
-                                status.norisk_pack_item_details = Some(NoRiskPackItemDetails {
-                                    is_enabled: is_pack_mod_enabled,
-                                    norisk_mod_identifier: Some(norisk_mod_identifier),
-                                });
-
-                                if status.is_specific_version_in_pack {
-                                    break; // Found specific version
-                                }
-                            }
-                        }
-                    }
-                    if status.is_specific_version_in_pack {
-                        break; // Found specific version
-                    }
-                }
-            }
-        }
+        // Check if included in NoRisk Pack - Removed: No pre-installed modpacks
 
         // Check if locally installed - first check profile.mods
         for installed_mod in &profile.mods {
@@ -1956,17 +1800,7 @@ async fn process_resourcepack_requests(
             pack_version_number: request.pack_version_number.clone(),
         };
 
-        // Check if in NoRisk Pack
-        if let Some(pack_id) = &profile.selected_norisk_pack_id {
-            let state = State::get().await?;
-            let config = state.norisk_pack_manager.get_config().await;
-
-            if let Ok(resolved_pack) = config.get_resolved_pack_definition(pack_id) {
-                // Check if the pack includes this resource pack
-                // (Note: This would need to be expanded if NoRisk Packs can contain resource packs)
-                // For now, this is a placeholder as the original function doesn't handle this case specifically
-            }
-        }
+        // Check if in NoRisk Pack - Removed: No pre-installed modpacks
 
         // Check local installation against the preloaded packs
         for pack_info in &packs {
@@ -2048,10 +1882,7 @@ async fn process_shaderpack_requests(
         // Initialize the status struct
         let mut status = ContentInstallStatus::default();
 
-        // Check if in NoRisk Pack - placeholder for future NoRisk Pack shader support
-        if let Some(pack_id) = &profile.selected_norisk_pack_id {
-            // Placeholder for future implementation
-        }
+        // Check if in NoRisk Pack - Removed: No pre-installed modpacks
 
         // Check local installation against the preloaded packs
         for pack_info in &packs {
@@ -2130,10 +1961,7 @@ async fn process_datapack_requests(
         // Initialize the status struct
         let mut status = ContentInstallStatus::default();
 
-        // Check if in NoRisk Pack - placeholder for future NoRisk Pack datapack support
-        if let Some(pack_id) = &profile.selected_norisk_pack_id {
-            // Placeholder for future implementation
-        }
+        // Check if in NoRisk Pack - Removed: No pre-installed modpacks
 
         // Check local installation against the preloaded packs
         for pack_info in &packs {
@@ -2287,118 +2115,7 @@ impl LocalContentLoader {
 
         let mut preliminary_items: Vec<LocalContentItem> = Vec::new();
 
-        if params.content_type == ContentType::NoRiskMod {
-            // Special handling for NoRisk mods - fetch them from the NoRisk pack system
-            if let Some(pack_id) = &profile.selected_norisk_pack_id {
-                // Get the NoRisk pack manager from the state
-                let state = State::get().await?;
-                let config = state.norisk_pack_manager.get_config().await;
-
-                // Get the resolved pack definition
-                match config.get_resolved_pack_definition(pack_id) {
-                    Ok(pack_def) => {
-                        for norisk_mod in &pack_def.mods {
-                            // Extract fallback version from compatibility target at the beginning
-                            let fallback_version = norisk_mod
-                                .compatibility
-                                .get(&profile.game_version)
-                                .and_then(|game_version_map| {
-                                    game_version_map.get(profile.loader.as_str())
-                                })
-                                .map(|loader_target| loader_target.identifier.clone());
-
-                            // Skip this mod if no fallback version is available
-                            if fallback_version.is_none() {
-                                continue;
-                            }
-
-                            // Create a proper NoriskModIdentifier first so we can reuse it
-                            let norisk_mod_identifier =
-                                crate::state::profile_state::NoriskModIdentifier {
-                                    pack_id: pack_id.clone(),
-                                    mod_id: norisk_mod.id.clone(),
-                                    game_version: profile.game_version.clone(),
-                                    loader: profile.loader.clone(),
-                                };
-
-                            // Determine if the mod is enabled/disabled using the identifier
-                            let is_disabled = profile
-                                .disabled_norisk_mods_detailed
-                                .iter()
-                                .any(|disabled_mod| *disabled_mod == norisk_mod_identifier);
-
-                            // Determine source type string
-                            let source_type_str = match &norisk_mod.source {
-                                crate::integrations::norisk_packs::NoriskModSourceDefinition::Modrinth { .. } => None,
-                                crate::integrations::norisk_packs::NoriskModSourceDefinition::Maven { .. } => Some("maven"),
-                                crate::integrations::norisk_packs::NoriskModSourceDefinition::Url { .. } => Some("url"),
-                                _ => Some("norisk"),
-                            };
-
-                            // Extract Modrinth info if available
-                            let modrinth_info = if let crate::integrations::norisk_packs::NoriskModSourceDefinition::Modrinth { project_id, .. } = &norisk_mod.source {
-                                // For version info we need to look at compatibility
-                                let version_id = norisk_mod.compatibility
-                                    .get(&profile.game_version)
-                                    .and_then(|game_version_map| game_version_map.get(profile.loader.as_str()))
-                                    .map(|loader_target| loader_target.identifier.clone())
-                                    .unwrap_or_else(|| "unknown".to_string());
-
-                                Some(GenericModrinthInfo {
-                                    project_id: project_id.clone(),
-                                    version_id,
-                                    name: norisk_mod.display_name.clone().unwrap_or_else(|| norisk_mod.id.clone()),
-                                    version_number: "".to_string(), // Not directly available
-                                    download_url: None,
-                                })
-                            } else {
-                                None
-                            };
-
-                            // Use the path_utils function to get the mod cache path
-                            let path_str = match crate::utils::path_utils::get_norisk_mod_cache_path(
-                                norisk_mod,
-                                &profile.game_version,
-                                &profile.loader.as_str(),
-                            ) {
-                                Ok(path) => path.to_string_lossy().to_string(),
-                                Err(e) => {
-                                    warn!(
-                                        "Could not get cache path for NoRisk mod {}: {}",
-                                        norisk_mod.id, e
-                                    );
-                                    String::new() // Fallback if path can't be determined
-                                }
-                            };
-
-                            // Create LocalContentItem (using the identifier we created earlier)
-                            preliminary_items.push(LocalContentItem {
-                                filename: norisk_mod.id.clone(),
-                                path_str,
-                                sha1_hash: None,
-                                file_size: 0,
-                                is_disabled,
-                                is_directory: false,
-                                content_type: ContentType::NoRiskMod,
-                                modrinth_info,
-                                curseforge_info: None,
-                                platform: None,
-                                source_type: source_type_str.map(|s| s.to_string()),
-                                norisk_info: Some(norisk_mod_identifier),
-                                fallback_version: fallback_version,
-                                id: None,
-                                associated_loader: None,
-                                modpack_origin: None, // NoRisk mods kommen nicht aus ModPacks
-                                updates_enabled: None, // Default behavior
-                            });
-                        }
-                    }
-                    Err(e) => {
-                        warn!("Failed to get NoRisk pack definition: {}", e);
-                    }
-                }
-            }
-        } else if params.content_type == ContentType::Mod {
+        if params.content_type == ContentType::Mod {
             // First process profile.mods entries (for tracking enabled status)
             for mod_item in &profile.mods {
                 let mut filename = mod_item.file_name_override.clone();

@@ -17,6 +17,7 @@ interface NavItem {
   icon: string;
   label: string;
   action?: () => void;
+  disabled?: boolean;
 }
 
 interface VerticalNavbarProps {
@@ -87,7 +88,8 @@ export function VerticalNavbar({
     return () => ctx.revert();
   }, []);
 
-  const handleItemClick = (id: string) => {
+  const handleItemClick = (id: string, disabled?: boolean) => {
+    if (disabled) return;
     setActive(id);
     if (onItemClick) {
       onItemClick(id);
@@ -146,10 +148,12 @@ export function VerticalNavbar({
               <NavButton
                 icon={<Icon icon={item.icon} className="w-8 h-8" />}
                 isActive={active === item.id}
-                onClick={() => handleItemClick(item.id)}
+                isDisabled={item.disabled}
+                onClick={() => handleItemClick(item.id, item.disabled)}
                 onMouseEnter={() => handleMouseEnter(item.id)}
                 onMouseLeave={handleMouseLeave}
                 aria-label={item.label}
+                title={item.disabled ? `${item.label} (requires an account)` : item.label}
               />
             </div>
           ))}

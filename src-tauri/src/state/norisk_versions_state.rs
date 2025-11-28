@@ -192,29 +192,16 @@ impl NoriskVersionManager {
 #[async_trait]
 impl PostInitializationHandler for NoriskVersionManager {
     async fn on_state_ready(&self, _app_handle: Arc<tauri::AppHandle>) -> Result<()> {
-        info!("NoriskVersionManager: on_state_ready called. Loading configuration...");
-        // Load initial config. If loading fails critically (e.g., IO error other than NotFound), propagate the error.
-        // If parsing fails or file not found, use default. This logic is now effectively in load_config_internal.
-        let load_path = if let Ok(state) = State::get().await {
-            let is_exp = state.config_manager.is_experimental_mode().await;
-            norisk_versions_path_for(is_exp)
-        } else {
-            self.config_path.clone()
-        };
-        let loaded_config = self.load_config_internal(&load_path).await.unwrap_or_else(|e| {
-            error!(
-                "NoriskVersionManager: Critical error in on_state_ready loading config (path: {:?}): {}. Using default empty config.", 
-                load_path,
-                e
-            );
-            NoriskVersionsConfig::default()
-        });
+        info!("NoriskVersionManager: on_state_ready called. Using empty configuration (no pre-installed profiles).");
+        // Disabled: No longer loading standard profiles from cache
+        // This ensures no pre-installed norisk profiles are added by default
+        let empty_config = NoriskVersionsConfig::default();
 
         let mut config_guard = self.config.write().await;
-        *config_guard = loaded_config;
+        *config_guard = empty_config;
         drop(config_guard);
 
-        info!("NoriskVersionManager: Successfully processed configuration in on_state_ready.");
+        info!("NoriskVersionManager: Successfully initialized with empty configuration.");
         Ok(())
     }
 }

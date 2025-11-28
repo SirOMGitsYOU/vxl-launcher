@@ -126,52 +126,7 @@ pub async fn repair_profile_mods(profile_id: Uuid) -> Result<()> {
             }
         }
 
-        // 3. Delete NoRisk pack mod files from cache
-        if let Some(pack_id) = &profile.selected_norisk_pack_id {
-            info!("Cleaning NoRisk pack mod cache for pack: {}", pack_id);
-            
-            let norisk_config = state.norisk_pack_manager.get_config().await;
-            match norisk_config.get_resolved_pack_definition(pack_id) {
-                Ok(resolved_pack) => {
-                    for norisk_mod in &resolved_pack.mods {
-                        // Get the cache path for this NoRisk mod
-                        match path_utils::get_norisk_mod_cache_path(
-                            norisk_mod,
-                            &profile.game_version,
-                            profile.loader.as_str(),
-                        ) {
-                            Ok(cache_path) => {
-                                if cache_path.exists() {
-                                    match fs::remove_file(&cache_path).await {
-                                        Ok(_) => {
-                                            debug!("Removed NoRisk pack mod cache file: {:?}", cache_path);
-                                            cache_files_removed += 1;
-                                        }
-                                        Err(e) => {
-                                            warn!("Failed to remove NoRisk pack mod cache file {:?}: {}", cache_path, e);
-                                            cache_errors += 1;
-                                        }
-                                    }
-                                } else {
-                                    debug!("NoRisk pack mod cache file does not exist: {:?}", cache_path);
-                                }
-                            }
-                            Err(e) => {
-                                warn!("Could not determine cache path for NoRisk pack mod {}: {}", 
-                                      norisk_mod.display_name.as_deref().unwrap_or(&norisk_mod.id), e);
-                                cache_errors += 1;
-                            }
-                        }
-                    }
-                }
-                Err(e) => {
-                    warn!("Failed to get NoRisk pack definition for {}: {}", pack_id, e);
-                    cache_errors += 1;
-                }
-            }
-        } else {
-            debug!("Profile has no selected NoRisk pack, skipping NoRisk mod cache cleanup");
-        }
+        // Removed: No pre-installed modpacks - norisk pack cache cleanup skipped
         
         info!("Cache cleanup completed: {} files removed, {} errors", cache_files_removed, cache_errors);
     } else {

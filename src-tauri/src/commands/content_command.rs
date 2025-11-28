@@ -303,46 +303,12 @@ pub async fn toggle_content_from_profile(
     })?;
 
     // Handle NoRisk Pack item toggling if the identifier is provided
-    if let Some(norisk_mod_identifier) = payload.norisk_mod_identifier {
-        log::info!(
-            "Toggling NoRisk Pack item state: profile={}, pack={}, mod={}, disabled={}",
-            payload.profile_id,
-            norisk_mod_identifier.pack_id,
-            norisk_mod_identifier.mod_id,
-            !payload.enabled
-        );
-
-        // Clone the fields needed for logging
-        let pack_id = norisk_mod_identifier.pack_id.clone();
-        let mod_id = norisk_mod_identifier.mod_id.clone();
-
-        // Call set_norisk_mod_status with the appropriate parameters
-        match state_manager
-            .profile_manager
-            .set_norisk_mod_status(
-                payload.profile_id,
-                norisk_mod_identifier.pack_id,
-                norisk_mod_identifier.mod_id,
-                norisk_mod_identifier.game_version,
-                norisk_mod_identifier.loader,
-                !payload.enabled, // Note: disabled = !enabled
-            )
-            .await
-        {
-            Ok(_) => {
-                log::info!(
-                    "Successfully toggled NoRisk Pack item state for pack_id={}, mod_id={} to enabled={}",
-                    pack_id,
-                    mod_id,
-                    payload.enabled
-                );
-                return Ok(());
-            }
-            Err(e) => {
-                log::error!("Failed to toggle NoRisk Pack item state: {}", e);
-                return Err(CommandError::from(e));
-            }
-        }
+    // Removed: No pre-installed modpacks - norisk pack toggling skipped
+    if let Some(_norisk_mod_identifier) = payload.norisk_mod_identifier {
+        log::info!("NoRisk Pack item toggling is no longer supported");
+        return Err(CommandError::from(AppError::Other(
+            "NoRisk Pack items are no longer supported".to_string(),
+        )));
     }
 
     // Continue with SHA1-based content toggling if not a NoRisk Pack item

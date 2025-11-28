@@ -266,7 +266,7 @@ export const useThemeStore = create<ThemeState>()(
       profilesTabActiveGroup: "all",
       profilesTabSortBy: "last_played",
       profilesTabVersionFilter: "all",
-      profilesTabLayoutMode: "list",
+      profilesTabLayoutMode: "compact",
       // Global context menu management - defaults
       openContextMenuId: null,
       // Mod source selection - defaults

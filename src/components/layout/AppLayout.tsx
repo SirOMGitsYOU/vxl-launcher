@@ -9,6 +9,7 @@ import { VerticalNavbar } from ".././navigation/VerticalNavbar";
 import { UserProfileBar } from ".././header/UserProfileBar";
 import { NavigationHistory } from "../ui/NavigationHistory";
 import { useThemeStore } from "../../store/useThemeStore";
+import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
 import {
   BACKGROUND_EFFECTS,
   useBackgroundEffectStore,
@@ -35,13 +36,13 @@ import { exit, relaunch } from '@tauri-apps/plugin-process';
 import { Tooltip } from "../ui/Tooltip";
 import { toast } from 'react-hot-toast';
 
-const navItems = [
+const getNavItems = (hasAccount: boolean) => [
   { id: "play", icon: "solar:play-bold", label: "Play" },
-  { id: "profiles", icon: "lucide:library", label: "Profiles" },
+  { id: "profiles", icon: "lucide:library", label: "Library" },
   { id: "mods", icon: "mdi:jigsaw", label: "Mods" },
   { id: "vxlstudios", icon: "f7:cube-fill", label: "Voxel Studios" },
-  { id: "skins", icon: "temaki:clothes-hanger", label: "Skins" },
-  { id: "capes", icon: "game-icons:cape", label: "Capes" },
+  { id: "skins", icon: "temaki:clothes-hanger", label: "Skins", disabled: !hasAccount },
+  { id: "capes", icon: "game-icons:cape", label: "Capes", disabled: !hasAccount },
   { id: "settings", icon: "solar:settings-bold", label: "Settings" },
 ];
 
@@ -68,6 +69,8 @@ export function AppLayout({
   const { currentEffect } = useBackgroundEffectStore();
   const { qualityLevel } = useQualitySettingsStore();
   const { isBackgroundAnimationEnabled, accentColor: themeAccentColor, accentColor } = useThemeStore();
+  const { accounts } = useMinecraftAuthStore();
+  const hasAccount = accounts && accounts.length > 0;
 
   const getComplementaryBackground = () => {
     const hexToRgb = (hex: string) => {
@@ -279,7 +282,7 @@ export function AppLayout({
       <BorderGlowEffects accentColor={themeAccentColor.value} />
 
       <VerticalNavbar
-        items={navItems}
+        items={getNavItems(hasAccount)}
         activeItem={activeTab}
         onItemClick={onNavChange}
         className="h-full border-r-2 z-10"

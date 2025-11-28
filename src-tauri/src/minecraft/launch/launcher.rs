@@ -291,8 +291,8 @@ impl MinecraftLauncher {
         command.arg("-XX:G1HeapRegionSize=32M");
 
         // Add NoRisk client specific parameters
-        // Only add token if we have credentials AND a NoRisk pack is selected in the profile
-        let has_norisk_pack = profile.as_ref().and_then(|p| p.selected_norisk_pack_id.as_ref()).is_some();
+        // Removed: No pre-installed modpacks
+        let has_norisk_pack = false;
 
         // Add profile name for ingame display
         if let Some(p) = &profile {
@@ -458,7 +458,7 @@ impl MinecraftLauncher {
                 Some(p) => (
                     Some(p.loader.as_str().to_string()),
                     p.loader_version,
-                    p.selected_norisk_pack_id,
+                    None, // Removed: No pre-installed modpacks
                     Some(p.name),
                 ),
                 None => (None, None, None, None),

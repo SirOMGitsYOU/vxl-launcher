@@ -2,7 +2,9 @@
 
 import { memo, useState } from "react";
 import type { MinecraftSkin, SkinVariant } from "../../types/localSkin";
+import type { TexturesData } from "../../types/minecraft";
 import { useThemeStore } from "../../store/useThemeStore";
+import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
 import { useGlobalModal } from "../../hooks/useGlobalModal";
 import { Modal } from "../ui/Modal";
 import { Button } from "../ui/buttons/Button";
@@ -43,10 +45,12 @@ export const AddSkinModal = memo(
     );
     const [isPreviewLoading, setIsPreviewLoading] = useState<boolean>(false);
     const [previewSkinName, setPreviewSkinName] = useState<string>(skin?.name ?? "");
+    const [importingCurrentSkin, setImportingCurrentSkin] = useState<boolean>(false);
 
     const variant: SkinVariant = isSlimVariant ? "slim" : "classic";
     const accentColor = useThemeStore((state) => state.accentColor);
     const { hideModal } = useGlobalModal();
+    const { activeAccount } = useMinecraftAuthStore();
 
     const handleClose = () => {
       hideModal('add-skin-modal');
@@ -55,6 +59,150 @@ export const AddSkinModal = memo(
       setPreviewBase64Url(skin ? `data:image/png;base64,${skin.base64_data}` : null);
       setPreviewSkinName(skin?.name ?? "");
       setIsSlimVariant(skin?.variant === "slim");
+    };
+
+    const handleImportCurrentSkin = async () => {
+      if (!activeAccount) {
+        toast.error("You must be logged in to import your current skin");
+        return;
+      }
+
+      setImportingCurrentSkin(true);
+      try {
+        const skinData = await MinecraftSkinService.getUserSkinData(
+          activeAccount.id,
+          activeAccount.access_token,
+        );
+
+        if (skinData?.properties) {
+          const texturesProp = skinData.properties.find(
+            (prop: { name: string; value: string }) => prop.name === "textures",
+          );
+
+          if (texturesProp) {
+            try {
+              const decodedValue = atob(texturesProp.value);
+              const texturesJson = JSON.parse(decodedValue) as TexturesData;
+              const skinInfo = texturesJson.textures?.SKIN;
+
+              if (skinInfo?.url) {
+                setSkinInput(skinInfo.url);
+                
+                // Auto-detect variant based on metadata
+                if (texturesJson.textures?.SKIN?.metadata?.model === "slim") {
+                  setIsSlimVariant(true);
+                } else {
+                  setIsSlimVariant(false);
+                }
+
+                toast.success(
+                  `Imported current skin from ${activeAccount.minecraft_username} (${texturesJson.textures?.SKIN?.metadata?.model === "slim" ? "Slim" : "Classic"} model)`,
+                );
+              } else {
+                toast.error("Could not find skin URL in account data");
+              }
+            } catch (e) {
+              console.error("Error parsing skin textures:", e);
+              toast.error("Failed to parse skin details from account");
+            }
+          } else {
+            toast.error("No skin data found for this account");
+          }
+        } else {
+          toast.error("Could not retrieve skin data from account");
+        }
+      } catch (err) {
+        console.error("Error importing current skin:", err);
+        toast.error(
+          err instanceof Error
+            ? err.message
+            : "Failed to import current skin",
+        );
+      } finally {
+        setImportingCurrentSkin(false);
+      }
+    };
+
+    const parseWebsiteUrl = (url: URL, originalInput: string): { finalUrl: string; targetName: string } => {
+      let finalUrl = originalInput;
+      let targetName = "";
+
+      // NameMC parsing
+      if (url.hostname === "namemc.com" || url.hostname === "www.namemc.com") {
+        const skinIdMatch = url.pathname.match(/\/skin\/([a-f0-9]+)/i);
+        if (skinIdMatch) {
+          const skinId = skinIdMatch[1];
+          finalUrl = `https://s.namemc.com/i/${skinId}.png`;
+          targetName = skinId;
+          console.log(`[AddSkinModal] Converted NameMC skin URL to direct texture: ${finalUrl}`);
+        } else {
+          const profileMatch = url.pathname.match(/\/profile\/([^\/]+)/i);
+          if (profileMatch) {
+            let username = profileMatch[1];
+            username = username.replace(/\.\d+$/, "");
+            setSkinInput(username);
+            targetName = username;
+            finalUrl = username;
+            console.log(`[AddSkinModal] Extracted username from NameMC profile URL: ${username}`);
+          } else {
+            throw new Error("Invalid NameMC URL format");
+          }
+        }
+      }
+      // Crafty.gg parsing
+      else if (url.hostname === "crafty.gg" || url.hostname === "www.crafty.gg") {
+        const craftySkinsMatch = url.pathname.match(/\/skins\/([a-f0-9\-]+)/i);
+        if (craftySkinsMatch) {
+          const uuid = craftySkinsMatch[1];
+          targetName = uuid;
+          finalUrl = uuid;
+          console.log(`[AddSkinModal] Processing Crafty.gg skin URL: ${uuid}`);
+        } else {
+          const craftyProfileMatch = url.pathname.match(/\/@([^\/]+)/i);
+          if (craftyProfileMatch) {
+            const username = craftyProfileMatch[1];
+            setSkinInput(username);
+            targetName = username;
+            finalUrl = username;
+            console.log(`[AddSkinModal] Extracted username from Crafty.gg profile URL: ${username}`);
+          } else {
+            throw new Error("Invalid Crafty.gg URL format");
+          }
+        }
+      }
+      // Laby.net parsing
+      else if (url.hostname === "laby.net" || url.hostname === "www.laby.net") {
+        const labySkinsMatch = url.pathname.match(/\/skin\/([a-f0-9]+)/i);
+        if (labySkinsMatch) {
+          const uuid = labySkinsMatch[1];
+          finalUrl = `https://laby.net/api/v3/texture/${uuid}/skin.png?download=1`;
+          targetName = uuid;
+          console.log(`[AddSkinModal] Processing Laby.net skin URL: ${uuid}`);
+        } else {
+          const labyProfileMatch = url.pathname.match(/\/@([^\/]+)/i);
+          if (labyProfileMatch) {
+            const username = labyProfileMatch[1];
+            setSkinInput(username);
+            targetName = username;
+            finalUrl = username;
+            console.log(`[AddSkinModal] Extracted username from Laby.net profile URL: ${username}`);
+          } else {
+            throw new Error("Invalid Laby.net URL format");
+          }
+        }
+      }
+      // Generic URL handling
+      else {
+        const pathnameParts = url.pathname
+          .split("/")
+          .filter((part) => part.length > 0);
+        targetName = pathnameParts.pop() || url.hostname || "Web_Skin";
+        if (targetName.match(/\.(png|jpg|jpeg|gif)$/i)) {
+          targetName = targetName.substring(0, targetName.lastIndexOf("."));
+        }
+      }
+
+      return { finalUrl, targetName };
     };
 
     const handlePreview = async () => {
@@ -70,6 +218,8 @@ export const AddSkinModal = memo(
 
         // Create SkinSourceDetails based on input type (similar to addSkinLocally logic)
         let sourceDetails: any;
+        let finalUrl = trimmedInput;
+        let targetName = "";
 
         // Regex patterns (should match the ones in minecraft-skin-service.ts)
         const MINECRAFT_USERNAME_REGEX = /^[a-zA-Z0-9_]{2,16}$/;
@@ -88,6 +238,10 @@ export const AddSkinModal = memo(
             const parsedUrl = new URL(trimmedInput);
             if (parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:") {
               isHttpUrl = true;
+              // Parse website-specific URLs
+              const parsed = parseWebsiteUrl(parsedUrl, trimmedInput);
+              finalUrl = parsed.finalUrl;
+              targetName = parsed.targetName;
             } else if (parsedUrl.protocol === "file:") {
               isFileProtocolUrl = true;
               let rawPath = decodeURIComponent(parsedUrl.pathname);
@@ -102,7 +256,7 @@ export const AddSkinModal = memo(
           }
 
           if (isHttpUrl) {
-            sourceDetails = { type: "Url", details: { url: trimmedInput } };
+            sourceDetails = { type: "Url", details: { url: finalUrl } };
           } else if (isFileProtocolUrl) {
             sourceDetails = { type: "FilePath", details: { path: pathFromUrlIfFileProtocol } };
           } else {
@@ -114,50 +268,51 @@ export const AddSkinModal = memo(
         // Get base64 data from the source
         const base64Data = await MinecraftSkinService.getBase64FromSkinSource(sourceDetails);
 
-        // Generate target name for the preview (same logic as in handleSave)
-        let targetName = "";
-        const looksLikeHttpUrl = /^(https?):\/\//i.test(trimmedInput);
-        const isLikelyFilePath = (input: string): boolean => {
-          if (input.startsWith("file://")) return true;
-          const hasPathSeparators = /[\\/]/.test(input);
-          const isHttp = /^(https?):\/\//i.test(input);
-          return hasPathSeparators && !isHttp;
-        };
+        // If targetName wasn't set by website parsing, generate it from the input
+        if (!targetName.trim()) {
+          const looksLikeHttpUrl = /^(https?):\/\//i.test(trimmedInput);
+          const isLikelyFilePath = (input: string): boolean => {
+            if (input.startsWith("file://")) return true;
+            const hasPathSeparators = /[\\/]/.test(input);
+            const isHttp = /^(https?):\/\//i.test(input);
+            return hasPathSeparators && !isHttp;
+          };
 
-        if (looksLikeHttpUrl) {
-          try {
-            const url = new URL(trimmedInput);
-            const pathnameParts = url.pathname
-              .split("/")
-              .filter((part) => part.length > 0);
-            targetName = pathnameParts.pop() || url.hostname || "Web_Skin";
+          if (looksLikeHttpUrl) {
+            try {
+              const url = new URL(trimmedInput);
+              const pathnameParts = url.pathname
+                .split("/")
+                .filter((part) => part.length > 0);
+              targetName = pathnameParts.pop() || url.hostname || "Web_Skin";
+              if (targetName.match(/\.(png|jpg|jpeg|gif)$/i)) {
+                targetName = targetName.substring(0, targetName.lastIndexOf("."));
+              }
+            } catch (e) {
+              targetName = "Invalid_Web_Skin_Url";
+              console.error("Error parsing HTTP URL for name:", e);
+            }
+          } else if (isLikelyFilePath(trimmedInput)) {
+            let pathForNameExtraction = trimmedInput;
+            if (trimmedInput.startsWith("file://")) {
+              try {
+                const tempUrl = new URL(trimmedInput);
+                pathForNameExtraction = decodeURIComponent(tempUrl.pathname);
+              } catch (e) {
+                console.error(
+                  "Error parsing file:// URL for name extraction:",
+                  e,
+                );
+              }
+            }
+            const pathParts = pathForNameExtraction.split(/[\\/]/);
+            targetName = pathParts.pop() || "File_Skin";
             if (targetName.match(/\.(png|jpg|jpeg|gif)$/i)) {
               targetName = targetName.substring(0, targetName.lastIndexOf("."));
             }
-          } catch (e) {
-            targetName = "Invalid_Web_Skin_Url";
-            console.error("Error parsing HTTP URL for name:", e);
+          } else {
+            targetName = trimmedInput;
           }
-        } else if (isLikelyFilePath(trimmedInput)) {
-          let pathForNameExtraction = trimmedInput;
-          if (trimmedInput.startsWith("file://")) {
-            try {
-              const tempUrl = new URL(trimmedInput);
-              pathForNameExtraction = decodeURIComponent(tempUrl.pathname);
-            } catch (e) {
-              console.error(
-                "Error parsing file:// URL for name extraction:",
-                e,
-              );
-            }
-          }
-          const pathParts = pathForNameExtraction.split(/[\\/]/);
-          targetName = pathParts.pop() || "File_Skin";
-          if (targetName.match(/\.(png|jpg|jpeg|gif)$/i)) {
-            targetName = targetName.substring(0, targetName.lastIndexOf("."));
-          }
-        } else {
-          targetName = trimmedInput;
         }
 
         if (!targetName.trim()) {
@@ -239,6 +394,7 @@ export const AddSkinModal = memo(
 
           // Use the same name generation logic as in the original code
           let targetName = "";
+          let finalUrl = trimmedInput;
           const looksLikeHttpUrl = /^(https?):\/\//i.test(trimmedInput);
           const isLikelyFilePath = (input: string): boolean => {
             if (input.startsWith("file://")) return true;
@@ -250,13 +406,10 @@ export const AddSkinModal = memo(
           if (looksLikeHttpUrl) {
             try {
               const url = new URL(trimmedInput);
-              const pathnameParts = url.pathname
-                .split("/")
-                .filter((part) => part.length > 0);
-              targetName = pathnameParts.pop() || url.hostname || "Web_Skin";
-              if (targetName.match(/\.(png|jpg|jpeg|gif)$/i)) {
-                targetName = targetName.substring(0, targetName.lastIndexOf("."));
-              }
+              // Parse website-specific URLs
+              const parsed = parseWebsiteUrl(url, trimmedInput);
+              finalUrl = parsed.finalUrl;
+              targetName = parsed.targetName;
             } catch (e) {
               targetName = "Invalid_Web_Skin_Url";
               console.error("Error parsing HTTP URL for name:", e);
@@ -296,7 +449,7 @@ export const AddSkinModal = memo(
             );
           }
 
-        return await onAdd(trimmedInput, targetName, variant, null);
+        return await onAdd(finalUrl, targetName, variant, null);
         }
       };
 
@@ -474,7 +627,7 @@ export const AddSkinModal = memo(
             )}
 
             {!skin && (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <label className="block font-minecraft text-3xl text-white/80 lowercase">
                   Skin
                 </label>
@@ -484,7 +637,7 @@ export const AddSkinModal = memo(
                     value={skinInput}
                     onChange={(e) => setSkinInput(e.target.value)}
                     placeholder="Copy by username, UUID or download from URL"
-                    disabled={isLoading}
+                    disabled={isLoading || importingCurrentSkin}
                     size="md"
                     variant="flat"
                     className="flex-grow"
@@ -492,12 +645,25 @@ export const AddSkinModal = memo(
                   <IconButton
                     onClick={handleOpenFileUpload}
                     title="Upload Skin from file"
-                    disabled={isLoading}
+                    disabled={isLoading || importingCurrentSkin}
                     size="md"
                     variant="flat-secondary"
                     icon={<Icon icon="solar:folder-bold" className="w-5 h-5" />}
                   />
                 </div>
+                <p className="text-white/50 font-minecraft text-lg lowercase">
+                  Supported Sites: NameMC.com, Crafty.gg, Laby.net & Any Direct Image Host
+                </p>
+                <Button
+                  onClick={handleImportCurrentSkin}
+                  disabled={isLoading || importingCurrentSkin || !activeAccount}
+                  variant="flat-secondary"
+                  size="sm"
+                  className="w-full"
+                  icon={<Icon icon="solar:download-bold" className="w-4 h-4" />}
+                >
+                  {importingCurrentSkin ? "Importing..." : "Import Current Skin"}
+                </Button>
               </div>
             )}
 

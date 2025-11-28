@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>gg.norisk.NoRiskClientLauncherV3</id>
+  <id>com.vxl.VXLLauncher</id>
 
   <name>NoRisk Client Launcher</name>
   <summary>A Launcher for the NoRisk Client</summary>
@@ -8,7 +8,7 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-only</project_license>
 
-  <developer id="gg.norisk">
+  <developer id="com.vxl">
     <name>NoRisk Client Team</name>
   </developer>
 
@@ -18,7 +18,7 @@
     </p>
   </description>
 
-  <launchable type="desktop-id">gg.norisk.NoRiskClientLauncherV3.desktop</launchable>
+  <launchable type="desktop-id">com.vxl.VXLLauncher.desktop</launchable>
 
   <url type="homepage">https://norisk.gg/</url>
   <url type="contribute">https://github.com/NoRiskClient/noriskclient-launcher</url>

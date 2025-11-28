@@ -64,7 +64,7 @@ use commands::profile_command::{
     import_profile, import_profile_from_file, import_world, is_content_installed, is_profile_launching,
     launch_profile, list_profile_screenshots, list_profiles, open_profile_folder,
     open_profile_latest_log, refresh_norisk_packs, refresh_standard_versions, repair_profile,
-    resolve_loader_version, search_profiles, set_custom_mod_enabled, set_norisk_mod_status,
+    resolve_loader_version, search_profiles, set_custom_mod_enabled,
     set_profile_mod_enabled, update_datapack_from_modrinth, update_modrinth_mod_version,
     update_profile, update_resourcepack_from_modrinth, update_shaderpack_from_modrinth,
 };
@@ -403,7 +403,6 @@ async fn main() {
             delete_mod_from_profile,
             get_norisk_packs,
             get_norisk_packs_resolved,
-            set_norisk_mod_status,
             update_modrinth_mod_version,
             get_all_modrinth_versions_for_contexts,
             get_full_log,

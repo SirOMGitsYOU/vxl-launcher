@@ -258,7 +258,7 @@ export function CapeBrowser(): JSX.Element {
                       borderColor: selectedCape?.id === cape.id ? accentColor.value : undefined,
                     }}
                   >
-                    <div className="aspect-square rounded mb-2 overflow-hidden bg-black/40 flex items-center justify-center">
+                    <div className="aspect-square rounded mb-2 overflow-hidden flex items-center justify-center">
                       <CapePreview2D
                         capeUrl={cape.url}
                         playerUuid={activeAccount?.id}

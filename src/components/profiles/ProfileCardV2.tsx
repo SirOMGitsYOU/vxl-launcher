@@ -542,11 +542,11 @@ export function ProfileCardV2({
                  }
                }
              }}
-            className={`${isCompact ? 'w-6 h-6' : 'w-8 h-8'} flex items-center justify-center rounded transition-all duration-200 bg-black/30 hover:bg-black/50 text-white/70 hover:text-white border border-white/10 hover:border-white/20`}
+            className={`${isCompact ? 'w-8 h-8' : 'w-10 h-10'} flex items-center justify-center rounded transition-all duration-200 bg-black/30 hover:bg-black/50 text-white/70 hover:text-white border border-white/10 hover:border-white/20`}
             title="Profile Options"
             data-action="settings"
           >
-            <Icon icon="solar:settings-bold" className={isCompact ? 'w-3 h-3' : 'w-4 h-4'} />
+            <Icon icon="solar:settings-bold" className={isCompact ? 'w-4 h-4' : 'w-5.5 h-5.5'} />
           </button>
           )}
 
@@ -562,13 +562,13 @@ export function ProfileCardV2({
                 navigate(`/profilesv2/${profile.id}`);
               }
             }}
-            className={`${variant === "3d" ? (isCompact ? 'w-auto px-2 h-6' : 'w-auto px-3 h-8') : (isCompact ? 'w-6 h-6' : 'w-8 h-8')} flex items-center justify-center gap-1 rounded transition-all duration-200 ${variant === "3d" ? "" : "bg-black/30 hover:bg-black/50 text-white/70 hover:text-white border border-white/10 hover:border-white/20"}`}
+            className={`${variant === "3d" ? (isCompact ? 'w-auto px-2 h-8' : 'w-auto px-3 h-10') : (isCompact ? 'w-8 h-8' : 'w-10 h-10')} flex items-center justify-center gap-1 rounded transition-all duration-200 ${variant === "3d" ? "" : "bg-black/30 hover:bg-black/50 text-white/70 hover:text-white border border-white/10 hover:border-white/20"}`}
             style={variant === "3d" ? get3DButtonStyling(modsButtonHovered) : {}}
             onMouseEnter={() => setModsButtonHovered(true)}
             onMouseLeave={() => setModsButtonHovered(false)}
             title="Manage Mods"
           >
-            <Icon icon="solar:box-bold" className={isCompact ? 'w-3 h-3' : 'w-4 h-4'} />
+            <Icon icon="solar:box-bold" className={isCompact ? 'w-4 h-4' : 'w-5.5 h-5.5'} />
             {variant === "3d" && (
               <span className={`font-minecraft-ten ${isCompact ? 'text-xs' : 'text-sm'} uppercase`}>MODS</span>
             )}

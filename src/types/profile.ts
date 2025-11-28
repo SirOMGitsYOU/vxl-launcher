@@ -202,7 +202,6 @@ export interface Profile {
   settings: ProfileSettings;
   state: ProfileState;
   mods: Mod[];
-  selected_norisk_pack_id: string | null;
   disabled_norisk_mods_detailed: NoriskModIdentifier[];
   source_standard_profile_id: string | null;
   group: string | null;
@@ -238,7 +237,6 @@ export interface CreateProfileParams {
   game_version: string;
   loader: string;
   loader_version?: string;
-  selected_norisk_pack_id?: string;
   use_shared_minecraft_folder?: boolean;
 }
 
@@ -248,12 +246,10 @@ export interface UpdateProfileParams {
   loader?: string;
   loader_version?: string;
   settings?: ProfileSettings;
-  selected_norisk_pack_id?: string;
   group?: string | null;
   clear_group?: boolean;
   use_shared_minecraft_folder?: boolean;
   description?: string | null;
-  clear_selected_norisk_pack?: boolean;
   banner?: ProfileBanner | null;
   background?: ProfileBanner | null;
   norisk_information?: NoriskInformation | null;
