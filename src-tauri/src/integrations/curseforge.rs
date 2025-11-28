@@ -1230,7 +1230,6 @@ pub async fn process_curseforge_pack_from_zip(pack_path: &Path) -> Result<(Profi
         is_standard_version: false,
         use_shared_minecraft_folder: false,
         description: manifest.description.clone(),
-        norisk_information: None,
         banner: None,
         background: None,
         modpack_info: None,

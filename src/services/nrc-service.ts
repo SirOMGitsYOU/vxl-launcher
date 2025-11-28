@@ -1,9 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import type { BlogPost } from '../types/wordPress';
 import type { UpdateInfo } from '../types/updater';
-import type { Profile } from '../types/profile';
-import { useProfileStore } from '../store/profile-store';
-import { getBlockedModsConfig } from './flagsmith-service';
 
 /**
  * Fetches the latest news and changelog posts from the backend.
@@ -14,99 +11,6 @@ import { getBlockedModsConfig } from './flagsmith-service';
 export const fetchNewsAndChangelogs = (): Promise<BlogPost[]> => {
   // Directly invoke and return the promise. Errors will propagate to the caller.
   return invoke('get_news_and_changelogs_command');
-};
-
-/**
- * Triggers a refresh of the Norisk packs configuration from the backend.
- *
- * @returns A promise that resolves when the refresh is complete.
- * @throws If the backend command fails.
- */
-export const refreshNoriskPacks = (): Promise<void> => {
-  return invoke('refresh_norisk_packs');
-};
-
-/**
- * Triggers a refresh of the standard versions configuration from the backend.
- *
- * @returns A promise that resolves with the standard profiles.
- * @throws If the backend command fails.
- */
-export const refreshStandardVersions = (): Promise<Profile[]> => {
-  return invoke('refresh_standard_versions');
-};
-
-/**
- * Refreshes both Norisk packs and standard versions configurations.
- * Logs success or errors to the console.
- */
-export const refreshNrcDataOnMount = async (): Promise<void> => {
-  // Direkt setState verwenden, um den Ladezustand zu Beginn zu setzen
-  useProfileStore.setState({ loading: true, error: null });
-
-  // Introduce a 5-second delay for testing
-  //console.log("[TEST] Starting 5-second delay in refreshNrcDataOnMount...");
-  //await new Promise(resolve => setTimeout(resolve, 5000));
-  //console.log("[TEST] 5-second delay finished.");
-
-  try {
-    let nrcPacksSuccess = false;
-    let standardVersionsSuccess = false;
-
-    // Fire and forget: Load blocked mods config from Flagsmith
-    getBlockedModsConfig()
-      .then((config) => {
-        console.log("Blocked mods config loaded successfully:", config);
-      })
-      .catch((error) => {
-        console.error("Failed to load blocked mods config:", error);
-      });
-
-    try {
-      await refreshNoriskPacks();
-      console.log("Norisk Packs updated successfully on mount!");
-      nrcPacksSuccess = true;
-    } catch (error) {
-      console.error("Failed to refresh Norisk Packs on mount:", error);
-    }
-
-    try {
-      // Disabled: No pre-installed standard profiles
-      // const standardProfiles = await refreshStandardVersions();
-      // console.log("Standard Versions updated successfully on mount!");
-      // // Store the standard profiles in the profile store
-      // useProfileStore.setState({ standardProfiles });
-      // standardVersionsSuccess = true;
-      console.log("Standard Versions fetch disabled - no pre-installed profiles");
-    } catch (error) {
-      console.error("Failed to refresh Standard Versions on mount:", error);
-    }
-
-    // Fetch profiles from the store after NRC data is refreshed
-    // This ensures the profile list (including standard versions) and last played are up-to-date.
-    if (nrcPacksSuccess || standardVersionsSuccess) { // Or simply always call it if appropriate
-      try {
-        console.log("Refreshing profiles state after NRC data update...");
-        await useProfileStore.getState().fetchProfiles();
-        console.log("Profiles state refreshed successfully.");
-        // fetchProfiles setzt loading: false bei Erfolg oder Fehler
-      } catch (error) {
-        console.error("Failed to refresh profiles state after NRC data update:", error);
-        // fetchProfiles sollte seinen eigenen Ladezustand und Fehler behandeln.
-        // Wenn fetchProfiles hier einen Fehler wirft, wird er vom äußeren Catch behandelt.
-      }
-    }
-  } catch (error) {
-    // Dieser Catch fängt Fehler von refreshNoriskPacks, refreshStandardVersions
-    // oder wenn fetchProfiles selbst einen Fehler wirft, der nicht intern zu loading:false führt.
-    console.error("Error during NRC data refresh or profile fetching process:", error);
-    useProfileStore.setState({
-      error: "Failed to initialize or refresh app data.",
-      loading: false, // Sicherstellen, dass der Ladezustand beendet wird
-    });
-  }
-  // Kein expliziter finally-Block hier nötig, um loading auf false zu setzen,
-  // da dies entweder durch fetchProfiles() oder den catch-Block oben abgedeckt wird.
 };
 
 /**

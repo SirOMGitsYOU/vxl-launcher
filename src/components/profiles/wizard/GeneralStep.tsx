@@ -18,11 +18,6 @@ interface GeneralStepProps {
   systemRamMb: number;
 }
 
-interface NoriskPack {
-  displayName: string;
-  description: string;
-  isExperimental?: boolean;
-}
 
 export function GeneralStep({
   profile,
@@ -30,10 +25,6 @@ export function GeneralStep({
   systemRamMb,
 }: GeneralStepProps) {
   const [nameError, setNameError] = useState<string | null>(null);
-  const [noriskPacks, setNoriskPacks] = useState<Record<string, NoriskPack>>(
-    {},
-  );
-  const [loading, setLoading] = useState(false);
   const [memoryMaxMb, setMemoryMaxMb] = useState<number>(
     profile.settings?.memory?.max || 4096,
   );
@@ -63,23 +54,6 @@ export function GeneralStep({
       );
     }
 
-    const loadNoriskPacks = async () => {
-      try {
-        setLoading(true);
-        const packsData = await invoke<{ packs: Record<string, NoriskPack> }>(
-          "get_norisk_packs",
-        ).catch(() => ({
-          packs: {},
-        }));
-        setNoriskPacks(packsData.packs);
-      } catch (err) {
-        console.error("Failed to load NoRisk packs:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadNoriskPacks();
   }, [isBackgroundAnimationEnabled]);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,12 +80,6 @@ export function GeneralStep({
     });
   };
 
-  const noriskPackOptions = Object.entries(noriskPacks).map(
-    ([packId, packDef]) => ({
-      value: packId,
-      label: `${packDef.displayName} ${packDef.isExperimental ? "(experimental)" : ""}`,
-    }),
-  );
 
   return (
     <div className="space-y-8">
@@ -191,48 +159,6 @@ export function GeneralStep({
           })()}
         </div>
 
-        <div>
-          <label className="block text-2xl font-minecraft text-white mb-2 lowercase">
-            norisk client pack
-          </label>
-          {loading ? (
-            <div className="flex items-center gap-2 text-white/70">
-              <Icon
-                icon="solar:refresh-bold"
-                className="w-5 h-5 animate-spin"
-              />
-              <span className="font-minecraft text-xl">
-                Loading NoRisk packs...
-              </span>
-            </div>
-          ) : (
-            <>
-              <Select
-                value={profile.selected_norisk_pack_id || ""}
-                onChange={(value) =>
-                  updateProfile({
-                    selected_norisk_pack_id: value === "" ? null : value,
-                  })
-                }
-                options={[
-                  { value: "", label: "None (Optional)" },
-                  ...noriskPackOptions,
-                ]}
-              />
-              {profile.selected_norisk_pack_id &&
-                noriskPacks[profile.selected_norisk_pack_id] && (
-                  <Card
-                    variant="flat"
-                    className="mt-4 p-4 bg-black/20 border border-white/10"
-                  >
-                    <p className="text-xs text-white/80 font-minecraft-ten tracking-wide">
-                      {noriskPacks[profile.selected_norisk_pack_id].description}
-                    </p>
-                  </Card>
-                )}
-            </>
-          )}
-        </div>
       </Card>
     </div>
   );

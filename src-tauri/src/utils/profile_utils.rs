@@ -1,7 +1,6 @@
 use crate::config::ProjectDirsExt;
 use crate::error::{AppError, Result};
 use crate::integrations::modrinth::{ModrinthProjectType, ModrinthVersion};
-use crate::integrations::norisk_packs;
 use crate::integrations::unified_mod::ModPlatform;
 use crate::state::profile_state::ModSource;
 use crate::state::profile_state::Profile;

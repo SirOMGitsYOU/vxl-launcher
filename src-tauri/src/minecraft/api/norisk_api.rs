@@ -1,5 +1,3 @@
-use crate::integrations::norisk_packs::NoriskModpacksConfig;
-use crate::integrations::norisk_versions::NoriskVersionsConfig;
 use crate::minecraft::auth::minecraft_auth::NoRiskToken;
 use crate::minecraft::dto::norisk_meta::NoriskAssets;
 use crate::state::process_state::ProcessMetadata;
@@ -402,31 +400,6 @@ impl NoRiskApi {
         .await
     }
 
-    /// Fetches the complete modpack configuration from the NoRisk API.
-    pub async fn get_modpacks(
-        norisk_token: &str,
-        is_experimental: bool,
-    ) -> Result<NoriskModpacksConfig> {
-        debug!(
-            "[NoRisk API] Fetching modpack configuration. Experimental: {}",
-            is_experimental
-        );
-        Self::get_from_norisk_endpoint("launcher/modpacks", norisk_token, None, is_experimental)
-            .await
-    }
-
-    /// Fetches the standard version profiles from the NoRisk API.
-    pub async fn get_standard_versions(
-        norisk_token: &str,
-        is_experimental: bool,
-    ) -> Result<NoriskVersionsConfig> {
-        debug!(
-            "[NoRisk API] Fetching standard version profiles. Experimental: {}",
-            is_experimental
-        );
-        Self::get_from_norisk_endpoint("launcher/versions", norisk_token, None, is_experimental)
-            .await
-    }
 
     /// Request discord link status
     pub async fn discord_link_status(

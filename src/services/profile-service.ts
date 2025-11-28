@@ -23,7 +23,6 @@ import type {
   ResourcePackInfo,
   ShaderPackInfo,
 } from "../types/modrinth";
-import { NoriskVersionsConfig } from "../types/noriskVersions";
 import { FileNode } from "../types/fileSystem";
 
 export async function listProfiles(): Promise<Profile[]> {
@@ -207,24 +206,6 @@ export async function getProfileDirectoryStructure(
   return invoke<FileNode>("get_profile_directory_structure", { profileId });
 }
 
-export async function setNoriskModStatus(
-  profileId: string,
-  packId: string,
-  modId: string,
-  gameVersion: string,
-  loader: string,
-  disabled: boolean,
-): Promise<void> {
-  return invoke<void>("set_norisk_mod_status", {
-    profileId,
-    packId,
-    modId,
-    gameVersion,
-    loader,
-    disabled,
-  });
-}
-
 export async function addModrinthContentToProfile(
   profileId: string,
   projectId: string,
@@ -295,26 +276,6 @@ export async function batchCheckContentInstalled(
   params: BatchCheckContentParams,
 ): Promise<BatchContentInstallStatus> {
   return invoke<BatchContentInstallStatus>("batch_check_content_installed", { params });
-}
-
-export async function getNoriskPacks(): Promise<any> {
-  return invoke<any>("get_norisk_packs");
-}
-
-export async function getNoriskPacksResolved(): Promise<any> {
-  return invoke<any>("get_norisk_packs_resolved");
-}
-
-export async function getStandardProfiles(): Promise<NoriskVersionsConfig> {
-  return invoke<NoriskVersionsConfig>("get_standard_profiles");
-}
-
-export async function refreshNoriskPacks(): Promise<void> {
-  return invoke<void>("refresh_norisk_packs");
-}
-
-export async function refreshStandardVersions(): Promise<void> {
-  return invoke<void>("refresh_standard_versions");
 }
 
 export async function getProfileLatestLogContent(profileId: string): Promise<string> {

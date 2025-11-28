@@ -146,7 +146,6 @@ pub struct Profile {
     pub banner: Option<ProfileBanner>, // Banner/background image for the profile
     #[serde(default)]
     pub background: Option<ProfileBanner>,
-    pub norisk_information: Option<NoriskInformation>,
     /// Information about this profile's modpack origin (if it was created from a modpack)
     #[serde(default)]
     pub modpack_info: Option<ModPackInfo>,
@@ -527,28 +526,7 @@ impl ProfileManager {
         if let Some(profile) = profiles.get(&id).cloned() {
             Ok(profile)
         } else {
-            // Profile not found in local manager, try standard versions
-            //info!( "Profile with ID {} not found in ProfileManager, checking standard versions via global State.", id);
-            // Access global state to get NoriskVersionManager
-            // This assumes State::get() is available and NoriskVersionManager has get_profile_by_id
-            match crate::state::state_manager::State::get().await {
-                Ok(state) => {
-                    if let Some(standard_profile) =
-                        state.norisk_version_manager.get_profile_by_id(id).await
-                    {
-                        //info!("Found standard profile '{}' for ID {}", standard_profile.name, id);
-                        Ok(standard_profile)
-                    } else {
-                        info!("Profile ID {} not found in standard versions either.", id);
-                        Err(crate::error::AppError::ProfileNotFound(id))
-                    }
-                }
-                Err(e) => {
-                    error!("Failed to get global state while trying to fetch standard profile for ID {}: {}", id, e);
-                    // Return the original ProfileNotFound error, or a more specific one for state access failure
-                    Err(crate::error::AppError::ProfileNotFound(id))
-                }
-            }
+            Err(AppError::ProfileNotFound(id))
         }
     }
 
@@ -1990,22 +1968,8 @@ impl ProfileManager {
                 self.calculate_instance_path_for_profile(profile)
             }
             None => {
-                //log::info!("Profile {} not found, checking standard versions",profile_id);
-                // Get state to access norisk_version_manager
-                let state = crate::state::state_manager::State::get().await?;
-
-                // Check if it's a standard version ID
-                if let Some(standard_profile) = state
-                    .norisk_version_manager
-                    .get_profile_by_id(profile_id)
-                    .await
-                {
-                    //log::info!("Found standard profile '{}', converting to temporary profile",standard_profile.name);
-                    // Convert to a temporary profile
-                    return self.calculate_instance_path_for_profile(&standard_profile);
-                }
-
-                log::warn!("Profile {} not found when getting instance path (not in regular profiles or standard versions).", profile_id);
+                // Profile not found - standard versions no longer available
+                log::warn!("Profile {} not found.", profile_id);
                 Err(AppError::ProfileNotFound(profile_id))
             }
         }
@@ -2578,77 +2542,6 @@ impl ProfileManager {
         Ok(())
     }
 
-    /// Synchronizes standard profiles by creating editable copies for each norisk_version
-    /// that doesn't already have a user copy, and updates existing copies with forced fields.
-    /// Called during launcher startup.
-    pub async fn sync_standard_profiles(&self) -> Result<()> {
-        info!("ProfileManager: Starting standard profiles synchronization...");
-
-        // Ensure profiles are loaded before syncing to avoid race conditions
-        self.ensure_profiles_loaded().await?;
-
-        // Get standard profiles from norisk version manager
-        let state = match crate::state::state_manager::State::get().await {
-            Ok(state) => state,
-            Err(e) => {
-                warn!("ProfileManager: Could not get global state for standard profile sync: {}", e);
-                return Ok(()); // Non-critical, skip sync
-            }
-        };
-
-        let standard_profiles = state.norisk_version_manager.get_config().await.profiles;
-        info!("ProfileManager: Found {} standard profiles to sync", standard_profiles.len());
-
-        if standard_profiles.is_empty() {
-            info!("ProfileManager: No standard profiles found, skipping sync");
-            return Ok(());
-        }
-
-        // Get all user profiles and create lookup maps
-        let user_profiles = self.list_profiles().await?;
-        let mut existing_copies_by_source_id: std::collections::HashMap<Uuid, Uuid> = std::collections::HashMap::new();
-        
-        for profile in &user_profiles {
-            if let Some(source_id) = profile.source_standard_profile_id {
-                existing_copies_by_source_id.insert(source_id, profile.id);
-            }
-        }
-
-        let mut copies_created = 0;
-        let mut copies_updated = 0;
-
-        for standard_profile in standard_profiles {
-            if let Some(existing_copy_id) = existing_copies_by_source_id.get(&standard_profile.id) {
-                // Update existing copy with forced fields
-                match self.update_copy_with_forced_fields(*existing_copy_id, &standard_profile).await {
-                    Ok(updated) => {
-                        if updated {
-                            info!("ProfileManager: Updated forced fields for copy {} of standard profile '{}'", existing_copy_id, standard_profile.name);
-                            copies_updated += 1;
-                        }
-                    }
-                    Err(e) => {
-                        warn!("ProfileManager: Failed to update copy {} for standard profile '{}': {}", existing_copy_id, standard_profile.name, e);
-                    }
-                }
-            } else {
-                // Create new copy
-                match self.create_editable_copy_from_standard(&standard_profile).await {
-                    Ok(new_id) => {
-                        info!("ProfileManager: Created editable copy {} for standard profile '{}'", new_id, standard_profile.name);
-                        copies_created += 1;
-                    }
-                    Err(e) => {
-                        warn!("ProfileManager: Failed to create copy for standard profile '{}': {}", standard_profile.name, e);
-                    }
-                }
-            }
-        }
-
-        info!("ProfileManager: Standard profile sync complete. Created {} new copies, updated {} existing copies", copies_created, copies_updated);
-        Ok(())
-    }
-
     /// Ensures profiles are loaded from disk if not already loaded, performing migrations if needed.
     /// This method is used to avoid race conditions where profile operations are called before profiles are loaded.
     async fn ensure_profiles_loaded(&self) -> Result<()> {
@@ -2700,8 +2593,6 @@ impl ProfileManager {
         // Reset state to not installed for user copy
         editable_copy.state = ProfileState::NotInstalled;
 
-        // Remove norisk pack information - no pre-installed packs
-        editable_copy.norisk_information = None;
         
         // Clear all mods from standard profile - users should add their own
         editable_copy.mods = Vec::new();
@@ -2791,12 +2682,6 @@ impl ProfileManager {
                 changed = true;
             }
             
-            // Clear norisk pack information - no pre-installed packs
-            if copy.norisk_information.is_some() {
-                info!("Clearing norisk_information for copy {}", copy_id);
-                copy.norisk_information = None;
-                changed = true;
-            }
             
             if changed {
                 drop(profiles);
@@ -3114,11 +2999,6 @@ impl PostInitializationHandler for ProfileManager {
 
         // Load profiles with migrations (backup was already created above)
         self.ensure_profiles_loaded().await?;
-
-        // Sync standard profiles - create editable copies for each norisk_version
-        if let Err(e) = self.sync_standard_profiles().await {
-            warn!("ProfileManager: Failed to sync standard profiles: {}", e);
-        }
 
         info!("ProfileManager: Successfully loaded profiles in on_state_ready.");
 

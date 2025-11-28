@@ -1,5 +1,4 @@
 use crate::error::Result;
-use crate::integrations::norisk_packs::{self, NoriskModSourceDefinition, NoriskModpacksConfig};
 use crate::state::profile_state::{
     self, CustomModInfo, ModLoader, ModSource, NoriskModIdentifier, Profile,
 };
@@ -130,7 +129,6 @@ async fn try_add_mod_to_final_list(
 // Renamed loader parameter to loader_str for clarity
 pub async fn resolve_target_mods(
     profile: &Profile,
-    norisk_config: Option<&NoriskModpacksConfig>,
     custom_mod_infos: Option<&[CustomModInfo]>,
     minecraft_version: &str,
     loader_str: &str,
@@ -144,21 +142,6 @@ pub async fn resolve_target_mods(
     debug!("Flagsmith mod blocking is disabled (no NoRisk pack selected)");
 
     // --- Helper: Get Canonical Key ---
-    fn get_canonical_key(source: &NoriskModSourceDefinition, mod_id: &str) -> Option<String> {
-        match source {
-            NoriskModSourceDefinition::Modrinth { project_id, .. } => {
-                Some(format!("modrinth:{}", project_id))
-            }
-            NoriskModSourceDefinition::Url { .. } => Some(format!("url:{}", mod_id)),
-            NoriskModSourceDefinition::Maven {
-                group_id,
-                artifact_id,
-                ..
-            } => Some(format!("maven:{}:{}", group_id, artifact_id)),
-            // Add other types if needed
-            _ => None,
-        }
-    }
     fn get_canonical_key_profile(source: &ModSource) -> Option<String> {
         match source {
             ModSource::Modrinth { project_id, .. } => Some(format!("modrinth:{}", project_id)),

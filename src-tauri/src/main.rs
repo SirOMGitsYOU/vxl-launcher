@@ -13,8 +13,6 @@ mod minecraft;
 mod state;
 mod utils;
 
-use crate::integrations::norisk_packs;
-use crate::integrations::norisk_versions;
 use log::{debug, error, info};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -61,12 +59,12 @@ use commands::profile_command::{
     create_profile, delete_custom_mod, delete_mod_from_profile, delete_profile, delete_world,
     export_profile, get_all_profiles_and_last_played, get_custom_mods, get_local_content,
     get_local_datapacks, get_local_resourcepacks, get_local_shaderpacks, get_log_file_content,
-    get_norisk_packs, get_norisk_packs_resolved, get_profile, get_profile_directory_structure,
+    get_profile, get_profile_directory_structure,
     get_profile_latest_log_content, get_profile_log_files, get_servers_for_profile,
-    get_standard_profiles, get_system_ram_mb, get_worlds_for_profile, import_local_mods,
+    get_system_ram_mb, get_worlds_for_profile, import_local_mods,
     import_profile, import_profile_from_file, import_world, is_content_installed, is_profile_launching,
     launch_profile, list_profile_screenshots, list_profiles, open_profile_folder,
-    open_profile_latest_log, refresh_norisk_packs, refresh_standard_versions, repair_profile,
+    open_profile_latest_log, repair_profile,
     resolve_loader_version, search_profiles, set_custom_mod_enabled,
     set_profile_mod_enabled, update_datapack_from_modrinth, update_modrinth_mod_version,
     update_profile, update_resourcepack_from_modrinth, update_shaderpack_from_modrinth,
@@ -85,7 +83,7 @@ use commands::modrinth_commands::{
 };
 
 use commands::file_command::{
-    delete_file, get_icons_for_archives, get_icons_for_norisk_mods, open_file, open_file_directory,
+    delete_file, get_icons_for_archives, open_file, open_file_directory,
     read_file_bytes, set_file_enabled,
 };
 
@@ -404,8 +402,6 @@ async fn main() {
             get_icons_for_archives,
             set_profile_mod_enabled,
             delete_mod_from_profile,
-            get_norisk_packs,
-            get_norisk_packs_resolved,
             update_modrinth_mod_version,
             get_all_modrinth_versions_for_contexts,
             get_full_log,
@@ -428,10 +424,8 @@ async fn main() {
             get_quilt_loader_versions,
             set_file_enabled,
             delete_file,
-            get_icons_for_norisk_mods,
             open_file_directory,
             download_and_install_modrinth_modpack,
-            get_standard_profiles,
             get_profile_directory_structure,
             copy_profile,
             export_profile,
@@ -464,8 +458,6 @@ async fn main() {
             unequip_cape,
             add_favorite_cape,
             remove_favorite_cape,
-            refresh_norisk_packs,
-            refresh_standard_versions,
             is_content_installed,
             batch_check_content_installed,
             check_for_group_migration_command,
@@ -518,12 +510,6 @@ async fn main() {
             commands::nrc_commands::discord_auth_unlink,
             commands::nrc_commands::submit_crash_log_command,
             commands::nrc_commands::log_message_command,
-            commands::flagsmith_commands::set_blocked_mods_config,
-            commands::flagsmith_commands::get_blocked_mods_config,
-            commands::flagsmith_commands::is_filename_blocked,
-            commands::flagsmith_commands::is_mod_id_blocked,
-            commands::flagsmith_commands::is_modrinth_project_id_blocked,
-            commands::flagsmith_commands::refresh_blocked_mods_config,
             commands::nrc_commands::get_mobile_app_token,
             commands::nrc_commands::reset_mobile_app_token,
             get_capes_by_hashes,

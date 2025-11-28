@@ -1,14 +1,12 @@
 use crate::config::{ProjectDirsExt, LAUNCHER_DIRECTORY};
 use crate::error::{AppError, Result};
-use crate::integrations::norisk_packs::NoriskModpacksConfig;
 use crate::minecraft::api::mc_api::MinecraftApiService;
 use crate::minecraft::downloads::java_download::JavaDownloadService;
 use crate::minecraft::downloads::mc_assets_download::MinecraftAssetsDownloadService;
 use crate::minecraft::downloads::mc_client_download::MinecraftClientDownloadService;
 use crate::minecraft::downloads::mc_libraries_download::MinecraftLibrariesDownloadService;
 use crate::minecraft::downloads::mc_natives_download::MinecraftNativesDownloadService;
-use crate::minecraft::downloads::NoriskPackDownloadService;
-use crate::minecraft::downloads::{ModDownloadService, NoriskClientAssetsDownloadService};
+use crate::minecraft::downloads::ModDownloadService;
 use crate::minecraft::dto::JavaDistribution;
 use crate::minecraft::{MinecraftLaunchParameters, MinecraftLauncher};
 use crate::state::event_state::{EventPayload, EventType};
@@ -290,7 +288,7 @@ pub async fn install_minecraft_version(
     info!("\nChecking for StartUpHelper data to import...");
 
     // Removed: No pre-installed modpacks - norisk pack support removed
-    if let Err(e) = mc_utils::copy_startup_helper_data(profile, &game_directory, None).await {
+    if let Err(e) = mc_utils::copy_startup_helper_data(profile, &game_directory).await {
         // We will only log a warning because this is not a critical step for launching the game.
         // The installation can proceed even if this fails.
         warn!("Failed to import StartUpHelper data (non-critical error): {}", e);
@@ -374,19 +372,6 @@ pub async fn install_minecraft_version(
         .await?;
     info!("Asset download completed!");
 
-    // Download NoRiskClient assets if profile has a selected pack
-    info!("\nDownloading NoRiskClient assets...");
-
-    let norisk_assets_service = NoriskClientAssetsDownloadService::new()
-        .with_concurrent_downloads(launcher_config.concurrent_downloads);
-
-    // Download assets for this profile - progress events are now handled internally
-    norisk_assets_service
-        .download_nrc_assets_for_profile(&profile, credentials.as_ref(), is_experimental_mode)
-        .await?;
-
-    info!("NoRiskClient Asset download completed!");
-
     // Emit client download event
     let client_event_id = emit_progress_event(
         &state,
@@ -448,17 +433,13 @@ pub async fn install_minecraft_version(
     // Install modloader using the factory
     if modloader_enum != ModLoader::Vanilla {
         // Resolve loader version using the new modloader factory method
-        let mut install_profile = profile.clone();
-        let config_now: NoriskModpacksConfig = state.norisk_pack_manager.get_config().await;
         let resolved_loader = crate::minecraft::modloader::ModloaderFactory::resolve_loader_version(
             profile,
             version_id,
-            Some(&config_now),
         ).await;
 
         if let Some(version) = resolved_loader.version {
             let reason_str = match resolved_loader.reason {
-                crate::minecraft::modloader::LoaderVersionReason::NoriskPack => "Norisk pack policy",
                 crate::minecraft::modloader::LoaderVersionReason::UserOverwrite => "user overwrite",
                 crate::minecraft::modloader::LoaderVersionReason::ProfileDefault => "profile default",
                 crate::minecraft::modloader::LoaderVersionReason::NotResolved => "not resolved",
@@ -471,7 +452,6 @@ pub async fn install_minecraft_version(
                 version_id,
                 modloader_enum
             );
-            install_profile.loader_version = Some(version);
         }
 
         let modloader_installer = ModloaderFactory::create_installer_with_config(
@@ -479,7 +459,7 @@ pub async fn install_minecraft_version(
             java_path.clone(),
             launcher_config.concurrent_downloads,
         );
-        let modloader_result = modloader_installer.install(version_id, &install_profile).await?;
+        let modloader_result = modloader_installer.install(version_id, profile).await?;
 
         // Apply modloader specific parameters to launch parameters
         if let Some(main_class) = modloader_result.main_class {
@@ -535,10 +515,6 @@ pub async fn install_minecraft_version(
     let mut final_game_args = launch_params.additional_game_args.clone();
     final_game_args.extend(profile.settings.extra_game_args.clone());
     launch_params = launch_params.with_additional_game_args(final_game_args);
-
-    // --- Fetch Norisk Config Once if a pack is selected ---
-    // Removed: No pre-installed modpacks
-    let loaded_norisk_config: Option<NoriskModpacksConfig> = None;
 
     // --- Step: Ensure profile-defined mods are downloaded/verified in cache ---
     let mods_event_id = emit_progress_event(
@@ -598,11 +574,10 @@ pub async fn install_minecraft_version(
     );
     // ---> END NEW <---
 
-    // Call the resolver function using the already loaded config (or None)
+    // Call the resolver function
     let target_mods = crate::minecraft::downloads::mod_resolver::resolve_target_mods(
         profile,
-        loaded_norisk_config.as_ref(), // Pass the reference directly
-        Some(&custom_mod_infos),       // ---> NEW: Pass custom mods <---
+        Some(&custom_mod_infos),
         version_id,
         modloader_enum.as_str(),
         &mod_cache_dir,

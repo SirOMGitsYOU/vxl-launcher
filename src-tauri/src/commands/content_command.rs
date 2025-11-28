@@ -302,15 +302,6 @@ pub async fn toggle_content_from_profile(
         )))
     })?;
 
-    // Handle NoRisk Pack item toggling if the identifier is provided
-    // Removed: No pre-installed modpacks - norisk pack toggling skipped
-    if let Some(_norisk_mod_identifier) = payload.norisk_mod_identifier {
-        log::info!("NoRisk Pack item toggling is no longer supported");
-        return Err(CommandError::from(AppError::Other(
-            "NoRisk Pack items are no longer supported".to_string(),
-        )));
-    }
-
     // Continue with SHA1-based content toggling if not a NoRisk Pack item
     let current_sha1_hash = match payload.sha1_hash {
         Some(ref hash) => hash.clone(),

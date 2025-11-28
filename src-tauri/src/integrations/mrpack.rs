@@ -214,7 +214,6 @@ pub async fn process_mrpack(pack_path: PathBuf) -> Result<(Profile, ModrinthInde
         is_standard_version: false,
         use_shared_minecraft_folder: false,
         description: None,
-        norisk_information: None,
         banner: None,
         background: None,
         modpack_info: None,

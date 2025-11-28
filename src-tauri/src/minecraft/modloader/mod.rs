@@ -6,7 +6,6 @@ pub mod quilt_installer;
 use crate::config::ProjectDirsExt;
 use crate::error::Result;
 use crate::state::profile_state::{ModLoader, Profile};
-use crate::integrations::norisk_packs::NoriskModpacksConfig;
 use async_trait::async_trait;
 use fabric_installer::FabricInstaller;
 use forge_installer::ForgeInstaller;
@@ -25,7 +24,6 @@ pub struct ResolvedLoaderVersion {
 #[serde(rename_all = "snake_case")]
 pub enum LoaderVersionReason {
     ProfileDefault,
-    NoriskPack,
     UserOverwrite,
     NotResolved,
 }
@@ -33,11 +31,10 @@ pub enum LoaderVersionReason {
 pub struct ModloaderFactory;
 
 impl ModloaderFactory {
-    /// Resolves the loader version to use for a profile, considering Norisk pack policies and user overrides
+    /// Resolves the loader version to use for a profile
     pub async fn resolve_loader_version(
         profile: &Profile,
         minecraft_version: &str,
-        norisk_pack_config: Option<&NoriskModpacksConfig>,
     ) -> ResolvedLoaderVersion {
         if profile.loader == ModLoader::Vanilla {
             return ResolvedLoaderVersion {
@@ -58,10 +55,7 @@ impl ModloaderFactory {
             }
         }
 
-        // 2. Check for Norisk pack policy
-        // Removed: No pre-installed modpacks - norisk pack loader policy skipped
-
-        // 3. Fall back to profile's default loader version
+        // 2. Fall back to profile's default loader version
         if let Some(profile_version) = &profile.loader_version {
             if !profile_version.is_empty() {
                 return ResolvedLoaderVersion {
@@ -71,7 +65,7 @@ impl ModloaderFactory {
             }
         }
 
-        // 4. No version resolved
+        // 3. No version resolved
         ResolvedLoaderVersion {
             version: None,
             reason: LoaderVersionReason::NotResolved,

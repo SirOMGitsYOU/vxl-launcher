@@ -621,7 +621,6 @@ pub async fn emit_copy_progress(
 pub async fn copy_startup_helper_data(
     profile: &crate::state::profile_state::Profile,
     profile_dir: &PathBuf,
-    norisk_pack: Option<&crate::integrations::norisk_packs::NoriskPackDefinition>,
 ) -> Result<()> {
     let profile_id = profile.id;
     info!(
@@ -647,12 +646,6 @@ pub async fn copy_startup_helper_data(
         profile_id
     );
 
-    // Copy StartUpHelper files
-    if let Err(e) = copy_startup_helper_files(profile, profile_dir, norisk_pack).await {
-        warn!("Failed to copy StartUpHelper files: {}", e);
-        // Don't fail the entire process if StartUpHelper copy fails
-    }
-
     info!("[{}] StartUpHelper data copy completed.", profile_id);
     Ok(())
 }
@@ -670,19 +663,6 @@ pub async fn copy_initial_data_from_default_minecraft(
         "[{}] Checking if initial data should be imported for profile '{}'...",
         profile_id, profile.name
     );
-
-    // Condition 1: Check the copy_initial_mc_data flag.
-    let should_copy = profile
-        .norisk_information
-        .as_ref()
-        .map_or(true, |info| info.copy_initial_mc_data);
-    if !should_copy {
-        info!(
-            "[{}] Profile has copy_initial_mc_data set to false. Skipping initial data import.",
-            profile_id
-        );
-        return Ok(());
-    }
 
     // Condition 2: Only copy for standard versions.
     if !profile.is_standard_version {
@@ -855,228 +835,14 @@ pub async fn copy_initial_data_from_default_minecraft(
     Ok(())
 }
 
-/// Copies additional files specified in StartUpHelper from noriskclient/new/ directory
-/// to the profile directory. Only copies files that don't already exist.
-/// This runs BEFORE the standard Minecraft data copy to allow StartUpHelper files
-/// to be overridden by standard MC files if needed.
-/// The source directory is determined relative to default_profile_path() to ensure
-/// proper integration with custom launcher directories.
-pub async fn copy_startup_helper_files(
-    profile: &crate::state::profile_state::Profile,
-    profile_dir: &PathBuf,
-    norisk_pack: Option<&crate::integrations::norisk_packs::NoriskPackDefinition>,
-) -> Result<()> {
-    let profile_id = profile.id;
-
-    // Check if StartUpHelper is configured in NoriskPack
-    let startup_helper = match norisk_pack {
-        Some(pack) => match pack.startup_helper.as_ref() {
-            Some(helper) => helper,
-            None => {
-                debug!("[{}] No StartUpHelper configured in pack, skipping.", profile_id);
-                return Ok(());
-            }
-        },
-        None => {
-            debug!("[{}] No NoriskPack selected, skipping StartUpHelper.", profile_id);
-            return Ok(());
-        }
-    };
-
-    // Check if additional_paths is empty
-    if startup_helper.additional_paths.is_empty() {
-        debug!("[{}] StartUpHelper has no additional paths configured, skipping.", profile_id);
-        return Ok(());
-    }
-
-    let paths_count = startup_helper.additional_paths.len();
-    info!(
-        "[{}] StartUpHelper found {} additional paths to copy.",
-        profile_id,
-        paths_count
-    );
-
-    // Get the noriskclient/new directory path
-    let default_profile_path = crate::state::profile_state::default_profile_path();
-    let norisk_dir = default_profile_path
-        .join("noriskclient")
-        .join("new");
-
-    if !norisk_dir.exists() {
-        info!(
-            "[{}] NoRiskClient new directory not found at: {}, skipping StartUpHelper.",
-            profile_id,
-            norisk_dir.display()
-        );
-        return Ok(());
-    }
-
-    info!(
-        "[{}] Found NoRiskClient new directory at: {}",
-        profile_id,
-        norisk_dir.display()
-    );
-
-    // Get state for progress reporting
-    let state = match State::get().await {
-        Ok(s) => Some(s),
-        Err(e) => {
-            warn!(
-                "[{}] Couldn't get state for StartUpHelper progress: {}",
-                profile_id, e
-            );
-            None
-        }
-    };
-
-    if let Some(s) = &state {
-        emit_copy_progress(
-            s,
-            profile_id,
-            "Copying StartUpHelper files...",
-            0.95,
-            None,
-        )
-        .await?;
-    }
-
-    let semaphore = match &state {
-        Some(s) => s.io_semaphore.clone(),
-        None => {
-            // Fallback: create a semaphore with reasonable limits
-            std::sync::Arc::new(tokio::sync::Semaphore::new(10))
-        }
-    };
-
-    let mut copy_tasks = Vec::new();
-
-    for relative_path in &startup_helper.additional_paths {
-        let src_path = norisk_dir.join(relative_path);
-        let dest_path = profile_dir.join(relative_path);
-        let sem_clone = semaphore.clone();
-
-        let task = async move {
-            // Check if destination already exists
-            if fs::try_exists(&dest_path).await.unwrap_or(false) {
-                debug!(
-                    "[{}] StartUpHelper destination already exists: {}",
-                    profile_id,
-                    dest_path.display()
-                );
-                return Ok(());
-            }
-
-            // Check if source exists
-            if !fs::try_exists(&src_path).await.unwrap_or(false) {
-                debug!(
-                    "[{}] StartUpHelper source not found: {}",
-                    profile_id,
-                    src_path.display()
-                );
-                return Ok(());
-            }
-
-            // Create parent directories if needed
-            if let Some(parent) = dest_path.parent() {
-                if !parent.exists() {
-                    fs::create_dir_all(parent).await?;
-                }
-            }
-
-            let metadata = fs::metadata(&src_path).await?;
-            if metadata.is_dir() {
-                // Copy directory recursively - function handles its own parallelism
-                path_utils::copy_dir_recursively(&src_path, &dest_path, sem_clone).await?;
-                info!(
-                    "[{}] StartUpHelper copied directory: {} -> {}",
-                    profile_id,
-                    src_path.display(),
-                    dest_path.display()
-                );
-            } else {
-                // Copy single file
-                let _permit = sem_clone.acquire().await?;
-                fs::copy(&src_path, &dest_path).await?;
-                info!(
-                    "[{}] StartUpHelper copied file: {} -> {}",
-                    profile_id,
-                    src_path.display(),
-                    dest_path.display()
-                );
-            }
-
-            Ok::<(), AppError>(())
-        };
-
-        copy_tasks.push(task);
-    }
-
-    // Execute all copy tasks
-    let results = futures::future::join_all(copy_tasks).await;
-    let mut copied_count = 0;
-    let mut error_count = 0;
-
-    for result in results {
-        match result {
-            Ok(_) => copied_count += 1,
-            Err(e) => {
-                error!("[{}] StartUpHelper copy error: {}", profile_id, e);
-                error_count += 1;
-            }
-        }
-    }
-
-    info!(
-        "[{}] StartUpHelper copy summary: {} files copied, {} errors",
-        profile_id, copied_count, error_count
-    );
-
-    if let Some(s) = &state {
-        let message = format!(
-            "StartUpHelper files copied: {} files, {} errors",
-            copied_count, error_count
-        );
-        emit_copy_progress(s, profile_id, &message, 1.0, None).await?;
-    }
-
-    Ok(())
-}
-
-// --- New Function to Get Profile Worlds ---
 /// Lists the singleplayer worlds found in the profile's saves directory.
 /// Currently only returns the folder name.
 pub async fn get_profile_worlds(profile_id: Uuid) -> Result<Vec<WorldInfo>> {
     info!("[Worlds] Getting worlds for profile {}", profile_id);
     let state = State::get().await?;
 
-    // Try to get the user profile first, or fall back to standard profile if ID matches
-    let profile = match state.profile_manager.get_profile(profile_id).await {
-        Ok(p) => {
-            info!("[Worlds] Found user profile: {}", p.name);
-            p // Found user profile
-        }
-        Err(AppError::ProfileNotFound(_)) => {
-            // Not a user profile, check if it's a standard version
-            match state
-                .norisk_version_manager
-                .get_profile_by_id(profile_id)
-                .await
-            {
-                Some(standard_profile) => {
-                    info!("[Worlds] ID {} matches standard profile: {}. Proceeding with standard profile object.", profile_id, standard_profile.name);
-                    standard_profile // Use the standard profile object
-                }
-                None => {
-                    error!(
-                        "[Worlds] Profile ID {} not found as user profile or standard profile.",
-                        profile_id
-                    );
-                    return Err(AppError::ProfileNotFound(profile_id)); // ID not found anywhere
-                }
-            }
-        }
-        Err(e) => return Err(e), // Propagate other errors (e.g., IO errors loading profiles.json)
-    };
+    // Get the user profile
+    let profile = state.profile_manager.get_profile(profile_id).await?;
 
     // Calculate the instance path (this might not be meaningful for standard profiles)
     let instance_path = state
@@ -1329,34 +1095,8 @@ pub async fn get_profile_servers(profile_id: Uuid) -> Result<Vec<ServerInfo>> {
     info!("[Servers] Getting servers for profile {}", profile_id);
     let state = State::get().await?;
 
-    // Try to get the user profile first, or fall back to standard profile if ID matches
-    let profile = match state.profile_manager.get_profile(profile_id).await {
-        Ok(p) => {
-            info!("[Servers] Found user profile: {}", p.name);
-            p // Found user profile
-        }
-        Err(AppError::ProfileNotFound(_)) => {
-            // Not a user profile, check if it's a standard version
-            match state
-                .norisk_version_manager
-                .get_profile_by_id(profile_id)
-                .await
-            {
-                Some(standard_profile) => {
-                    info!("[Servers] ID {} matches standard profile: {}. Proceeding with standard profile object.", profile_id, standard_profile.name);
-                    standard_profile // Use the standard profile object
-                }
-                None => {
-                    error!(
-                        "[Servers] Profile ID {} not found as user profile or standard profile.",
-                        profile_id
-                    );
-                    return Err(AppError::ProfileNotFound(profile_id)); // ID not found anywhere
-                }
-            }
-        }
-        Err(e) => return Err(e), // Propagate other errors
-    };
+    // Try to get the user profile
+    let profile = state.profile_manager.get_profile(profile_id).await?;
 
     // Calculate the instance path
     let instance_path = state

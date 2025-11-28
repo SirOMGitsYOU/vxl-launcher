@@ -3,8 +3,6 @@ use crate::error::{AppError, CommandError};
 use crate::integrations::curseforge;
 use crate::integrations::modrinth::ModrinthVersion;
 use crate::integrations::mrpack;
-use crate::integrations::norisk_packs::NoriskModpacksConfig;
-use crate::integrations::norisk_versions::NoriskVersionsConfig;
 use crate::minecraft::installer;
 use crate::minecraft::modloader::{ModloaderFactory, ResolvedLoaderVersion};
 use crate::state::event_state::{EventPayload, EventType};
@@ -59,7 +57,6 @@ pub struct UpdateProfileParams {
     group: Option<String>,
     clear_group: Option<bool>,
     use_shared_minecraft_folder: Option<bool>,
-    norisk_information: Option<crate::state::profile_state::NoriskInformation>,
     preferred_account_id: Option<String>,
     clear_preferred_account: Option<bool>,
 }
@@ -155,7 +152,6 @@ pub async fn create_profile(params: CreateProfileParams) -> Result<Uuid, Command
         banner: None,
         background: None,
         is_standard_version: false,
-        norisk_information: None,
         modpack_info: None,
         preferred_account_id: None,
     };
@@ -205,46 +201,8 @@ pub async fn launch_profile(
             profile
         }
         Err(_) => {
-            // Profile not found - check if it's a standard version ID
-            info!(
-                "Profile with ID {} not found, checking standard versions",
-                id
-            );
-            let standard_versions = state.norisk_version_manager.get_config().await;
-
-            // Find a standard profile with matching ID
-            let standard_profile = standard_versions
-                .profiles
-                .iter()
-                .find(|p| p.id == id)
-                .ok_or_else(|| {
-                    AppError::Other(format!(
-                        "No profile or standard version found with ID {}",
-                        id
-                    ))
-                })?;
-
-            // Convert standard profile to a temporary profile
-            info!(
-                "Converting standard profile '{}' to a temporary profile",
-                standard_profile.name
-            );
-
-            // Update launcher config with last played profile ID (for standard versions too, unless skipped)
-            // Even though it's not a "user" profile, we still record it was the last one launched.
-            if !skip_last_played_update.unwrap_or(false) {
-                let mut current_config = state.config_manager.get_config().await;
-                current_config.last_played_profile = Some(id); // id here is the standard_profile.id
-                if let Err(e) = state.config_manager.set_config(current_config).await {
-                    warn!(
-                        "Failed to update last_played_profile in config for standard version: {}",
-                        e
-                    );
-                }
-            }
-
-            // Return the converted profile without saving it
-            standard_profile.clone()
+            // Profile not found - standard profiles have been removed
+            return Err(AppError::ProfileNotFound(id).into());
         }
     };
 
@@ -671,22 +629,6 @@ async fn try_update_profile(id: Uuid, params: UpdateProfileParams) -> Result<(),
         profile.use_shared_minecraft_folder = use_shared;
     }
 
-    // Handle norisk_information
-    if let Some(norisk_info) = params.norisk_information {
-        info!("Updating norisk_information to: {:?}", norisk_info);
-        profile.norisk_information = Some(norisk_info);
-    } else {
-        // This else block handles the case where `norisk_information` is explicitly `null` in JSON,
-        // which Serde maps to `None` for `Option<NoriskInformation>`.
-        // If you want to distinguish between `null` and `undefined` (field not present),
-        // you might need `Option<Option<NoriskInformation>>` or a custom deserializer.
-        // For now, if it's `None` (either not sent or sent as null), we keep the existing value.
-        // If you want `null` to clear it, you would do: `profile.norisk_information = None;`
-        info!(
-            "norisk_information not provided or explicitly null, keeping existing: {:?}",
-            profile.norisk_information
-        );
-    }
 
     // Handle preferred_account_id based on clear_preferred_account and new value
     if params.clear_preferred_account == Some(true) {
@@ -782,12 +724,10 @@ pub async fn resolve_loader_version(
     
     let state = State::get().await?;
     let profile = state.profile_manager.get_profile(profile_id).await?;
-    let norisk_pack_config = state.norisk_pack_manager.get_config().await;
     
     let resolved = ModloaderFactory::resolve_loader_version(
         &profile,
         &minecraft_version,
-        Some(&norisk_pack_config),
     ).await;
     
     Ok(resolved)
@@ -844,14 +784,6 @@ pub async fn search_profiles(query: String) -> Result<Vec<Profile>, CommandError
     Ok(profiles)
 }
 
-/// Loads and returns the list of standard profiles from the local configuration file.
-#[tauri::command]
-pub async fn get_standard_profiles() -> Result<NoriskVersionsConfig, CommandError> {
-    info!("Executing get_standard_profiles command");
-    let state = State::get().await?;
-    let config = state.norisk_version_manager.get_config().await;
-    Ok(config)
-}
 
 #[tauri::command]
 pub async fn set_profile_mod_enabled(
@@ -882,56 +814,6 @@ pub async fn delete_mod_from_profile(profile_id: Uuid, mod_id: Uuid) -> Result<(
     Ok(())
 }
 
-// Command to retrieve the list of available Norisk Modpacks
-#[tauri::command]
-pub async fn get_norisk_packs() -> Result<NoriskModpacksConfig, CommandError> {
-    info!("Received command get_norisk_packs");
-    let state = State::get().await?;
-    let config = state.norisk_pack_manager.get_config().await;
-    Ok(config)
-}
-
-/// Retrieves the Norisk packs configuration with fully resolved mod lists for each pack.
-#[tauri::command]
-pub async fn get_norisk_packs_resolved() -> Result<NoriskModpacksConfig, CommandError> {
-    info!("Received command get_norisk_packs_resolved");
-    let state = State::get().await?;
-    let manager = &state.norisk_pack_manager; // Get a reference
-
-    // Get the base configuration to access metadata and pack IDs
-    let base_config = manager.get_config().await;
-
-    // Create a new map to store the resolved pack definitions
-    let mut resolved_packs = HashMap::new();
-
-    // Iterate through the pack IDs from the base config's packs map
-    for pack_id in base_config.packs.keys() {
-        match base_config.get_resolved_pack_definition(pack_id) {
-            Ok(resolved_pack) => {
-                resolved_packs.insert(pack_id.clone(), resolved_pack);
-            }
-            Err(e) => {
-                // Log the error for the specific pack but continue resolving others
-                error!(
-                    "Failed to resolve pack definition for ID '{}': {}",
-                    pack_id, e
-                );
-                // Optionally, return an error if resolving any pack fails
-                // return Err(CommandError::from(e));
-            }
-        }
-    }
-
-    // Construct the final config object with the resolved packs
-    let resolved_config = NoriskModpacksConfig {
-        packs: resolved_packs, // Use the newly created map with resolved packs
-        repositories: base_config.repositories, // Copy repositories from base config
-    };
-
-    Ok(resolved_config)
-}
-
-// Removed: set_norisk_mod_status command - No pre-installed modpacks
 
 // Command to update the version of a Modrinth mod in a profile
 #[tauri::command]
@@ -1157,8 +1039,8 @@ pub async fn import_profile_from_file(app_handle: tauri::AppHandle) -> Result<()
         app_handle
             .dialog()
             .file()
-            .add_filter("Modpack Files", &["mrpack", "noriskpack", "zip"])
-            .set_title("Select Modpack File (.mrpack, .noriskpack, or .zip)")
+            .add_filter("Modpack Files", &["mrpack", "zip"])
+            .set_title("Select Modpack File (.mrpack or .zip)")
             .blocking_pick_file() // Use the blocking version for single file selection
     })
     .await
@@ -1192,11 +1074,6 @@ pub async fn import_profile_from_file(app_handle: tauri::AppHandle) -> Result<()
                 log::info!("File extension is .mrpack, proceeding with mrpack processing.");
                 mrpack::import_mrpack_as_profile(file_path_buf, None, None).await?
             }
-            Some("noriskpack") => {
-                log::info!("File extension is .noriskpack, proceeding with noriskpack processing.");
-                crate::integrations::norisk_packs::import_noriskpack_as_profile(file_path_buf)
-                    .await?
-            }
             Some("zip") => {
                 log::info!("File extension is .zip, proceeding with CurseForge modpack processing.");
                 curseforge::import_curseforge_pack_as_profile(file_path_buf, None, None).await?
@@ -1207,7 +1084,7 @@ pub async fn import_profile_from_file(app_handle: tauri::AppHandle) -> Result<()
                     file_path_buf
                 );
                 return Err(CommandError::from(AppError::Other(
-                    "Invalid file type selected. Please select a .mrpack, .noriskpack, or .zip file."
+                    "Invalid file type selected. Please select a .mrpack or .zip file."
                         .to_string(),
                 )));
             }
@@ -1269,10 +1146,6 @@ pub async fn import_profile(file_path_str: String) -> Result<Uuid, CommandError>
             log::info!("File extension is .mrpack, proceeding with mrpack processing.");
             mrpack::import_mrpack_as_profile(file_path_buf, None, None).await?
         }
-        Some("noriskpack") => {
-            log::info!("File extension is .noriskpack, proceeding with noriskpack processing.");
-            crate::integrations::norisk_packs::import_noriskpack_as_profile(file_path_buf).await?
-        }
         Some("zip") => {
             log::info!("File extension is .zip, proceeding with CurseForge modpack processing.");
             curseforge::import_curseforge_pack_as_profile(file_path_buf, None, None).await?
@@ -1283,7 +1156,7 @@ pub async fn import_profile(file_path_str: String) -> Result<Uuid, CommandError>
                 file_path_buf
             );
             return Err(CommandError::from(AppError::Other(
-                "Invalid file type selected. Please select a .mrpack, .noriskpack, or .zip file."
+                "Invalid file type selected. Please select a .mrpack or .zip file."
                     .to_string(),
             )));
         }
@@ -1414,37 +1287,8 @@ pub async fn get_profile_directory_structure(
 
     let state = State::get().await?;
 
-    // Profil abrufen - versuche reguläres Profil oder Standard-Version
-    let profile = match state.profile_manager.get_profile(profile_id).await {
-        Ok(profile) => profile,
-        Err(_) => {
-            // Profil nicht gefunden - prüfe ob es eine Standard-Version ID ist
-            log::info!(
-                "Profile with ID {} not found, checking standard versions",
-                profile_id
-            );
-            let standard_versions = state.norisk_version_manager.get_config().await;
-
-            // Finde ein Standard-Profil mit passender ID
-            let standard_profile = standard_versions
-                .profiles
-                .iter()
-                .find(|p| p.id == profile_id)
-                .ok_or_else(|| {
-                    AppError::Other(format!(
-                        "No profile or standard version found with ID {}",
-                        profile_id
-                    ))
-                })?;
-
-            // Konvertiere Standard-Profil zu einem temporären Profil
-            log::info!(
-                "Converting standard profile '{}' to a user profile for directory structure",
-                standard_profile.name
-            );
-            standard_profile.clone()
-        }
-    };
+    // Profil abrufen
+    let profile = state.profile_manager.get_profile(profile_id).await?;
 
     // Calculate the full profile path
     let profile_path = state
@@ -1470,41 +1314,11 @@ pub async fn copy_profile(params: CopyProfileParams) -> Result<Uuid, CommandErro
 
     let state = State::get().await?;
 
-    // 1. Quellprofil abrufen - versuche reguläres Profil oder Standard-Version
-    let source_profile = match state
+    // 1. Quellprofil abrufen
+    let source_profile = state
         .profile_manager
         .get_profile(params.source_profile_id)
-        .await
-    {
-        Ok(profile) => profile,
-        Err(_) => {
-            // Profil nicht gefunden - prüfe ob es eine Standard-Version ID ist
-            info!(
-                "Profile with ID {} not found, checking standard versions",
-                params.source_profile_id
-            );
-            let standard_versions = state.norisk_version_manager.get_config().await;
-
-            // Finde ein Standard-Profil mit passender ID
-            let standard_profile = standard_versions
-                .profiles
-                .iter()
-                .find(|p| p.id == params.source_profile_id)
-                .ok_or_else(|| {
-                    AppError::Other(format!(
-                        "No profile or standard version found with ID {}",
-                        params.source_profile_id
-                    ))
-                })?;
-
-            // Konvertiere Standard-Profil zu einem temporären Profil
-            info!(
-                "Converting standard profile '{}' to a user profile for copying",
-                standard_profile.name
-            );
-            standard_profile.clone()
-        }
-    };
+        .await?;
 
     // 2. Basis-Pfad für Profile bestimmen
     let base_profiles_dir = default_profile_path();
@@ -1543,7 +1357,6 @@ pub async fn copy_profile(params: CopyProfileParams) -> Result<Uuid, CommandErro
         use_shared_minecraft_folder: params.use_shared_minecraft_folder.unwrap_or(source_profile.should_use_shared_minecraft_folder()),
         is_standard_version: false,
         description: source_profile.description.clone(),
-        norisk_information: None, // No pre-installed packs
         banner: source_profile.banner.clone(),
         background: source_profile.background.clone(),
         modpack_info: source_profile.modpack_info.clone(),
@@ -1681,61 +1494,6 @@ pub async fn export_profile(
 pub async fn is_profile_launching(profile_id: Uuid) -> Result<bool, CommandError> {
     let state = State::get().await?;
     Ok(state.process_manager.has_launching_process(profile_id))
-}
-
-/// Fetches the latest Norisk packs configuration from the API and updates the local cache.
-#[tauri::command]
-pub async fn refresh_norisk_packs() -> Result<(), CommandError> {
-    info!("Refreshing Norisk packs via command...");
-    let state = State::get().await?;
-    let config = state.config_manager.get_config().await;
-
-    match state
-        .norisk_pack_manager
-        .fetch_and_update_config(&"", config.is_experimental)
-        .await
-    {
-        Ok(_) => {
-            info!("Successfully refreshed Norisk packs via command.");
-            Ok(())
-        }
-        Err(e) => {
-            error!("Failed to refresh Norisk packs via command: {}", e);
-            Err(CommandError::from(e))
-        }
-    }
-}
-
-/// Fetches the latest standard version profiles from the API and updates the local cache.
-/// Returns the standard profiles for immediate use.
-#[tauri::command]
-pub async fn refresh_standard_versions() -> Result<Vec<Profile>, CommandError> {
-    info!("Refreshing standard versions via command...");
-    let state = State::get().await?;
-    let config = state.config_manager.get_config().await;
-
-    match state
-        .norisk_version_manager
-        .fetch_and_update_config(&"", config.is_experimental)
-        .await
-    {
-        Ok(_) => {
-            info!("Successfully refreshed standard versions via command.");
-
-            // Sync standard profiles after successful refresh
-            if let Err(e) = state.profile_manager.sync_standard_profiles().await {
-                warn!("Failed to sync standard profiles after refresh: {}", e);
-            }
-
-            // Return the standard profiles
-            let standard_profiles = state.norisk_version_manager.get_config().await.profiles;
-            Ok(standard_profiles)
-        }
-        Err(e) => {
-            error!("Failed to refresh standard versions via command: {}", e);
-            Err(CommandError::from(e))
-        }
-    }
 }
 
 // Command to update a Modrinth resourcepack in a profile
@@ -2191,28 +1949,8 @@ pub async fn get_all_profiles_and_last_played() -> Result<AllProfilesAndLastPlay
     if effective_last_played_id.is_none() {
         info!("Last played profile ID is not set or invalid. Attempting to set a default.");
 
-        // First, try to find a standard profile marked as main version
-        let standard_profiles = state.norisk_version_manager.get_config().await.profiles;
-        let new_default_id = if !standard_profiles.is_empty() {
-            standard_profiles
-                .iter()
-                .find(|p| {
-                    p.norisk_information
-                        .as_ref()
-                        .map(|ni| ni.is_main_version)
-                        .unwrap_or(false)
-                })
-                .map(|p| p.id)
-                .or_else(|| {
-                    // No main version found in standard profiles, use first standard profile
-                    info!("No main version found in standard profiles. Using first standard profile as default.");
-                    standard_profiles.first().map(|p| p.id)
-                })
-        } else {
-            // No standard profiles available, use first user profile
-            info!("No standard profiles available. Using first user profile as default.");
-            user_profiles.first().map(|p| p.id)
-        };
+        // Use first user profile as default (standard profiles no longer available)
+        let new_default_id = user_profiles.first().map(|p| p.id);
 
         // Check if the determined new_default_id is different from what's in the original config.
         // This ensures we only write to config if there's an actual change.

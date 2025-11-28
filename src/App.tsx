@@ -23,7 +23,6 @@ import { TermsOfServiceModal } from "./components/modals/TermsOfServiceModal";
 import { GlobalModalPortal } from "./components/ui/GlobalModalPortal";
 import { useCrashModalStore } from "./store/crash-modal-store";
 import { useThemeStore } from "./store/useThemeStore";
-import { refreshNrcDataOnMount } from "./services/nrc-service";
 import {
   getLauncherConfig,
   setProfileGroupingPreference,
@@ -139,10 +138,6 @@ export function App() {
       unlisten.then((f) => f());
     };
   }, [openCrashModal]);
-
-  useEffect(() => {
-    refreshNrcDataOnMount();
-  }, []);
 
   // Icons beim App-Start vorladen
   useEffect(() => {
