@@ -255,6 +255,7 @@ export function ModpackVersionsModal({
   onSwitchComplete,
   isSwitching = false,
 }: ModpackVersionsModalProps) {
+  // Move all hooks to the top, before any conditional logic
   const [versions, setVersions] = useState<UnifiedModpackVersionsResponse | null>(() => {
     // DEBUG: Add mock changelogs to initial versions for testing with Markdown (only for Modrinth)
     if (initialVersions && initialVersions.all_versions.length > 0) {
@@ -307,6 +308,14 @@ This release focuses on stability and performance improvements.
     return initialVersions;
   });
   const [isLoadingVersions, setIsLoadingVersions] = useState(false);
+  const [selectedVersion, setSelectedVersion] = useState<UnifiedVersion | null>(null);
+
+  // Reset selection when modal closes
+  React.useEffect(() => {
+    if (!isOpen) {
+      setSelectedVersion(null);
+    }
+  }, [isOpen]);
 
   // Load fresh versions when modal opens by loading the current profile
   React.useEffect(() => {
@@ -388,14 +397,6 @@ This release focuses on stability and performance improvements.
     }
   }, [isOpen, profileId, initialVersions]);
 
-  // Reset when modal closes
-  React.useEffect(() => {
-    if (!isOpen) {
-      setVersions(initialVersions);
-      setSelectedVersion(null);
-    }
-  }, [isOpen, initialVersions]);
-
   if (!isOpen || !versions) {
     return null;
   }
@@ -406,7 +407,6 @@ This release focuses on stability and performance improvements.
   );
 
   const installedVersionId = versions.installed_version?.id;
-  const [selectedVersion, setSelectedVersion] = useState<UnifiedVersion | null>(null);
 
   const handleVersionSelect = (version: UnifiedVersion) => {
     // Don't allow selecting already installed version
@@ -479,13 +479,6 @@ This release focuses on stability and performance improvements.
       onVersionSwitch(selectedVersion);
     }
   };
-
-  // Reset selection when modal closes
-  React.useEffect(() => {
-    if (!isOpen) {
-      setSelectedVersion(null);
-    }
-  }, [isOpen]);
 
   return (
     <Modal

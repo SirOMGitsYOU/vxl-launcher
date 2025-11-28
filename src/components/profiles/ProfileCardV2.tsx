@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
 import type { Profile, ResolvedLoaderVersion } from "../../types/profile";
@@ -109,6 +109,46 @@ export function ProfileCardV2({
     overlay: true,
   });
 
+  // Handler to fetch modpack versions on-demand
+  const handleFetchModpackVersions = useCallback(async (prof: Profile) => {
+    if (prof.modpack_info?.source) {
+      setIsLoadingVersions(true);
+      
+      // Open modal immediately with loading state
+      import("../modals/ModpackVersionsModal").then(({ ModpackVersionsModal }) => {
+        showModal(`modpack-versions-${prof.id}`, (
+          <ModpackVersionsModal
+            isOpen={true}
+            onClose={() => hideModal(`modpack-versions-${prof.id}`)}
+            versions={modpackVersions}
+            modpackName={prof.name}
+            profileId={prof.id}
+            onSwitchComplete={async () => {
+              console.log("Modpack version switched successfully for:", prof.name);
+              try {
+                const { fetchProfiles } = useProfileStore.getState();
+                await fetchProfiles();
+              } catch (err) {
+                console.error("Failed to refresh profiles after modpack switch:", err);
+              }
+            }}
+          />
+        ));
+      });
+      
+      // Fetch versions in the background
+      try {
+        const versions = await UnifiedService.getModpackVersions(prof.modpack_info.source);
+        setModpackVersions(versions);
+      } catch (err) {
+        console.error("Failed to fetch modpack versions:", err);
+        toast.error("Failed to fetch modpack versions");
+      } finally {
+        setIsLoadingVersions(false);
+      }
+    }
+  }, [showModal, hideModal, modpackVersions]);
+
   // Settings context menu items
   const contextMenuItems: ContextMenuItem[] = [
     {
@@ -156,37 +196,14 @@ export function ProfileCardV2({
         }
       },
     },
-    // Show modpack versions only if modpack info exists and versions are loaded
-    ...(profile.modpack_info?.source && modpackVersions ? [{
-      id: "switch_modpack",
+    // Show modpack versions only if modpack info exists (fetch on-demand when clicked)
+    ...(profile.modpack_info ? [{
+      id: "modpack-versions",
       label: "Modpack Versions",
-      icon: "solar:refresh-circle-bold",
-      onClick: (profile) => {
-        console.log("Switch modpack version for profile:", profile.name);
-        if (profile.modpack_info?.source) {
-          // Import ModpackVersionsModal dynamically to avoid circular imports
-          import("../modals/ModpackVersionsModal").then(({ ModpackVersionsModal }) => {
-            showModal(`modpack-versions-${profile.id}`, (
-              <ModpackVersionsModal
-                isOpen={true}
-                onClose={() => hideModal(`modpack-versions-${profile.id}`)}
-                versions={modpackVersions}
-                modpackName={profile.name}
-                profileId={profile.id}
-                onSwitchComplete={async () => {
-                  console.log("Modpack version switched successfully for:", profile.name);
-                  // Refresh profiles to ensure the profile prop is updated
-                  try {
-                    const { fetchProfiles } = useProfileStore.getState();
-                    await fetchProfiles();
-                  } catch (err) {
-                    console.error("Failed to refresh profiles after modpack switch:", err);
-                  }
-                }}
-              />
-            ));
-          });
-        }
+      icon: "solar:archive-bold",
+      onClick: (prof) => {
+        console.log("Modpack versions button clicked for profile:", prof.name);
+        handleFetchModpackVersions(prof);
       },
     }] : []),
     {
@@ -226,22 +243,6 @@ export function ProfileCardV2({
       setIsContextMenuOpen(false);
     }
   }, [openContextMenuId, contextMenuId, isContextMenuOpen]);
-
-  // Load modpack versions when profile has modpack info
-  useEffect(() => {
-    if (profile.modpack_info?.source) {
-      setIsLoadingVersions(true);
-      UnifiedService.getModpackVersions(profile.modpack_info.source)
-        .then(setModpackVersions)
-        .catch(err => {
-          console.error("Failed to load modpack versions:", err);
-          setModpackVersions(null);
-        })
-        .finally(() => setIsLoadingVersions(false));
-    } else {
-      setModpackVersions(null);
-    }
-  }, [profile.modpack_info?.source]);
 
 
 

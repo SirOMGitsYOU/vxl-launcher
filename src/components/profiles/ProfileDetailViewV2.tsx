@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import type React from "react";
 import { useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
@@ -136,49 +136,6 @@ export function ProfileDetailViewV2({
       handleQuickPlayLaunch(undefined, undefined);
     }
   }, [handleQuickPlayLaunch]);
-
-  // Settings context menu items
-  const contextMenuItems: ContextMenuItem[] = [
-    {
-      id: "edit",
-      label: "Edit Profile",
-      icon: "solar:settings-bold",
-      onClick: () => onEdit(),
-    },
-    {
-      id: "duplicate",
-      label: "Duplicate",
-      icon: "solar:copy-bold",
-      onClick: () => handleDuplicateProfile(),
-    },
-    {
-      id: "export",
-      label: "Export",
-      icon: "solar:download-bold",
-      onClick: () => handleOpenExportModal(),
-    },
-    // Show modpack versions only if modpack info exists and versions are loaded
-    ...(currentProfile.modpack_info && modpackVersions ? [{
-      id: "modpack-versions",
-      label: "Modpack Versions",
-      icon: "solar:archive-bold",
-      onClick: () => handleOpenModpackVersionsModal(),
-    }] : []),
-    {
-      id: "open-folder",
-      label: "Open Folder",
-      icon: "solar:folder-bold",
-      onClick: () => handleOpenFolder(),
-    },
-    {
-      id: "delete",
-      label: "Delete",
-      icon: "solar:trash-bin-trash-bold",
-      destructive: true,
-      separator: true, // Trennstrich vor Delete
-      onClick: () => handleDeleteProfile(),
-    },
-  ];
 
   // Memoized callback for getDisplayFileName
   const getGenericDisplayFileName = useCallback((item: LocalContentItem) => item.filename, []);
@@ -318,7 +275,7 @@ export function ProfileDetailViewV2({
     };
   }, [activeMainTab, setDragDropMainTab]);
 
-  // Function to refresh modpack versions
+  // Function to refresh modpack versions (on-demand only)
   const refreshModpackVersions = useCallback(async () => {
     if (currentProfile.modpack_info) {
       setIsLoadingVersions(true);
@@ -336,12 +293,59 @@ export function ProfileDetailViewV2({
     }
   }, [currentProfile.modpack_info]);
 
-  // Effect to load modpack versions when profile has modpack info
-  useEffect(() => {
-    refreshModpackVersions();
-  }, [refreshModpackVersions]);
+  // Handler for modpack versions button click (on-demand fetch)
+  const handleModpackVersionsClick = useCallback(async () => {
+    console.log("[ProfileDetailViewV2] Modpack versions button clicked, fetching versions...");
+    
+    // Open modal immediately with loading state
+    handleOpenModpackVersionsModal();
+    
+    // Fetch versions in the background
+    await refreshModpackVersions();
+  }, [refreshModpackVersions, handleOpenModpackVersionsModal]);
 
-
+  // Memoized context menu items
+  const contextMenuItems = useMemo(() => [
+    {
+      id: "edit",
+      label: "Edit Profile",
+      icon: "solar:settings-bold",
+      onClick: () => onEdit(),
+    },
+    {
+      id: "duplicate",
+      label: "Duplicate",
+      icon: "solar:copy-bold",
+      onClick: () => handleDuplicateProfile(),
+    },
+    {
+      id: "export",
+      label: "Export",
+      icon: "solar:download-bold",
+      onClick: () => handleOpenExportModal(),
+    },
+    // Show modpack versions only if modpack info exists (fetch on-demand when clicked)
+    ...(currentProfile.modpack_info ? [{
+      id: "modpack-versions",
+      label: "Modpack Versions",
+      icon: "solar:archive-bold",
+      onClick: () => handleModpackVersionsClick(),
+    }] : []),
+    {
+      id: "open-folder",
+      label: "Open Folder",
+      icon: "solar:folder-bold",
+      onClick: () => handleOpenFolder(),
+    },
+    {
+      id: "delete",
+      label: "Delete",
+      icon: "solar:trash-bin-trash-bold",
+      destructive: true,
+      separator: true,
+      onClick: () => handleDeleteProfile(),
+    },
+  ], [currentProfile.modpack_info, onEdit, handleDuplicateProfile, handleOpenExportModal, handleModpackVersionsClick, handleOpenFolder, handleDeleteProfile]);
 
   // Close this menu if another context menu opens globally
   useEffect(() => {

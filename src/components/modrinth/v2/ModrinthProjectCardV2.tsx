@@ -275,6 +275,13 @@ export const ModrinthProjectCardV2 = React.memo<ModrinthProjectCardV2Props>(
             </svg>
             <span>{hit.downloads.toLocaleString()}</span>
           </div>
+          
+          {/* Game Version Badge */}
+          {(hit as any).gameVersion && (
+            <div className="px-2 py-0.5 bg-blue-500/20 border border-blue-500/40 rounded text-blue-300 text-xs">
+              {(hit as any).gameVersion}
+            </div>
+          )}
         </div>
 
         {/* Project Icon */}

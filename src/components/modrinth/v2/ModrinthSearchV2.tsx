@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import UnifiedService from '../../../services/unified-service';
 import { ModrinthService } from '../../../services/modrinth-service';
 import { CurseForgeService } from '../../../services/curseforge-service';
+import { VXLStudiosService } from '../../../services/vxl-studios-service';
 import type {
   UnifiedModSearchResult,
   UnifiedModSearchResponse,
@@ -91,6 +92,7 @@ export interface ModrinthSearchV2Props {
   initialProjectType?: ModrinthProjectType; // Added new prop
   allowedProjectTypes?: ModrinthProjectType[]; // New prop for allowed project types
   disableVirtualization?: boolean; // New prop to disable Virtuoso and use infinite div scrolling
+  useVXLStudiosData?: boolean; // New prop to use VXL Studios API instead of regular search
 }
 
 const ALL_MODRINTH_PROJECT_TYPES: ModrinthProjectType[] = ['modpack', 'mod', 'resourcepack', 'shader', 'datapack'];
@@ -114,6 +116,7 @@ export function ModrinthSearchV2({
   initialProjectType, // Added new prop
   allowedProjectTypes, // Destructure new prop
   disableVirtualization = false, // Default to false (use Virtuoso by default)
+  useVXLStudiosData = false, // Default to false (use regular search by default)
 }: ModrinthSearchV2Props) {
   const navigate = useNavigate();
   const { showModal, hideModal } = useGlobalModal();
@@ -247,6 +250,196 @@ export function ModrinthSearchV2({
     fetchFilterData();
   }, []);
 
+  // Store all VXL Studios projects for filtering
+  const [allVXLStudiosProjects, setAllVXLStudiosProjects] = useState<UnifiedModSearchResult[]>([]);
+
+  // Global cache for VXL Studios data (session-level, cleared on app restart)
+  const vxlStudiosCache = useMemo(() => {
+    if (typeof window !== 'undefined' && !(window as any).vxlStudiosCache) {
+      (window as any).vxlStudiosCache = {
+        modrinth: null as UnifiedModSearchResult[] | null,
+        curseforge: null as UnifiedModSearchResult[] | null,
+      };
+    }
+    return (window as any).vxlStudiosCache || { modrinth: null, curseforge: null };
+  }, []);
+
+  // Load VXL Studios data if useVXLStudiosData prop is true
+  useEffect(() => {
+    if (!useVXLStudiosData) return;
+
+    const loadVXLStudiosData = async () => {
+      setLoading(true);
+      try {
+        console.log('[ModrinthSearchV2] Loading VXL Studios data for source:', modSource);
+        let convertedProjects: UnifiedModSearchResult[] = [];
+
+        if (modSource === ModPlatform.Modrinth) {
+          // Check cache first
+          if (vxlStudiosCache.modrinth) {
+            console.log('[ModrinthSearchV2] Using cached Modrinth VXL Studios data');
+            convertedProjects = vxlStudiosCache.modrinth;
+          } else {
+            const modrinthProjects = await VXLStudiosService.getVXLStudiosModrinthProjects();
+            
+            // Convert ModrinthProject objects to UnifiedModSearchResult format
+            convertedProjects = modrinthProjects.map(proj => ({
+              project_id: proj.id,
+              project_type: proj.project_type,
+              slug: proj.slug,
+              title: proj.title,
+              description: proj.description,
+              author: null,
+              categories: proj.categories,
+              display_categories: proj.categories,
+              client_side: proj.client_side,
+              server_side: proj.server_side,
+              downloads: proj.downloads,
+              follows: proj.followers,
+              icon_url: proj.icon_url,
+              latest_version: null,
+              date_created: proj.published,
+              date_modified: proj.updated,
+              license: proj.license.id,
+              gallery: proj.gallery.map(g => g.url),
+              versions: proj.versions,
+              source: ModPlatform.Modrinth,
+              project_url: `https://modrinth.com/${proj.project_type}/${proj.slug}`,
+            }));
+            
+            // Cache the results
+            vxlStudiosCache.modrinth = convertedProjects;
+            console.log('[ModrinthSearchV2] Cached Modrinth VXL Studios data');
+          }
+        } else if (modSource === ModPlatform.CurseForge) {
+          // Check cache first
+          if (vxlStudiosCache.curseforge) {
+            console.log('[ModrinthSearchV2] Using cached CurseForge VXL Studios data');
+            convertedProjects = vxlStudiosCache.curseforge;
+          } else {
+            // Fetch CurseForge mod IDs from VXL Studios API
+            try {
+              const response = await fetch('https://api.voxelstudios.co.uk/api/v1/curseforge/projects');
+              if (!response.ok) {
+                throw new Error(`Failed to fetch CurseForge project IDs: ${response.statusText}`);
+              }
+              const data = await response.json();
+              console.log('[ModrinthSearchV2] VXL Studios API response:', data);
+              
+              // Handle both array and object responses
+              let modIds: number[] = [];
+              if (Array.isArray(data)) {
+                modIds = data.map((project: any) => project.id);
+              } else if (data && typeof data === 'object') {
+                // If it's an object, try to extract the projects array
+                const projectsArray = data.projects || data.data || data.mods || [];
+                modIds = projectsArray.map((project: any) => project.id);
+              }
+              
+              console.log('[ModrinthSearchV2] Fetching CurseForge projects with IDs:', modIds);
+              const curseForgeProjects = await VXLStudiosService.getVXLStudiosCurseForgeProjects(modIds);
+              
+              // Convert CurseForgeMod objects to UnifiedModSearchResult format
+              convertedProjects = curseForgeProjects.map(proj => ({
+                project_id: proj.id.toString(),
+                project_type: proj.classId === 4471 ? 'modpack' : proj.classId === 6 ? 'mod' : proj.classId === 12 ? 'resourcepack' : 'mod',
+                slug: proj.slug || proj.name.toLowerCase().replace(/\s+/g, '-'),
+                title: proj.name,
+                description: proj.summary,
+                author: proj.authors?.[0]?.name || null,
+                categories: proj.categories?.map(c => c.name) || [],
+                display_categories: proj.categories?.map(c => c.name) || [],
+                client_side: 'required' as const,
+                server_side: 'required' as const,
+                downloads: proj.downloadCount,
+                follows: proj.thumbsUpCount,
+                icon_url: proj.logo?.thumbnailUrl || null,
+                latest_version: null,
+                date_created: proj.dateCreated,
+                date_modified: proj.dateModified,
+                license: 'Unknown',
+                gallery: [],
+                versions: [],
+                source: ModPlatform.CurseForge,
+                project_url: `https://www.curseforge.com/minecraft/mods/${proj.slug || proj.id}`,
+              }));
+              
+              // Cache the results
+              vxlStudiosCache.curseforge = convertedProjects;
+              console.log('[ModrinthSearchV2] Cached CurseForge VXL Studios data');
+            } catch (err) {
+              console.error('[ModrinthSearchV2] Failed to load CurseForge VXL Studios projects:', err);
+              convertedProjects = [];
+            }
+          }
+        }
+
+        console.log('[ModrinthSearchV2] Loaded VXL Studios projects:', convertedProjects.length);
+        setAllVXLStudiosProjects(convertedProjects);
+        setSearchResults(convertedProjects);
+        setTotalHits(convertedProjects.length);
+        setOffset(convertedProjects.length);
+      } catch (err) {
+        console.error('[ModrinthSearchV2] Failed to load VXL Studios data:', err);
+        setError(`Failed to load VXL Studios projects: ${err instanceof Error ? err.message : String(err)}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadVXLStudiosData();
+  }, [useVXLStudiosData, modSource, vxlStudiosCache]);
+
+  // Calculate available project types (only show types that have content)
+  const availableProjectTypes = useMemo(() => {
+    if (!useVXLStudiosData || allVXLStudiosProjects.length === 0) {
+      return allowedProjectTypes || ALL_MODRINTH_PROJECT_TYPES;
+    }
+    
+    // Get unique project types from VXL Studios data
+    const typesInData = new Set(allVXLStudiosProjects.map(proj => proj.project_type));
+    
+    // Filter allowedProjectTypes to only include types that exist in data
+    const filtered = (allowedProjectTypes || ALL_MODRINTH_PROJECT_TYPES).filter(type => typesInData.has(type));
+    
+    return filtered.length > 0 ? filtered : (allowedProjectTypes || ALL_MODRINTH_PROJECT_TYPES);
+  }, [useVXLStudiosData, allVXLStudiosProjects, allowedProjectTypes]);
+
+  // Default to modpacks if current project type is not available
+  useEffect(() => {
+    if (!useVXLStudiosData || availableProjectTypes.length === 0) return;
+    
+    // If current projectType is not in availableProjectTypes, switch to modpacks
+    if (!availableProjectTypes.includes(projectType)) {
+      console.log('[ModrinthSearchV2] Current project type not available, defaulting to modpacks');
+      setProjectType('modpack');
+    }
+  }, [useVXLStudiosData, availableProjectTypes, projectType]);
+
+  // Filter VXL Studios projects by project type and search term
+  useEffect(() => {
+    if (!useVXLStudiosData || allVXLStudiosProjects.length === 0) return;
+
+    let filtered = allVXLStudiosProjects;
+
+    // Filter by project type
+    filtered = filtered.filter(proj => proj.project_type === projectType);
+
+    // Filter by search term
+    if (searchTerm) {
+      const lowerSearchTerm = searchTerm.toLowerCase();
+      filtered = filtered.filter(proj =>
+        proj.title.toLowerCase().includes(lowerSearchTerm) ||
+        proj.description.toLowerCase().includes(lowerSearchTerm)
+      );
+    }
+
+    console.log('[ModrinthSearchV2] Filtered VXL Studios projects:', filtered.length, 'by type:', projectType, 'search:', searchTerm);
+    setSearchResults(filtered);
+    setTotalHits(filtered.length);
+    setOffset(filtered.length);
+  }, [useVXLStudiosData, allVXLStudiosProjects, projectType, searchTerm]);
+
   // Define preferred loader order
   const preferredLoaderOrder = ['fabric', 'forge', 'quilt', 'neoforge'];
 
@@ -308,6 +501,27 @@ export function ModrinthSearchV2({
     });
   }, [allCategoriesData, projectType]);
 
+  // Global cache for regular search results (session-level, cleared on app restart)
+  const searchCache = useMemo(() => {
+    if (typeof window !== 'undefined' && !(window as any).modrinthSearchCache) {
+      (window as any).modrinthSearchCache = {};
+    }
+    return (window as any).modrinthSearchCache || {};
+  }, []);
+
+  // Generate cache key based on search parameters
+  const getCacheKey = useCallback((
+    query: string,
+    source: ModPlatform,
+    type: ModrinthProjectType,
+    categories: string[],
+    gameVersion: string | undefined,
+    loaders: string[],
+    sortBy: UnifiedSortType
+  ): string => {
+    return `${source}:${type}:${query}:${categories.join(',')}:${gameVersion || 'any'}:${loaders.join(',')}:${sortBy}`;
+  }, []);
+
   const performSearch = useCallback(async (newSearch = false) => {
     console.log('[ModrinthSearchV2] performSearch ENTRY:', {
       newSearch,
@@ -337,6 +551,28 @@ export function ModrinthSearchV2({
     setError(null);
 
     try {
+      // Generate cache key for this search
+      const cacheKey = getCacheKey(
+        searchTerm,
+        modSource,
+        projectType,
+        currentSelectedCategories,
+        selectedGameVersions.length > 0 ? selectedGameVersions[0] : undefined,
+        currentSelectedLoaders,
+        sortOrder
+      );
+
+      // Check cache for first page (offset 0)
+      if (newSearch && searchCache[cacheKey]) {
+        console.log('[ModrinthSearchV2] Using cached search results for key:', cacheKey);
+        const cachedResponse = searchCache[cacheKey];
+        setSearchResults(cachedResponse.results);
+        setTotalHits(cachedResponse.pagination.total_count);
+        setOffset(cachedResponse.results.length);
+        setLoading(false);
+        return;
+      }
+
       const response: UnifiedModSearchResponse = await UnifiedService.searchMods({
         query: searchTerm,
         source: modSource,
@@ -350,6 +586,13 @@ export function ModrinthSearchV2({
         client_side_filter: filterClientRequired ? "required" : undefined,
         server_side_filter: filterServerRequired ? "required" : undefined
       });
+
+      // Cache the first page results
+      if (newSearch) {
+        searchCache[cacheKey] = response;
+        console.log('[ModrinthSearchV2] Cached search results for key:', cacheKey);
+      }
+
       setSearchResults(prevResults => newSearch ? response.results : [...prevResults, ...response.results]);
       setTotalHits(response.pagination.total_count);
       if (!newSearch) {
@@ -379,10 +622,14 @@ export function ModrinthSearchV2({
     searchTerm, projectType, offset, limit, sortOrder, modSource,
     currentSelectedCategories, selectedGameVersions, currentSelectedLoaders,
     filterClientRequired, filterServerRequired,
-    allCategoriesData, allLoadersData, gameVersionsData
+    allCategoriesData, allLoadersData, gameVersionsData,
+    getCacheKey, searchCache
   ]);
 
   useEffect(() => {
+    // Skip regular search if using VXL Studios data
+    if (useVXLStudiosData) return;
+
     console.log('[ModrinthSearchV2] useEffect for search triggered. Calling performSearch(true). Params:', {
       searchTerm,
       projectType,
@@ -406,7 +653,8 @@ export function ModrinthSearchV2({
   }, [
     searchTerm, projectType, sortOrder, modSource,
     currentSelectedCategories, selectedGameVersions, currentSelectedLoaders,
-    filterClientRequired, filterServerRequired
+    filterClientRequired, filterServerRequired,
+    useVXLStudiosData
   ]);
 
   const handleProjectTypeChange = (newProjectType: ModrinthProjectType) => {
@@ -562,19 +810,7 @@ export function ModrinthSearchV2({
         project_id: projectId
       });
       
-      // Add NoRisk status to each version
-      const versionsWithNoRiskStatus = response.versions.map(version => {
-        const primaryFile = version.files.find(file => file.primary) || version.files[0];
-        const filename = primaryFile?.filename || '';
-        const noRiskStatus = getModNoRiskStatus(filename, projectId, version.id);
-        
-        return {
-          ...version,
-          noRiskStatus // Add this property ('blocked' | 'warning' | null)
-        };
-      });
-      
-      const sortedVersions = versionsWithNoRiskStatus.sort((a, b) => new Date(b.date_published).getTime() - new Date(a.date_published).getTime());
+      const sortedVersions = response.versions.sort((a, b) => new Date(b.date_published).getTime() - new Date(a.date_published).getTime());
 
       setExpandedVersions(prev => ({ ...prev, [projectId]: sortedVersions }));
       // Initialize the number of displayed versions for this project
@@ -3062,50 +3298,51 @@ export function ModrinthSearchV2({
 
   return (
     // Overall container: now flex-row to place left content and sidebar side-by-side
-    <div className={`modrinth-search-v2 flex flex-row h-full gap-3 ${className}`}> {/* Added gap-3 */} 
-      {/* Left Content Area: Takes up most space, contains search bar and results */} 
-      <div className="left-content-area flex flex-col flex-1 overflow-hidden">
-        {/* Search controls are now in a separate component */}
-        <ModrinthSearchControlsV2
-          searchTerm={searchTerm}
-          onSearchTermChange={setSearchTerm}
-          projectType={projectType}
-          onProjectTypeChange={handleProjectTypeChange}
-          allProjectTypes={allowedProjectTypes || ALL_MODRINTH_PROJECT_TYPES} // Use filtered list
-          profiles={internalProfiles}
-          selectedProfile={selectedProfile}
-          onSelectedProfileChange={(profile) => {
-            if (profile === null) {
-              setSelectedProfile(null);
-              setSelectedGameVersions([]);
-              setSelectedLoadersByProjectType(prev => ({ ...prev, [projectType]: [] }));
-            } else {
-              setSelectedProfile(profile);
-            }
-          }}
-          sortOrder={sortOrder}
-          onSortOrderChange={setSortOrder}
-          sortOptions={sortOptions}
-          isSidebarVisible={isSidebarVisible}
-          onToggleSidebar={() => setIsSidebarVisible(!isSidebarVisible)}
-          selectedGameVersions={selectedGameVersions}
-          currentSelectedLoaders={currentSelectedLoaders}
-          currentSelectedCategories={currentSelectedCategories}
-          filterClientRequired={filterClientRequired}
-          filterServerRequired={filterServerRequired}
-          onRemoveGameVersionTag={removeGameVersionTag}
-          onRemoveLoaderTag={removeLoaderTag}
-          onRemoveCategoryTag={removeCategoryTag}
-          onRemoveClientRequiredTag={removeClientRequiredTag}
-          onRemoveServerRequiredTag={removeServerRequiredTag}
-          onClearAllFilters={clearAllFilters}
-          overrideDisplayContext={overrideDisplayContext} // Pass down
-          modSource={modSource}
-          onModSourceChange={setModSource}
-        />
+<div className={`modrinth-search-v2 flex flex-row h-full gap-3 ${className}`}> 
+  {/* Left Content Area: Takes up most space, contains search bar and results */} 
+  <div className="left-content-area flex flex-col flex-1 overflow-hidden">
+    {/* Search controls are now in a separate component */}
+    <ModrinthSearchControlsV2
+      searchTerm={searchTerm}
+      onSearchTermChange={setSearchTerm}
+      projectType={projectType}
+      onProjectTypeChange={handleProjectTypeChange}
+      availableProjectTypes={availableProjectTypes} // Only show types with content
+      allProjectTypes={allowedProjectTypes || ALL_MODRINTH_PROJECT_TYPES} // Use filtered list
+      profiles={internalProfiles}
+      selectedProfile={selectedProfile}
+      onSelectedProfileChange={(profile) => {
+        if (profile === null) {
+          setSelectedProfile(null);
+          setSelectedGameVersions([]);
+          setSelectedLoadersByProjectType(prev => ({ ...prev, [projectType]: [] }));
+        } else {
+          setSelectedProfile(profile);
+        }
+      }}
+      sortOrder={sortOrder}
+      onSortOrderChange={setSortOrder}
+      sortOptions={sortOptions}
+      isSidebarVisible={isSidebarVisible}
+      onToggleSidebar={() => setIsSidebarVisible(!isSidebarVisible)}
+      selectedGameVersions={selectedGameVersions}
+      currentSelectedLoaders={currentSelectedLoaders}
+      currentSelectedCategories={currentSelectedCategories}
+      filterClientRequired={filterClientRequired}
+      filterServerRequired={filterServerRequired}
+      onRemoveGameVersionTag={removeGameVersionTag}
+      onRemoveLoaderTag={removeLoaderTag}
+      onRemoveCategoryTag={removeCategoryTag}
+      onRemoveClientRequiredTag={removeClientRequiredTag}
+      onRemoveServerRequiredTag={removeServerRequiredTag}
+      onClearAllFilters={clearAllFilters}
+      overrideDisplayContext={overrideDisplayContext} // Pass down
+      modSource={modSource}
+      onModSourceChange={setModSource}
+    />
 
         {/* Search Results Area (scrollable within the left content area) */}
-        <div ref={searchResultsAreaRef} className="search-results-area flex-1 overflow-y-auto"> {/* Removed p-4 */}
+        <div ref={searchResultsAreaRef} className="search-results-area flex-1 overflow-y-auto"> 
           {/* {loading && searchResults.length === 0 && <p className="p-4 text-center">Loading initial results...</p>} REMOVED */}
           {searchResults.length === 0 && !loading && error && (
             <p className="p-4 text-red-500 text-center">Error: {error}</p>

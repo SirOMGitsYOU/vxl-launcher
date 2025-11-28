@@ -31,6 +31,7 @@ interface ModrinthSearchControlsV2Props {
   projectType: ModrinthProjectType;
   onProjectTypeChange: (type: ModrinthProjectType) => void;
   allProjectTypes: ModrinthProjectType[]; // This will be ALL_MODRINTH_PROJECT_TYPES from parent
+  availableProjectTypes?: ModrinthProjectType[]; // Project types that have content (optional, defaults to allProjectTypes)
   profiles: Profile[];
   selectedProfile: Profile | null;
   onSelectedProfileChange: (profile: Profile | null) => void;
@@ -63,6 +64,7 @@ export const ModrinthSearchControlsV2: React.FC<
   projectType,
   onProjectTypeChange,
   allProjectTypes,
+  availableProjectTypes,
   profiles,
   selectedProfile,
   onSelectedProfileChange,
@@ -109,8 +111,9 @@ export const ModrinthSearchControlsV2: React.FC<
     (filterClientRequired ? 1 : 0) +
     (filterServerRequired ? 1 : 0);
 
-  // Create groups array for project types
-  const groups: GroupTab[] = allProjectTypes.map(type => ({
+  // Create groups array for project types - only show available types
+  const typesToShow = availableProjectTypes || allProjectTypes;
+  const groups: GroupTab[] = typesToShow.map(type => ({
     id: type,
     name: type.charAt(0).toUpperCase() + type.slice(1) + 's',
     count: 0, // Could be populated with result counts if needed
