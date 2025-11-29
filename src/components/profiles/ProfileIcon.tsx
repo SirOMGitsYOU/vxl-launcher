@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, memo } from "react";
 import { Icon } from "@iconify/react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { convertFileSrc } from "@tauri-apps/api/core";
@@ -27,7 +27,7 @@ interface ProfileIconProps {
   borderColorOpacity?: string;
 }
 
-export function ProfileIcon({
+const ProfileIcon = memo(function ProfileIcon({
   profileId,
   banner,
   profileName,
@@ -73,7 +73,7 @@ export function ProfileIcon({
           ) {
             if (resolvedPathOrUrl) { 
               const assetUrl = await convertFileSrc(resolvedPathOrUrl);
-              setImageUrl(assetUrl + '?v=' + Date.now()); // Cache busting
+              setImageUrl(assetUrl);
               setHasLoadedImage(true);
               // Fade-in mit kleiner Verzögerung für smooth transition
               setTimeout(() => setImageOpacity(1), 50);
@@ -247,4 +247,6 @@ export function ProfileIcon({
       ) : null}
     </div>
   );
-} 
+});
+
+export default ProfileIcon;

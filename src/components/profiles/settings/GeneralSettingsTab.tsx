@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback, memo } from "react";
 import { Icon } from "@iconify/react";
 import type { Profile } from "../../../types/profile";
 import { useThemeStore } from "../../../store/useThemeStore";
 import { SearchStyleInput } from "../../ui/Input";
 import { Checkbox } from "../../ui/Checkbox";
 import { gsap } from "gsap";
-import { ProfileIcon } from "../ProfileIcon";
+import ProfileIcon from "../ProfileIcon";
 import { useMinecraftAuthStore } from "../../../store/minecraft-auth-store";
 import { useCrafatarAvatar } from "../../../hooks/useCrafatarAvatar";
 import type { MinecraftAccount } from "../../../types/minecraft";
@@ -25,7 +25,7 @@ interface GeneralSettingsTabProps {
 
 
 
-export function GeneralSettingsTab({
+const GeneralSettingsTab = memo(function GeneralSettingsTab({
   profile,
   editedProfile,
   updateProfile,
@@ -72,7 +72,7 @@ export function GeneralSettingsTab({
   }, [isBackgroundAnimationEnabled]);
 
   // Component for account avatar with caching
-  function AccountAvatar({ account }: { account: MinecraftAccount }) {
+  const AccountAvatar = memo(function AccountAvatar({ account }: { account: MinecraftAccount }) {
     const avatarUrl = useCrafatarAvatar({
       uuid: account.id,
       overlay: true,
@@ -94,11 +94,21 @@ export function GeneralSettingsTab({
         }}
       />
     );
-  }
+  });
 
   const handleAccountSelect = (accountId: string | null) => {
     updateProfile({ preferred_account_id: accountId });
   };
+
+  const handleIconUpdate = useCallback(async () => {
+    try {
+      if (onRefresh) {
+        await onRefresh();
+      }
+    } catch (error) {
+      console.error("Failed to refresh profile after icon update:", error);
+    }
+  }, [onRefresh]);
 
   return (
     <div ref={tabRef} className="space-y-6 select-none">
@@ -114,15 +124,7 @@ export function GeneralSettingsTab({
                 banner={profile.banner}
                 profileName={profile.name}
                 accentColor={accentColor.value}
-                onSuccessfulUpdate={async () => {
-                  try {
-                    if (onRefresh) {
-                      await onRefresh();
-                    }
-                  } catch (error) {
-                    console.error("Failed to refresh profile after icon update:", error);
-                  }
-                }}
+                onSuccessfulUpdate={handleIconUpdate}
                 className="w-12 h-12 flex-shrink-0"
               />
               <SearchStyleInput
@@ -268,4 +270,6 @@ export function GeneralSettingsTab({
 
     </div>
   );
-}
+});
+
+export default GeneralSettingsTab;

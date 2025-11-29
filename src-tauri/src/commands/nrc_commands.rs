@@ -1,20 +1,8 @@
 use crate::error::{AppError, CommandError};
-use crate::minecraft::api::wordpress_api::{BlogPost, WordPressApi};
 use log::info;
 use log::{debug};
 use tauri::{AppHandle, Manager};
 use crate::utils::updater_utils;
-
-/// Fetches news and changelog posts from the WordPress API.
-///
-/// # Returns
-///
-/// * `Result<Vec<BlogPost>, CommandError>` - A vector of blog posts or an error.
-#[tauri::command]
-pub async fn get_news_and_changelogs_command() -> Result<Vec<BlogPost>, CommandError> {
-    info!("Executing get_news_and_changelogs_command");
-    Ok(WordPressApi::get_news_and_changelogs().await?)
-}
 
 #[tauri::command]
 pub async fn log_message_command(level: String, message: String) -> Result<(), CommandError> {

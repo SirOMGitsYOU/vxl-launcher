@@ -604,7 +604,7 @@ export function ProfileCardV2({
             )}
           </div>
 
-          <div className={`flex-grow min-w-0 mr-auto pr-2 ${isCompact ? 'max-w-[calc(100%-64px)]' : 'max-w-[calc(100%-80px)]'}`}>
+          <div className={`flex-grow min-w-0 ${isCompact ? 'max-w-[calc(100%-96px)]' : 'max-w-[calc(100%-112px)]'}`}>
             <div className="flex items-center gap-2 mb-0.5">
               <h3
                 className={`font-minecraft-ten text-white ${isCompact ? 'text-base' : 'text-lg'} whitespace-nowrap overflow-hidden text-ellipsis normal-case`}

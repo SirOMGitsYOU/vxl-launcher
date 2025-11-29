@@ -92,7 +92,6 @@ export interface UnifiedVersion {
   downloads: number;
   release_type: UnifiedVersionType;
   url: string;
-  isBlocked?: boolean; // Indicates if this version is blocked due to NoRisk Client compatibility
 }
 
 export interface UnifiedVersionFile {

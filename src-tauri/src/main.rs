@@ -104,7 +104,7 @@ use commands::vanilla_cape_command::{
 };
 
 // Import NRC commands
-use commands::nrc_commands::{check_update_available_command, download_and_install_update_command, get_news_and_changelogs_command};
+use commands::nrc_commands::{check_update_available_command, download_and_install_update_command};
 
 // Import Content commands
 use commands::content_command::{
@@ -156,14 +156,14 @@ async fn main() {
             let app_handle = app.handle().clone();
 
             // --- Initialize System Tray (Tauri 2.0) ---
-            let show_item = MenuItem::with_id(app, "show", "Show NoRisk Launcher", true, None::<&str>)?;
+            let show_item = MenuItem::with_id(app, "show", "Show VXL Launcher", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
 
             let _tray = TrayIconBuilder::new()
                 .menu(&menu)
                 .show_menu_on_left_click(false)
-                .tooltip("NoRisk Client Launcher")
+                .tooltip("VXL Launcher")
                 .icon(app.default_window_icon().unwrap().clone())
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show" => {
@@ -472,7 +472,6 @@ async fn main() {
             open_file,
             read_file_bytes,
             get_app_version,
-            get_news_and_changelogs_command,
             check_update_available_command,
             download_and_install_update_command,
             get_modrinth_categories_command,

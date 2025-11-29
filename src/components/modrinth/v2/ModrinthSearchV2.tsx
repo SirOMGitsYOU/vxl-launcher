@@ -2434,9 +2434,10 @@ export function ModrinthSearchV2({
         newProfileId = await CurseForgeService.downloadAndInstallCurseForgeModpack(
           projectId,
           fileId,
-          primaryFile.filename,
+          project.title,
           primaryFile.url,
-          project.icon_url || undefined
+          project.icon_url || undefined,
+          project.title
         );
       } else {
         // Default to Modrinth
@@ -2526,9 +2527,10 @@ export function ModrinthSearchV2({
         newProfileId = await CurseForgeService.downloadAndInstallCurseForgeModpack(
           projectId,
           fileId,
-          primaryFile.filename,
+          project.title,
           primaryFile.url,
-          project.icon_url || undefined
+          project.icon_url || undefined,
+          project.title
         );
       } else {
         // Default to Modrinth

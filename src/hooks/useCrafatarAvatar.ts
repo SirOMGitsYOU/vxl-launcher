@@ -1,9 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { MinecraftSkinService } from "../services/minecraft-skin-service";
 import { getAvatarUrl, getFallbackAvatarUrl } from "../lib/avatar-utils";
 
 const DEFAULT_STEVE_UUID = "8667ba71b85a4004af54457a9734eed7";
+
+// Global cache to prevent re-fetching the same avatar
+const avatarCache = new Map<string, string>();
+const loadingPromises = new Map<string, Promise<string>>();
 
 interface UseCrafatarAvatarOptions {
   uuid: string | null | undefined;
@@ -15,6 +19,7 @@ interface UseCrafatarAvatarOptions {
 /**
  * Hook to load and cache Crafatar avatars.
  * Handles loading, caching, and error fallback automatically.
+ * Uses global cache to prevent re-fetching the same avatar multiple times.
  * 
  * @param options - Configuration options for the avatar
  * @returns The avatar URL (local cached path converted to file src) or null if not loaded yet
@@ -26,6 +31,7 @@ export function useCrafatarAvatar({
   fallbackToDefault = true,
 }: UseCrafatarAvatarOptions): string | null {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const cacheKey = `${uuid}-${size ?? 'default'}-${overlay}`;
 
   useEffect(() => {
     if (!uuid) {
@@ -33,30 +39,58 @@ export function useCrafatarAvatar({
       return;
     }
 
+    // Check if already cached
+    if (avatarCache.has(cacheKey)) {
+      setAvatarUrl(avatarCache.get(cacheKey)!);
+      return;
+    }
+
+    // Check if already loading
+    if (loadingPromises.has(cacheKey)) {
+      loadingPromises.get(cacheKey)!.then(url => {
+        setAvatarUrl(url);
+      }).catch(() => {
+        if (fallbackToDefault) {
+          setAvatarUrl(getFallbackAvatarUrl(DEFAULT_STEVE_UUID, { overlay: true, size }));
+        }
+      });
+      return;
+    }
+
     const loadAvatar = async () => {
       try {
-        const localPath = await MinecraftSkinService.getCrafatarAvatar({
+        const loadingPromise = MinecraftSkinService.getCrafatarAvatar({
           uuid,
           size: size ?? undefined,
           overlay,
         });
-        setAvatarUrl(convertFileSrc(localPath));
+        
+        loadingPromises.set(cacheKey, loadingPromise);
+        
+        const localPath = await loadingPromise;
+        const url = convertFileSrc(localPath);
+        
+        // Cache the result
+        avatarCache.set(cacheKey, url);
+        setAvatarUrl(url);
       } catch (error) {
         console.error("[useCrafatarAvatar] Failed to load avatar:", error);
         
         if (fallbackToDefault) {
           // Fallback to default Steve avatar with primary and fallback support
-          setAvatarUrl(
-            getFallbackAvatarUrl(DEFAULT_STEVE_UUID, { overlay: true, size })
-          );
+          const fallbackUrl = getFallbackAvatarUrl(DEFAULT_STEVE_UUID, { overlay: true, size });
+          avatarCache.set(cacheKey, fallbackUrl);
+          setAvatarUrl(fallbackUrl);
         } else {
           setAvatarUrl(null);
         }
+      } finally {
+        loadingPromises.delete(cacheKey);
       }
     };
 
     loadAvatar();
-  }, [uuid, size, overlay, fallbackToDefault]);
+  }, [uuid, size, overlay, fallbackToDefault, cacheKey]);
 
   return avatarUrl;
 }

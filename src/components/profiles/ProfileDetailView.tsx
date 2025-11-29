@@ -17,7 +17,7 @@ import { cn } from "../../lib/utils";
 import { ModsTabV2 } from "./detail/v2/ModsTabV2";
 import { LocalContentTabV2 } from "./detail/v2/LocalContentTabV2";
 import type { LocalContentItem } from "../../hooks/useLocalContentManager";
-import { ProfileIcon } from "./ProfileIcon";
+import ProfileIcon from "./ProfileIcon";
 import { useProfileStore } from "../../store/profile-store";
 import type { ScreenshotInfo as ActualScreenshotInfo } from "../../types/profile";
 

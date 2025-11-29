@@ -1975,12 +1975,6 @@ impl ProfileManager {
         }
     }
 
-    /// Helper function to check if a group belongs to NoRisk Client
-    fn is_norisk_client_group(group_name: &str) -> bool {
-        let normalized = group_name.to_lowercase();
-        normalized == "nrc" || normalized == "noriskclient" || normalized == "norisk client"
-    }
-
     /// Helper function to check if a group should NOT use shared Minecraft folder
     fn is_isolated_group(group_name: &str) -> bool {
         let normalized = group_name.to_lowercase();
@@ -2010,18 +2004,9 @@ impl ProfileManager {
     /// Returns the directory path based on the profile's group and Minecraft version.
     pub fn calculate_group_directory(&self, profile: &Profile) -> Result<PathBuf> {
         if let Some(group) = &profile.group {
-            if Self::is_norisk_client_group(group) {
-                // NoRisk Client groups go to "noriskclient/legacy" for MC < 1.13, "noriskclient/new" otherwise
-                if mc_utils::is_legacy_minecraft_version(&profile.game_version) {
-                    Ok(default_profile_path().join("noriskclient").join("legacy"))
-                } else {
-                    Ok(default_profile_path().join("noriskclient").join("new"))
-                }
-            } else {
                 // Other custom groups go to "groups/{sanitized_group_name}"
                 let sanitized_group = Self::sanitize_group_name(group);
                 Ok(default_profile_path().join("groups").join(sanitized_group))
-            }
         } else {
             // No group, use the original logic with profile.path
             Ok(Self::build_path_from_profile_path(profile))

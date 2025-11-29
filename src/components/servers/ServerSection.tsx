@@ -266,8 +266,8 @@ export function ServerSection({ className }: ServerSectionProps) {
       
       if (lastPlayedId) {
         await invoke('launch_profile', {
-          profileId: lastPlayedId,
-          serverAddress: server.address
+          id: lastPlayedId,
+          quickPlayMultiplayer: server.address
         });
       } else {
         console.warn('No last played profile found');
@@ -280,8 +280,8 @@ export function ServerSection({ className }: ServerSectionProps) {
     console.log(`Launching profile ${server.profileName} (${server.profileId}) and connecting to ${server.address}`);
     try {
       await invoke('launch_profile', {
-        profileId: server.profileId,
-        serverAddress: server.address
+        id: server.profileId,
+        quickPlayMultiplayer: server.address
       });
     } catch (e) {
       console.error('Failed to launch profile:', e);

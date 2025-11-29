@@ -850,22 +850,34 @@ export function SettingsTab() {
             <div className="flex items-center gap-2">
               <Icon icon="solar:document-text-bold" className="w-6 h-6 text-white" />
               <h3 className="text-3xl font-minecraft text-white lowercase">
-                Third-party Licenses
+                Third-party Code
               </h3>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                openExternalUrl("https://blog.norisk.gg/open-source-licenses/")
-              }}
-              icon={<Icon icon="solar:external-link-bold" className="w-5 h-5" />}
-            >
-              View Licenses
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  openExternalUrl("https://github.com/CCBlueX/LiquidBounce")
+                }}
+                icon={<Icon icon="solar:external-link-bold" className="w-5 h-5" />}
+              >
+                LiquidBounce
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  openExternalUrl("https://github.com/NoRiskClient/noriskclient-launcher")
+                }}
+                icon={<Icon icon="solar:external-link-bold" className="w-5 h-5" />}
+              >
+                NoRiskLauncher
+              </Button>
+            </div>
           </div>
           <p className="text-base text-white/70 font-minecraft-ten mt-2">
-            View licenses for code and components from third parties
+            View licenses for code and base code from third parties
           </p>
         </div>
       </div>

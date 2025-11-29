@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import { gsap } from "gsap";
 import type { Profile } from "../../types/profile";
-import { GeneralSettingsTab } from "./settings/GeneralSettingsTab";
+import GeneralSettingsTab from "./settings/GeneralSettingsTab";
 import { InstallationSettingsTab } from "./settings/InstallationSettingsTab";
 import { JavaSettingsTab } from "./settings/JavaSettingsTab";
 import { WindowSettingsTab } from "./settings/WindowSettingsTab";
@@ -124,8 +124,6 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
             max: tempRamMb,
           },
         },
-        selected_norisk_pack_id: editedProfile.selected_norisk_pack_id,
-        clear_selected_norisk_pack: !editedProfile.selected_norisk_pack_id,
         group: editedProfile.group,
         clear_group: !editedProfile.group,
         description: editedProfile.description,

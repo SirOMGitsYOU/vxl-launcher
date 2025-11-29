@@ -47,7 +47,7 @@ pub async fn import_curseforge_pack(pack_path: String) -> Result<String, Command
     }
 
     // Import the pack (without project_id/file_id for manually imported packs)
-    let profile_id = import_curseforge_pack_as_profile(path_buf, None, None)
+    let profile_id = import_curseforge_pack_as_profile(path_buf, None, None, None)
         .await
         .map_err(CommandError::from)?;
 
@@ -64,6 +64,7 @@ pub async fn download_and_install_curseforge_modpack_command(
     file_name: String,
     download_url: String,
     icon_url: Option<String>,
+    project_title: Option<String>,
 ) -> Result<String, CommandError> {
     log::info!(
         "Executing download_and_install_curseforge_modpack for project {}, file {}, icon_url: {:?}",
@@ -76,6 +77,7 @@ pub async fn download_and_install_curseforge_modpack_command(
         file_name,
         download_url,
         icon_url,
+        project_title,
     )
     .await
     .map_err(|e| {

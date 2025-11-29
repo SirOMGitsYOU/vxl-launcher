@@ -1076,7 +1076,7 @@ pub async fn import_profile_from_file(app_handle: tauri::AppHandle) -> Result<()
             }
             Some("zip") => {
                 log::info!("File extension is .zip, proceeding with CurseForge modpack processing.");
-                curseforge::import_curseforge_pack_as_profile(file_path_buf, None, None).await?
+                curseforge::import_curseforge_pack_as_profile(file_path_buf, None, None, None).await?
             }
             _ => {
                 log::error!(
@@ -1148,7 +1148,7 @@ pub async fn import_profile(file_path_str: String) -> Result<Uuid, CommandError>
         }
         Some("zip") => {
             log::info!("File extension is .zip, proceeding with CurseForge modpack processing.");
-            curseforge::import_curseforge_pack_as_profile(file_path_buf, None, None).await?
+            curseforge::import_curseforge_pack_as_profile(file_path_buf, None, None, None).await?
         }
         _ => {
             log::error!(

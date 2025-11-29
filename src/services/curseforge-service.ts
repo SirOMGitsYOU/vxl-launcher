@@ -40,6 +40,7 @@ export class CurseForgeService {
    * @param fileName Name of the modpack file
    * @param downloadUrl Direct download URL for the modpack
    * @param iconUrl Optional URL for the modpack icon
+   * @param projectTitle Optional title of the project to override manifest name
    * @returns Promise with the new profile ID as string
    */
   static async downloadAndInstallCurseForgeModpack(
@@ -48,6 +49,7 @@ export class CurseForgeService {
     fileName: string,
     downloadUrl: string,
     iconUrl?: string,
+    projectTitle?: string,
   ): Promise<string> {
     return invoke<string>("download_and_install_curseforge_modpack_command", {
       projectId,
@@ -55,6 +57,7 @@ export class CurseForgeService {
       fileName,
       downloadUrl,
       iconUrl,
+      projectTitle,
     });
   }
 }

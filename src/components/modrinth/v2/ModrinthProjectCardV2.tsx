@@ -222,45 +222,6 @@ export const ModrinthProjectCardV2 = React.memo<ModrinthProjectCardV2Props>(
             "border-l-blue-500",
         )}
       >
-        {/* Blocked Mod Warning Icon - Top Left */}
-        {projectNoRiskStatus === 'blocked' && (
-          <div className="absolute top-2 left-2 z-10 pointer-events-auto">
-            <Tooltip content="This mod is blocked by NoRisk Client as it is known to cause crashes or severe compatibility issues. Installation is not recommended.">
-              <div>
-                <Icon 
-                  icon="solar:danger-triangle-bold" 
-                  className="w-5 h-5 text-red-500"
-                />
-              </div>
-            </Tooltip>
-          </div>
-        )}
-        {projectNoRiskStatus === 'warning' && (
-          <div className="absolute top-2 left-2 z-10 pointer-events-auto">
-            <Tooltip content="This version is known to cause crashes or compatibility issues with NoRisk Client. Installation is possible but not recommended.">
-              <div>
-                <Icon 
-                  icon="solar:danger-triangle-bold" 
-                  className="w-5 h-5 text-yellow-500"
-                />
-              </div>
-            </Tooltip>
-          </div>
-        )}
-        {/* Fallback for deprecated isBlocked prop */}
-        {!projectNoRiskStatus && isBlocked && (
-          <div className="absolute top-2 left-2 z-10 pointer-events-auto">
-            <Tooltip content="This mod is blocked by NoRisk Client as it is known to cause crashes or severe compatibility issues. Installation is not recommended.">
-              <div>
-                <Icon 
-                  icon="solar:danger-triangle-bold" 
-                  className="w-5 h-5 text-red-500"
-                />
-              </div>
-            </Tooltip>
-          </div>
-        )}
-
         {/* Stats - absolute oben rechts */}
         <div className="absolute top-3 right-3 flex items-center space-x-2 text-xs text-gray-400 font-minecraft-ten">
           {/* Downloads */}

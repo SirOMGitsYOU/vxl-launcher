@@ -1716,16 +1716,26 @@ pub async fn extract_curseforge_overrides(pack_path: &Path, profile: &Profile, m
 
 /// Imports a profile from a CurseForge modpack, processing, resolving, extracting, and saving it.
 /// If project_id and file_id are provided, detailed ModPackInfo will be created.
+/// If project_title is provided, it will override the manifest name for the profile.
 pub async fn import_curseforge_pack_as_profile(
     pack_path: PathBuf,
     project_id: Option<u32>,
-    file_id: Option<u32>
+    file_id: Option<u32>,
+    project_title: Option<String>,
 ) -> Result<Uuid> {
     info!("Starting full import process for CurseForge pack: {:?}", pack_path);
 
     // Find manifest.json in the pack and read it directly
     let (profile, manifest) = process_curseforge_pack_from_zip(&pack_path).await?;
     let mut profile = profile;
+    
+    // Override profile name with project_title if provided
+    if let Some(title) = project_title {
+        profile.name = title.clone();
+        profile.path = sanitize_filename::sanitize(&title);
+        info!("Overriding profile name with project title: '{}'", profile.name);
+    }
+    
     info!(
         "Successfully processed CurseForge manifest for '{}'.",
         profile.name
@@ -1829,6 +1839,7 @@ pub async fn download_and_install_curseforge_modpack(
     file_name: String,
     download_url: String,
     icon_url: Option<String>,
+    project_title: Option<String>,
 ) -> Result<Uuid> {
     info!(
         "Downloading and installing CurseForge modpack for project {}, file {}, URL: {}",
@@ -1910,7 +1921,8 @@ pub async fn download_and_install_curseforge_modpack(
     let profile_id = import_curseforge_pack_as_profile(
         temp_file_path.clone(),
         Some(project_id),
-        Some(file_id)
+        Some(file_id),
+        project_title,
     ).await?;
 
     info!(

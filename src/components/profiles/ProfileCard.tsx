@@ -13,7 +13,7 @@ import * as ProfileService from "../../services/profile-service";
 import { LaunchButton } from "../ui/buttons/LaunchButton";
 import { Card } from "../ui/Card";
 import { useNavigate } from "react-router-dom";
-import { ProfileIcon } from "./ProfileIcon";
+import ProfileIcon from "./ProfileIcon";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { cn } from "../../lib/utils";
 import { useLaunchStateStore } from "../../store/launch-state-store";

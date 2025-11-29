@@ -100,19 +100,11 @@ export function ProfilesTabV2() {
     return Array.from(uniqueGroups).sort();
   };
 
-  // Helper function to check if a group belongs to VXL
-  const isVxlGroup = (groupName: string | null): boolean => {
-    if (!groupName) return false;
-    const normalized = groupName.toLowerCase();
-    return normalized === "vxl";
-  };
-
   // Calculate group counts based on current search/filter
   const getFilteredCountForGroup = (groupId: string) => {
     if (groupId === "all") return profiles.length;
     
     // Handle default groups
-    if (groupId === "vxl") return profiles.filter(p => isVxlGroup(p.group)).length;
     if (groupId === "modpacks") return profiles.filter(p => p.group === "MODPACKS").length;
     
     // Handle dynamic groups (groupId is normalized lowercase, compare with profile.group in lowercase)
@@ -123,7 +115,6 @@ export function ProfilesTabV2() {
   const createGroups = (): GroupTab[] => {
     const defaultGroups: GroupTab[] = [
       { id: "all", name: "All", count: getFilteredCountForGroup("all") },
-      { id: "vxl", name: "VXL", count: getFilteredCountForGroup("vxl") },
       { id: "modpacks", name: "MODPACKS", count: getFilteredCountForGroup("modpacks") },
     ];
 
@@ -131,8 +122,7 @@ export function ProfilesTabV2() {
     const uniqueGroups = getUniqueProfileGroups();
     const dynamicGroups: GroupTab[] = uniqueGroups
       .filter(group => 
-        !["modpacks"].includes(group) && // Exclude MODPACKS (already normalized)
-        !isVxlGroup(group) // Exclude VXL
+        !["modpacks"].includes(group) // Exclude MODPACKS (already normalized)
       )
       .map(group => ({
         id: group, // group is already lowercase from getUniqueProfileGroups
@@ -250,7 +240,6 @@ export function ProfilesTabV2() {
     
     // Group filter
     const matchesGroup = activeGroup === "all" || 
-      (activeGroup === "vxl" && isVxlGroup(profile.group)) ||
       (activeGroup === "modpacks" && profile.group === "MODPACKS") ||
       (profile.group && profile.group.toLowerCase() === activeGroup);
     
