@@ -147,6 +147,7 @@ export function ProfileCard({
         inputPlaceholder: "Enter profile name",
         inputInitialValue: `${profile.name} (Copy)`,
         inputRequired: true,
+        inputMaxLength: 35,
         confirmText: "CLONE",
         type: "input",
         fullscreen: true,

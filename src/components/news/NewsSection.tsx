@@ -130,10 +130,10 @@ export function NewsSection({ className }: NewsSectionProps) {
       return (
         <div className="text-center p-2">
           <Icon
-            icon="pixel:newspaper-solid"
+            icon="streamline-cyber:server"
             className="w-8 h-8 text-white/50 mx-auto mb-2"
           />
-          <p className="text-white/70">No news available at the moment.</p>
+          <p className="text-white/70">No servers available at the moment.</p>
         </div>
       );
     }
@@ -211,8 +211,8 @@ export function NewsSection({ className }: NewsSectionProps) {
       <div className="pb-1">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Icon icon="pixel:newspaper-solid" className="w-7 h-7 text-white" />
-            <h2 className="text-2xl font-minecraft lowercase text-white">NEWS</h2>
+            <Icon icon="streamline-cyber:server" className="w-7 h-7 text-white" />
+            <h2 className="text-2xl font-minecraft lowercase text-white">SERVERS</h2>
           </div>
         </div>
         <hr

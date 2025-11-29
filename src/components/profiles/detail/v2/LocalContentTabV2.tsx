@@ -596,21 +596,6 @@ export function LocalContentTabV2<T extends LocalContentItem>({
 
       const isItemOpen = openVersionDropdownId === item.filename;
 
-      const noRiskStatus = isBlockedConfigLoaded
-        ? FlagsmithService.getModNoRiskStatus(
-            item.filename,
-            item.modrinth_info?.project_id || item.curseforge_info?.project_id,
-            item.modrinth_info?.version_id || item.curseforge_info?.file_id,
-          )
-        : null;
-      const isBlockedByNoRisk = noRiskStatus === 'blocked';
-      const isWarningByNoRisk = noRiskStatus === 'warning';
-      
-      // Debug logging
-      if (noRiskStatus) {
-        console.log('[LocalContentTabV2] Item:', item.filename, 'noRiskStatus:', noRiskStatus, 'isBlocked:', isBlockedByNoRisk, 'isWarning:', isWarningByNoRisk);
-      }
-
       // Get the appropriate icon using the platform-aware helper function
       const itemIconUrl = getItemIcon(item);
 
@@ -643,30 +628,6 @@ export function LocalContentTabV2<T extends LocalContentItem>({
       const itemIconNode = (
         <div className="absolute inset-0 w-full h-full flex items-center justify-center">
           {iconToShow}
-          {isBlockedByNoRisk && (
-            <div className="absolute top-0.5 left-0.5 z-10 pointer-events-auto">
-              <Tooltip content="This mod is blocked by NoRisk Client as it is known to cause crashes or severe compatibility issues. Installation is not recommended.">
-                <div>
-                  <Icon 
-                    icon="solar:danger-triangle-bold" 
-                    className="w-4 h-4 text-red-500 drop-shadow-lg"
-                  />
-                </div>
-              </Tooltip>
-            </div>
-          )}
-          {!isBlockedByNoRisk && isWarningByNoRisk && (
-            <div className="absolute top-0.5 left-0.5 z-10 pointer-events-auto">
-              <Tooltip content="This version is known to cause crashes or compatibility issues with NoRisk Client. Installation is possible but not recommended.">
-                <div>
-                  <Icon 
-                    icon="solar:danger-triangle-bold" 
-                    className="w-4 h-4 text-yellow-500 drop-shadow-lg"
-                  />
-                </div>
-              </Tooltip>
-            </div>
-          )}
         </div>
       );
 
@@ -824,12 +785,6 @@ export function LocalContentTabV2<T extends LocalContentItem>({
       const isDisabled = item.is_disabled;
 
       const itemBadgesNode = [
-        // NoRisk crash warning (highest priority)
-        ...(isBlockedByNoRisk ? [{
-          text: "CRASHES WITH NRC",
-          color: "#ef4444"
-        }] : []),
-
         // Platform badge - only show the primary platform
         ...(itemPlatform !== 'Local' ? [{
           icon: itemPlatform === 'Modrinth'
@@ -1332,6 +1287,7 @@ export function LocalContentTabV2<T extends LocalContentItem>({
           inputPlaceholder: "Enter a name for the cloned profile",
           inputInitialValue: `${profile.name} (Copy)`,
           inputRequired: true,
+          inputMaxLength: 35,
           confirmText: "CLONE",
           type: "input",
           fullscreen: true, // Or false, depending on desired dialog style

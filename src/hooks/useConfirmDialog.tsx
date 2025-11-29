@@ -18,6 +18,7 @@ interface ConfirmOptions {
   inputPlaceholder?: string;
   inputInitialValue?: string;
   inputRequired?: boolean;
+  inputMaxLength?: number;
   type?: "confirm" | "input" | "warning" | "danger";
   fullscreen?: boolean;
 }
@@ -149,6 +150,7 @@ export function useConfirmDialog() {
             value={inputValue}
             onChange={handleInputChange}
             placeholder={options.inputPlaceholder}
+            maxLength={options.inputMaxLength}
             className="text-2xl py-3"
             error={!isValid ? "This field is required" : undefined}
             autoFocus

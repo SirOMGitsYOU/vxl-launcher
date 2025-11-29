@@ -1,0 +1,329 @@
+{
+  "online": true,
+  "status": true,
+  "favicon_base64": "data:image/png;base64,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",
+  "favicon": "https://eu.mc-api.net/v3/server/favicon/mc.paradigmnetwork.xyz",
+  "source": "ping",
+  "took": 101.244,
+  "cache": {
+    "status": "MISS",
+    "ttl": 60,
+    "insertion_time": "2025-11-28T17:02:59.329Z"
+  },
+  "dns": {
+    "type": "srv",
+    "port": 25565,
+    "ip": "_dc-srv.d68b857af90a._minecraft._tcp.mc.paradigmnetwork.xyz"
+  },
+  "version": {
+    "protocol": -1,
+    "name": "Velocity 1.7.2-1.21.10"
+  },
+  "players": {
+    "online": 0,
+    "max": 128,
+    "sample": []
+  },
+  "description": {
+    "extra": [
+      {
+        "extra": [
+          {
+            "extra": [
+              {
+                "extra": [
+                  {
+                    "color": "dark_blue",
+                    "text": "🌊"
+                  },
+                  {
+                    "color": "blue",
+                    "text": " "
+                  }
+                ],
+                "text": ""
+              },
+              {
+                "bold": true,
+                "extra": [
+                  {
+                    "color": "blue",
+                    "text": "P"
+                  },
+                  {
+                    "color": "blue",
+                    "text": "A"
+                  },
+                  {
+                    "color": "blue",
+                    "text": "R"
+                  },
+                  {
+                    "color": "blue",
+                    "text": "A"
+                  },
+                  {
+                    "color": "blue",
+                    "text": "D"
+                  },
+                  {
+                    "color": "blue",
+                    "text": "I"
+                  },
+                  {
+                    "color": "blue",
+                    "text": "G"
+                  },
+                  {
+                    "color": "blue",
+                    "text": "M"
+                  },
+                  {
+                    "color": "blue",
+                    "text": " "
+                  },
+                  {
+                    "bold": true,
+                    "color": "gold",
+                    "text": "BLOCKWORKS"
+                  }
+                ],
+                "text": ""
+              }
+            ],
+            "text": ""
+          },
+          {
+            "color": "white",
+            "extra": [
+              {
+                "color": "gray",
+                "extra": [
+                  {
+                    "extra": [
+                      {
+                        "extra": [
+                          {
+                            "color": "dark_blue",
+                            "text": "["
+                          },
+                          {
+                            "color": "blue",
+                            "text": "1"
+                          },
+                          {
+                            "color": "blue",
+                            "text": "."
+                          },
+                          {
+                            "color": "blue",
+                            "text": "2"
+                          },
+                          {
+                            "color": "blue",
+                            "text": "1"
+                          },
+                          {
+                            "color": "white",
+                            "text": "+"
+                          },
+                          {
+                            "color": "yellow",
+                            "text": "]"
+                          }
+                        ],
+                        "text": ""
+                      }
+                    ],
+                    "text": ""
+                  }
+                ],
+                "text": "◆ "
+              }
+            ],
+            "text": " "
+          }
+        ],
+        "text": "        "
+      },
+      {
+        "text": "\n"
+      },
+      {
+        "extra": [
+          {
+            "extra": [
+              {
+                "extra": [
+                  {
+                    "color": "red",
+                    "text": "ɴ"
+                  },
+                  {
+                    "color": "red",
+                    "text": "ᴇ"
+                  },
+                  {
+                    "color": "red",
+                    "text": "ᴡ"
+                  },
+                  {
+                    "color": "red",
+                    "text": "ꜱ"
+                  },
+                  {
+                    "color": "red",
+                    "text": " "
+                  },
+                  {
+                    "color": "red",
+                    "text": "Ξ"
+                  },
+                  {
+                    "color": "red",
+                    "text": " "
+                  }
+                ],
+                "text": ""
+              },
+              {
+                "extra": [
+                  {
+                    "extra": [
+                      {
+                        "color": "gray",
+                        "text": " "
+                      },
+                      {
+                        "color": "gray",
+                        "text": "ꜱ"
+                      },
+                      {
+                        "color": "gray",
+                        "text": "ᴜ"
+                      },
+                      {
+                        "color": "gray",
+                        "text": "ʀ"
+                      },
+                      {
+                        "color": "gray",
+                        "text": "ᴠ"
+                      },
+                      {
+                        "color": "gray",
+                        "text": "ɪ"
+                      },
+                      {
+                        "color": "gray",
+                        "text": "ᴠ"
+                      },
+                      {
+                        "color": "gray",
+                        "text": "ᴀ"
+                      },
+                      {
+                        "color": "gray",
+                        "text": "ʟ"
+                      },
+                      {
+                        "color": "gray",
+                        "text": " "
+                      },
+                      {
+                        "color": "gray",
+                        "text": "ꜱ"
+                      },
+                      {
+                        "color": "gray",
+                        "text": "ᴍ"
+                      },
+                      {
+                        "color": "gray",
+                        "text": "ᴘ"
+                      },
+                      {
+                        "color": "gray",
+                        "text": " "
+                      },
+                      {
+                        "color": "gray",
+                        "text": "ᴊ"
+                      },
+                      {
+                        "color": "gray",
+                        "text": "ᴜ"
+                      },
+                      {
+                        "color": "gray",
+                        "text": "ꜱ"
+                      },
+                      {
+                        "color": "gray",
+                        "text": "ᴛ"
+                      },
+                      {
+                        "color": "gray",
+                        "text": " "
+                      },
+                      {
+                        "color": "gray",
+                        "text": "ʀ"
+                      },
+                      {
+                        "color": "gray",
+                        "text": "ᴇ"
+                      },
+                      {
+                        "color": "gray",
+                        "text": "ʟ"
+                      },
+                      {
+                        "color": "gray",
+                        "text": "ᴇ"
+                      },
+                      {
+                        "color": "gray",
+                        "text": "ᴀ"
+                      },
+                      {
+                        "color": "gray",
+                        "text": "ꜱ"
+                      },
+                      {
+                        "color": "gray",
+                        "text": "ᴇ"
+                      },
+                      {
+                        "color": "white",
+                        "text": "ᴅ"
+                      },
+                      {
+                        "color": "white",
+                        "text": "!"
+                      },
+                      {
+                        "color": "white",
+                        "text": " "
+                      },
+                      {
+                        "color": "white",
+                        "text": "🧪"
+                      }
+                    ],
+                    "text": ""
+                  }
+                ],
+                "text": ""
+              }
+            ],
+            "text": ""
+          }
+        ],
+        "text": "       "
+      }
+    ],
+    "text": ""
+  },
+  "fetch": "2025-11-28T17:02:59.329Z"
+}

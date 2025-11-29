@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { NewsSection } from "../news/NewsSection";
+import { ServerSection } from "../servers/ServerSection";
 import { ErrorMessage } from "../ui/ErrorMessage";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
 import { useProfileStore } from "../../store/profile-store";
@@ -86,7 +86,7 @@ export function PlayTab() {
         </div>
       </div>
 
-      <NewsSection className="w-1/3 border-l-2 border-white/40 bg-black/10 backdrop-blur-lg p-5 overflow-hidden flex flex-col relative z-10" />
+      <ServerSection className="w-1/3 border-l-2 border-white/40 bg-black/10 backdrop-blur-lg p-5 overflow-hidden flex flex-col relative z-10" />
     </div>
   );
 }

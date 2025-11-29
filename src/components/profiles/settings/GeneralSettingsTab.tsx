@@ -129,6 +129,7 @@ export function GeneralSettingsTab({
                 value={editedProfile.name}
                 onChange={(e) => updateProfile({ name: e.target.value })}
                 placeholder="Enter profile name"
+                maxLength={35}
                 className="text-xl flex-1"
                 disabled={profile.is_standard_version ? true : false}
               />

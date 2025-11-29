@@ -164,6 +164,7 @@ export function ProfileWizardV2Step3({
                             value={profileName}
                             onChange={handleProfileNameChange}
                             placeholder="Enter profile name..."
+                            maxLength={35}
                             required
                         />
                         {profileCharRemoved && (

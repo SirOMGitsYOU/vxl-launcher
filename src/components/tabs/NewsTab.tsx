@@ -5,8 +5,8 @@ import { TabLayout } from "../ui/TabLayout";
 
 export function NewsTab() {
   return (
-    <TabLayout title="News" icon="pixel:newspaper">
-      <EmptyState message="News Coming Soon" icon="pixel:newspaper" />
+    <TabLayout title="Servers" icon="streamline-cyber:server">
+      <EmptyState message="Servers Coming Soon" icon="streamline-cyber:server" />
     </TabLayout>
   );
 }
