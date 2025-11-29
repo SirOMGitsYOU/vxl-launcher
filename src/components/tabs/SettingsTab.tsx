@@ -877,7 +877,7 @@ export function SettingsTab() {
             </div>
           </div>
           <p className="text-base text-white/70 font-minecraft-ten mt-2">
-            View licenses for code and base code from third parties
+            View licenses for base code and components from third parties
           </p>
         </div>
       </div>
