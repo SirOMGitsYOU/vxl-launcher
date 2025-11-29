@@ -290,10 +290,6 @@ impl MinecraftLauncher {
         command.arg("-XX:MaxGCPauseMillis=50");
         command.arg("-XX:G1HeapRegionSize=32M");
 
-        // Add NoRisk client specific parameters
-        // Removed: No pre-installed modpacks
-        let has_norisk_pack = false;
-
         // Add profile name for ingame display
         if let Some(p) = &profile {
             command.arg(format!("-Dnorisk.profile.name={}", p.name));
