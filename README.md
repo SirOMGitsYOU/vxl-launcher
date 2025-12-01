@@ -1,9 +1,9 @@
 ## Issues
 
-If you notice any bugs or missing features, you can let us know by opening an issue [here](https://github.com/NoRiskClient/issues/issues/new/choose).
+If you notice any bugs or missing features, you can let us know by opening an issue [here](https://github.com/VicariousNetwork/vxl-launcher/issues).
 
 ## License
-This code is originally forked and still uses a small amount of code from [LiquidLauncher](https://github.com/CCBlueX/LiquidLauncher).
+This code is originally forked and still uses a small amount of code from [NoRiskClient Launcher](https://github.com/NoRiskClient/noriskclient-launcher) & [LiquidLauncher](https://github.com/CCBlueX/LiquidLauncher).
 
 Therefore, this project is also subject to the [GNU General Public License v3.0](LICENSE). This does only apply for source code located directly in this clean repository. During the development and compilation process, additional source code may be used to which we have obtained no rights. Such code is not covered by the GPL license.
 This project entirely or partially for free and even commercially. However, please consider the following:
@@ -23,7 +23,7 @@ Do the above and share your source code with everyone; just like we do.
 ### Setup Instructions
 1. Clone the repository:
    ```bash
-   git clone --recurse-submodules https://github.com/NoRiskClient/noriskclient-launcher
+   git clone --recurse-submodules https://github.com/VicariousNetwork/vxl-launcher.git
    cd noriskclient-launcher
    ```
 
