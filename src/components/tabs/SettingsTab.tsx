@@ -103,24 +103,9 @@ export function SettingsTab() {
 
   const backgroundOptions = [
     {
-      id: BACKGROUND_EFFECTS.MATRIX_RAIN,
-      name: "Matrix Rain",
-      icon: "solar:code-bold",
-    },
-    {
       id: BACKGROUND_EFFECTS.ENCHANTMENT_PARTICLES,
       name: "Enchantment Table",
       icon: "solar:magic-stick-bold",
-    },
-    {
-      id: BACKGROUND_EFFECTS.NEBULA_WAVES,
-      name: "Nebula Waves",
-      icon: "solar:soundwave-bold",
-    },
-    {
-      id: BACKGROUND_EFFECTS.NEBULA_PARTICLES,
-      name: "Nebula Particles",
-      icon: "solar:star-bold",
     },
     {
       id: BACKGROUND_EFFECTS.NEBULA_GRID,
@@ -133,19 +118,19 @@ export function SettingsTab() {
       icon: "solar:asteroid-bold",
     },
     {
-      id: BACKGROUND_EFFECTS.NEBULA_LIGHTNING,
-      name: "Nebula Lightning",
-      icon: "solar:bolt-bold",
-    },
-    {
-      id: BACKGROUND_EFFECTS.NEBULA_LIQUID_CHROME,
-      name: "Liquid Chrome",
-      icon: "solar:cloud-waterdrops-bold",
-    },
-    {
       id: BACKGROUND_EFFECTS.RETRO_GRID,
       name: "Retro Grid",
       icon: "solar:widget-5-bold",
+    },
+    {
+      id: BACKGROUND_EFFECTS.RETRO_VOXEL_GRID,
+      name: "Retro Voxel Grid",
+      icon: "solar:widget-5-bold",
+    },
+    {
+      id: BACKGROUND_EFFECTS.VOXEL_GRID,
+      name: "Voxel Grid",
+      icon: "solar:widget-bold",
     },
     {
       id: BACKGROUND_EFFECTS.PLAIN_BACKGROUND,

@@ -13,13 +13,12 @@ import { cn } from "../../lib/utils";
 import { gsap } from "gsap";
 import { Button } from "../ui/buttons/Button";
 import { NebulaGrid } from "../effects/NebulaGrid";
-import { NebulaParticles } from "../effects/NebulaParticles";
-import { NebulaWaves } from "../effects/NebulaWaves";
 import { NebulaVoxels } from "../effects/NebulaVoxels";
-import { NebulaLightning } from "../effects/NebulaLightning";
-import { NebulaLiquidChrome } from "../effects/NebulaLiquidChrome";
-import { MatrixRainEffect } from "../effects/MatrixRainEffect";
 import { EnchantmentParticlesEffect } from "../effects/EnchantmentParticlesEffect";
+import { RetroGridEffect } from "../effects/RetroGridEffect";
+import { VoxelGrid } from "../effects/VoxelGrid";
+import { RetroVoxelGrid } from "../effects/RetroVoxelGrid";
+import { Logo } from "../ui/Logo";
 
 interface UpdaterStatusPayload {
   message: string;
@@ -43,7 +42,6 @@ export default function Updater() {
   const [status, setStatus] =
     useState<UpdaterStatusPayload["status"]>("checking");
   const [isThemeLoaded, setIsThemeLoaded] = useState(false);
-  const logoRef = useRef<HTMLImageElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const appWindow = getCurrentWindow();
@@ -189,20 +187,16 @@ export default function Updater() {
   const renderBackgroundEffect = () => {
     const effect = currentEffect || BACKGROUND_EFFECTS.NEBULA_GRID;
     switch (effect) {
-      case BACKGROUND_EFFECTS.NEBULA_PARTICLES:
-        return <NebulaParticles opacity={0.1} />;
-      case BACKGROUND_EFFECTS.NEBULA_WAVES:
-        return <NebulaWaves opacity={0.1} />;
       case BACKGROUND_EFFECTS.NEBULA_VOXELS:
         return <NebulaVoxels opacity={0.1} />;
-      case BACKGROUND_EFFECTS.NEBULA_LIGHTNING:
-        return <NebulaLightning opacity={0.1} />;
-      case BACKGROUND_EFFECTS.NEBULA_LIQUID_CHROME:
-        return <NebulaLiquidChrome opacity={0.1} />;
-      case BACKGROUND_EFFECTS.MATRIX_RAIN:
-        return <MatrixRainEffect opacity={0.1} />;
       case BACKGROUND_EFFECTS.ENCHANTMENT_PARTICLES:
         return <EnchantmentParticlesEffect opacity={0.1} />;
+      case BACKGROUND_EFFECTS.RETRO_GRID:
+        return <RetroGridEffect isAnimationEnabled={true} />;
+      case BACKGROUND_EFFECTS.VOXEL_GRID:
+        return <VoxelGrid opacity={0.1} cubeCount={15} speed={0.5} gridSize={30} />;
+      case BACKGROUND_EFFECTS.RETRO_VOXEL_GRID:
+        return <RetroVoxelGrid opacity={0.1} cubeCount={15} speed={0.5} />;
       case BACKGROUND_EFFECTS.NEBULA_GRID:
       default:
         return <NebulaGrid opacity={0.1} />;
@@ -241,13 +235,8 @@ export default function Updater() {
 
         <div className="flex-1 w-full flex flex-col items-center justify-center px-6 gap-8">
           <div className="flex flex-col items-center">
-            <img
-              ref={logoRef}
-              src="/logo.png"
-              alt="VXL Launcher Logo"
-              className="w-32 h-32 object-contain mb-1"
-            />
-            <p className="text-lg font-minecraft text-white/70 lowercase">
+            <Logo size="lg" forceAnimate={true} />
+            <p className="text-lg font-minecraft text-white/70 lowercase mt-4">
               Updater
             </p>
           </div>

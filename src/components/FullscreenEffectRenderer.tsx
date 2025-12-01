@@ -6,15 +6,12 @@ import { useQualitySettingsStore } from '../store/quality-settings-store';
 import { useThemeStore } from '../store/useThemeStore';
 
 // Import actual effect components (adjust paths if necessary)
-import { MatrixRainEffect } from './effects/MatrixRainEffect';
 import { EnchantmentParticlesEffect } from './effects/EnchantmentParticlesEffect';
-import { NebulaWaves } from './effects/NebulaWaves';
-import { NebulaParticles } from './effects/NebulaParticles';
 import { NebulaGrid } from './effects/NebulaGrid';
 import { NebulaVoxels } from './effects/NebulaVoxels';
-import { NebulaLightning } from './effects/NebulaLightning';
-import { NebulaLiquidChrome } from './effects/NebulaLiquidChrome';
 import { RetroGridEffect } from './effects/RetroGridEffect';
+import { VoxelGrid } from './effects/VoxelGrid';
+import { RetroVoxelGrid } from './effects/RetroVoxelGrid';
 import PlainBackground from './effects/PlainBackground';
 
 interface FullscreenEffectRendererProps {
@@ -56,14 +53,6 @@ export function FullscreenEffectRenderer({ effectId, onClose }: FullscreenEffect
 
   const renderEffect = () => {
     switch (effectId) {
-      case BACKGROUND_EFFECTS.MATRIX_RAIN:
-        return (
-          <MatrixRainEffect
-            speed={qualityParams.speed}
-            opacity={qualityParams.opacity}
-            forceEnable={true} // Force enable for preview
-          />
-        );
       case BACKGROUND_EFFECTS.ENCHANTMENT_PARTICLES:
         return (
           <EnchantmentParticlesEffect
@@ -71,21 +60,6 @@ export function FullscreenEffectRenderer({ effectId, onClose }: FullscreenEffect
             particleCount={qualityParams.particleCount}
             speed={qualityParams.speed}
             forceEnable={true} // Force enable for preview
-          />
-        );
-      case BACKGROUND_EFFECTS.NEBULA_WAVES:
-        return (
-          <NebulaWaves
-            opacity={qualityParams.opacity}
-            speed={qualityParams.speed}
-          />
-        );
-      case BACKGROUND_EFFECTS.NEBULA_PARTICLES:
-        return (
-          <NebulaParticles
-            opacity={qualityParams.opacity}
-            particleCount={qualityParams.particleCount}
-            speed={qualityParams.speed}
           />
         );
       case BACKGROUND_EFFECTS.NEBULA_GRID:
@@ -104,30 +78,28 @@ export function FullscreenEffectRenderer({ effectId, onClose }: FullscreenEffect
             speed={qualityParams.speed}
           />
         );
-      case BACKGROUND_EFFECTS.NEBULA_LIGHTNING:
-        return (
-          <NebulaLightning
-            opacity={qualityParams.opacity * 2} // As in AppLayout
-            speed={qualityParams.speed}
-            intensity={qualityParams.speed * 1.2} // As in AppLayout
-            size={1.5} // As in AppLayout
-          />
-        );
-      case BACKGROUND_EFFECTS.NEBULA_LIQUID_CHROME:
-        return (
-          <NebulaLiquidChrome
-            opacity={qualityParams.opacity * 2} // As in AppLayout
-            speed={qualityParams.speed * 0.2} // As in AppLayout
-            amplitude={0.5} // As in AppLayout
-            frequencyX={3} // As in AppLayout
-            frequencyY={2} // As in AppLayout
-          />
-        );
       case BACKGROUND_EFFECTS.RETRO_GRID:
         return (
           <RetroGridEffect 
             isAnimationEnabled={true} // Ensure animation is on for preview
             // The component will use theme and quality from stores internally
+          />
+        );
+      case BACKGROUND_EFFECTS.RETRO_VOXEL_GRID:
+        return (
+          <RetroVoxelGrid
+            opacity={qualityParams.opacity}
+            cubeCount={qualityParams.particleCount}
+            speed={qualityParams.speed}
+          />
+        );
+      case BACKGROUND_EFFECTS.VOXEL_GRID:
+        return (
+          <VoxelGrid
+            opacity={qualityParams.opacity}
+            cubeCount={qualityParams.particleCount}
+            speed={qualityParams.speed}
+            gridSize={30} // Default grid size
           />
         );
       case BACKGROUND_EFFECTS.PLAIN_BACKGROUND:

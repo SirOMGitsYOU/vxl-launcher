@@ -12,6 +12,8 @@ export enum BACKGROUND_EFFECTS {
   NEBULA_LIGHTNING = "nebula-lightning",
   NEBULA_LIQUID_CHROME = "nebula-liquid-chrome",
   RETRO_GRID = "retro-grid",
+  VOXEL_GRID = "voxel-grid",
+  RETRO_VOXEL_GRID = "retro-voxel-grid",
   PLAIN_BACKGROUND = "plain-background",
 }
 

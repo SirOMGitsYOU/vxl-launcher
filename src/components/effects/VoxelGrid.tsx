@@ -19,19 +19,21 @@ interface Cube {
   opacity: number;
 }
 
-interface NebulaVoxelsProps {
+interface VoxelGridProps {
   cubeCount?: number;
   opacity?: number;
   speed?: number;
+  gridSize?: number;
   className?: string;
 }
 
-export function NebulaVoxels({
+export function VoxelGrid({
   cubeCount = 30,
   opacity = 0.2,
   speed = 1,
+  gridSize = 30,
   className = "",
-}: NebulaVoxelsProps) {
+}: VoxelGridProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const accentColor = useThemeStore((state) => state.accentColor);
   const isBackgroundAnimationEnabled = useThemeStore((state) => state.isBackgroundAnimationEnabled);
@@ -135,6 +137,30 @@ export function NebulaVoxels({
           speedZ: (Math.random() - 0.5) * 0.01 * adjustedSpeed,
           opacity: Math.random() * 0.5 + 0.1,
         });
+      }
+    };
+
+    const drawGrid = () => {
+      const { width, height } = canvas.getBoundingClientRect();
+      const gridLineColor = `${accentColor.value}40`; // Semi-transparent grid lines
+      
+      // Draw vertical lines
+      ctx.strokeStyle = gridLineColor;
+      ctx.lineWidth = 1;
+      
+      for (let x = 0; x <= width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      
+      // Draw horizontal lines
+      for (let y = 0; y <= height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
       }
     };
 
@@ -256,6 +282,9 @@ export function NebulaVoxels({
           const { width, height } = canvas.getBoundingClientRect();
           ctx.clearRect(0, 0, width, height);
           
+          // Draw grid first (background)
+          drawGrid();
+          
           // Create/maintain static cubes if they don't exist
           if (pausedCubeStatesRef.current.length === 0) {
             pausedCubeStatesRef.current = [];
@@ -335,6 +364,9 @@ export function NebulaVoxels({
       const { width, height } = canvas.getBoundingClientRect();
       ctx.clearRect(0, 0, width, height);
 
+      // Draw grid first (background)
+      drawGrid();
+
       updateCubes();
 
       const sortedCubes = [...cubesRef.current].sort((a, b) => a.z - b.z);
@@ -356,7 +388,7 @@ export function NebulaVoxels({
         cancelAnimationFrame(animationFrameIdRef.current);
       }
     };
-  }, [accentColor.value, cubeCount, opacity, speed, qualityLevel, shouldAnimate]);
+  }, [accentColor.value, cubeCount, opacity, speed, qualityLevel, shouldAnimate, gridSize]);
 
   return (
     <canvas

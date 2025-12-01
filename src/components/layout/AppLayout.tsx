@@ -15,15 +15,12 @@ import {
   useBackgroundEffectStore,
 } from "../../store/background-effect-store";
 import { useQualitySettingsStore } from "../../store/quality-settings-store";
-import { MatrixRainEffect } from ".././effects/MatrixRainEffect";
 import { EnchantmentParticlesEffect } from ".././effects/EnchantmentParticlesEffect";
-import { NebulaWaves } from ".././effects/NebulaWaves";
-import { NebulaParticles } from ".././effects/NebulaParticles";
 import { NebulaGrid } from ".././effects/NebulaGrid";
 import { NebulaVoxels } from ".././effects/NebulaVoxels";
-import { NebulaLightning } from ".././effects/NebulaLightning";
-import { NebulaLiquidChrome } from ".././effects/NebulaLiquidChrome";
 import { RetroGridEffect } from "../effects/RetroGridEffect";
+import { VoxelGrid } from ".././effects/VoxelGrid";
+import { RetroVoxelGrid } from ".././effects/RetroVoxelGrid";
 import PlainBackground from "../effects/PlainBackground";
 import * as ConfigService from "../../services/launcher-config-service";
 import { checkUpdateAvailable, downloadAndInstallUpdate } from "../../services/nrc-service";
@@ -174,14 +171,6 @@ export function AppLayout({
 
   const renderBackgroundEffect = () => {
     switch (currentEffect) {
-      case BACKGROUND_EFFECTS.MATRIX_RAIN:
-        return (
-          <MatrixRainEffect
-            speed={qualityParams.speed}
-            opacity={qualityParams.opacity}
-            forceEnable={false}
-          />
-        );
       case BACKGROUND_EFFECTS.ENCHANTMENT_PARTICLES:
         return (
           <EnchantmentParticlesEffect
@@ -189,21 +178,6 @@ export function AppLayout({
             particleCount={qualityParams.particleCount}
             speed={qualityParams.speed}
             forceEnable={false}
-          />
-        );
-      case BACKGROUND_EFFECTS.NEBULA_WAVES:
-        return (
-          <NebulaWaves
-            opacity={qualityParams.opacity}
-            speed={qualityParams.speed}
-          />
-        );
-      case BACKGROUND_EFFECTS.NEBULA_PARTICLES:
-        return (
-          <NebulaParticles
-            opacity={qualityParams.opacity}
-            particleCount={qualityParams.particleCount}
-            speed={qualityParams.speed}
           />
         );
       case BACKGROUND_EFFECTS.NEBULA_GRID:
@@ -222,25 +196,6 @@ export function AppLayout({
             speed={qualityParams.speed}
           />
         );
-      case BACKGROUND_EFFECTS.NEBULA_LIGHTNING:
-        return (
-          <NebulaLightning
-            opacity={qualityParams.opacity * 2}
-            speed={qualityParams.speed}
-            intensity={qualityParams.speed * 1.2}
-            size={1.5}
-          />
-        );
-      case BACKGROUND_EFFECTS.NEBULA_LIQUID_CHROME:
-        return (
-          <NebulaLiquidChrome
-            opacity={qualityParams.opacity * 2}
-            speed={qualityParams.speed * 0.2}
-            amplitude={0.5}
-            frequencyX={3}
-            frequencyY={2}
-          />
-        );
       case BACKGROUND_EFFECTS.RETRO_GRID:
         const hexToRgbaWithLowOpacity = (hex: string) => {
           const r = parseInt(hex.slice(1, 3), 16);
@@ -253,6 +208,23 @@ export function AppLayout({
             className="absolute inset-0"
             style={{ backgroundColor: hexToRgbaWithLowOpacity(themeAccentColor.value) }}
           ></div>
+        );
+      case BACKGROUND_EFFECTS.VOXEL_GRID:
+        return (
+          <VoxelGrid
+            opacity={qualityParams.opacity}
+            cubeCount={qualityParams.particleCount}
+            speed={qualityParams.speed}
+            gridSize={30}
+          />
+        );
+      case BACKGROUND_EFFECTS.RETRO_VOXEL_GRID:
+        return (
+          <RetroVoxelGrid
+            opacity={qualityParams.opacity}
+            cubeCount={qualityParams.particleCount}
+            speed={qualityParams.speed}
+          />
         );
       case BACKGROUND_EFFECTS.PLAIN_BACKGROUND:
         return <PlainBackground accentColorValue={themeAccentColor.value} />;

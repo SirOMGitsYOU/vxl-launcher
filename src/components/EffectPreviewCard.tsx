@@ -6,14 +6,9 @@ import { cn } from "../lib/utils";
 import { useThemeStore } from "../store/useThemeStore";
 import { BACKGROUND_EFFECTS } from "../store/background-effect-store";
 import { useQualitySettingsStore } from "../store/quality-settings-store";
-import { MatrixRainEffect } from "./effects/MatrixRainEffect";
 import { EnchantmentParticlesEffect } from "./effects/EnchantmentParticlesEffect";
-import { NebulaWaves } from "./effects/NebulaWaves";
-import { NebulaParticles } from "./effects/NebulaParticles";
 import { NebulaGrid } from "./effects/NebulaGrid";
 import { NebulaVoxels } from "./effects/NebulaVoxels";
-import { NebulaLightning } from "./effects/NebulaLightning";
-import { NebulaLiquidChrome } from "./effects/NebulaLiquidChrome";
 
 interface EffectPreviewCardProps {
   effectId: string;
@@ -56,22 +51,11 @@ export default function EffectPreviewCard({
     };
 
     switch (effectId) {
-      case BACKGROUND_EFFECTS.MATRIX_RAIN:
-        return <MatrixRainEffect {...previewProps} />;
       case BACKGROUND_EFFECTS.ENCHANTMENT_PARTICLES:
         return (
           <EnchantmentParticlesEffect
             particleCount={qualityParams.particleCount}
             interactive={false}
-            {...previewProps}
-          />
-        );
-      case BACKGROUND_EFFECTS.NEBULA_WAVES:
-        return <NebulaWaves {...previewProps} />;
-      case BACKGROUND_EFFECTS.NEBULA_PARTICLES:
-        return (
-          <NebulaParticles
-            particleCount={qualityParams.particleCount}
             {...previewProps}
           />
         );
@@ -81,21 +65,6 @@ export default function EffectPreviewCard({
         return (
           <NebulaVoxels
             cubeCount={qualityParams.particleCount / 2}
-            {...previewProps}
-          />
-        );
-      case BACKGROUND_EFFECTS.NEBULA_LIGHTNING:
-        return (
-          <NebulaLightning
-            speed={qualityParams.speed}
-            intensity={0.8}
-            {...previewProps}
-          />
-        );
-      case BACKGROUND_EFFECTS.NEBULA_LIQUID_CHROME:
-        return (
-          <NebulaLiquidChrome
-            speed={qualityParams.speed * 0.15}
             {...previewProps}
           />
         );
