@@ -12,6 +12,7 @@ import { toast } from "react-hot-toast";
 import { SkinView3DWrapper } from "../common/SkinView3DWrapper";
 import { CapePreview2D } from "./CapePreview2D";
 import { getSkinUrl } from "../../lib/avatar-utils";
+import { MinecraftSkinService } from "../../services/minecraft-skin-service";
 
 
 
@@ -22,6 +23,7 @@ export function CapeBrowser(): JSX.Element {
   const [showElytra, setShowElytra] = useState(false);
   const [selectedCape, setSelectedCape] = useState<VanillaCape | null>(null);
   const [playerSkin, setPlayerSkin] = useState<string | undefined>(undefined);
+  const [playerSkinVariant, setPlayerSkinVariant] = useState<'classic' | 'slim'>('classic');
   const accentColor = useThemeStore((state) => state.accentColor);
   const hasInitializedRef = useRef(false);
 
@@ -67,14 +69,40 @@ export function CapeBrowser(): JSX.Element {
   // Fetch player skin
   useEffect(() => {
     if (activeAccount) {
-      try {
-        const skinUrl = getSkinUrl(activeAccount.id);
-        console.log('[CapeBrowser] Setting player skin URL:', skinUrl);
-        setPlayerSkin(skinUrl);
-      } catch (error) {
-        console.error('Failed to fetch player skin:', error);
-        setPlayerSkin(undefined);
-      }
+      const fetchSkinData = async () => {
+        try {
+          const skinUrl = getSkinUrl(activeAccount.id);
+          console.log('[CapeBrowser] Setting player skin URL:', skinUrl);
+          setPlayerSkin(skinUrl);
+          
+          // Detect skin variant
+          try {
+            const profileData = await MinecraftSkinService.getUserSkinData(
+              activeAccount.id, 
+              activeAccount.access_token
+            );
+            
+            // Parse skin textures to detect model type
+            const texturesProperty = profileData.properties.find(prop => prop.name === 'textures');
+            if (texturesProperty) {
+              const texturesData = JSON.parse(atob(texturesProperty.value));
+              if (texturesData.textures?.SKIN?.metadata?.model === 'slim') {
+                setPlayerSkinVariant('slim');
+              } else {
+                setPlayerSkinVariant('classic');
+              }
+            }
+          } catch (variantError) {
+            console.error('Failed to detect skin variant:', variantError);
+            setPlayerSkinVariant('classic'); // Fallback to default
+          }
+        } catch (error) {
+          console.error('Failed to fetch player skin:', error);
+          setPlayerSkin(undefined);
+        }
+      };
+      
+      fetchSkinData();
     }
   }, [activeAccount]);
 
@@ -151,6 +179,7 @@ export function CapeBrowser(): JSX.Element {
               <div className="w-full h-full relative">
                 <SkinView3DWrapper
                   skinUrl={playerSkin}
+                  skinVariant={playerSkinVariant}
                   capeUrl={selectedCape.id === "no-cape" ? undefined : selectedCape.url}
                   enableAutoRotate={true}
                   autoRotateSpeed={0.3}

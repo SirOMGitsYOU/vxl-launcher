@@ -260,6 +260,7 @@ export function SkinsTab() {
   const [search, setSearch] = useState<string>("");
   const [currentSkinId, setCurrentSkinId] = useState<string | null>(null);
   const [playerCurrentSkin, setPlayerCurrentSkin] = useState<string | null>(null);
+  const [playerCurrentSkinVariant, setPlayerCurrentSkinVariant] = useState<'classic' | 'slim'>('classic');
   const [activeId, setActiveId] = useState<string | null>(null);
   const [delayedActiveId, setDelayedActiveId] = useState<string | null>(null);
   const [draggedItem, setDraggedItem] = useState<{oldIndex: number, newIndex: number, skin: MinecraftSkin} | null>(null);
@@ -366,6 +367,13 @@ export function SkinsTab() {
             if (skinInfo?.url) {
               // Extract the actual skin texture URL from Mojang
               setPlayerCurrentSkin(skinInfo.url);
+              
+              // Detect skin variant from metadata
+              if (skinInfo.metadata?.model === 'slim') {
+                setPlayerCurrentSkinVariant('slim');
+              } else {
+                setPlayerCurrentSkinVariant('classic');
+              }
               
               const urlParts = skinInfo.url.split("/");
               const skinIdFromUrl = urlParts[urlParts.length - 1].split(".")[0];
@@ -621,7 +629,7 @@ export function SkinsTab() {
               <div className="w-full h-full relative">
                 <SkinView3DWrapper
                   skinUrl={selectedLocalSkin ? `data:image/png;base64,${selectedLocalSkin.base64_data}` : playerCurrentSkin}
-                  skinVariant={selectedLocalSkin ? (selectedLocalSkin.variant === 'slim' ? 'slim' : 'classic') : 'classic'}
+                  skinVariant={selectedLocalSkin ? (selectedLocalSkin.variant === 'slim' ? 'slim' : 'classic') : playerCurrentSkinVariant}
                   enableAutoRotate={true}
                   autoRotateSpeed={0.3}
                   zoom={0.9}
