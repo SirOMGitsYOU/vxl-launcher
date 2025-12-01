@@ -331,9 +331,12 @@ async fn main() {
                 main_window.listen("tauri://focus", move |_event| {
                     let listener_app_handle = focus_app_handle.clone(); 
                     tokio::spawn(async move {
-                        debug!("Main window focus event received. Triggering DiscordManager handler.");
+                        // Only log debug if Discord is enabled to reduce noise
                         match state::state_manager::State::get().await {
                             Ok(state_manager_instance) => { 
+                                if state_manager_instance.discord_manager.is_enabled().await {
+                                    debug!("Main window focused - checking Discord Rich Presence");
+                                }
                                 if let Err(e) = state_manager_instance.discord_manager.handle_focus_event().await {
                                     error!("Error during DiscordManager focus handling: {}", e);
                                 }
