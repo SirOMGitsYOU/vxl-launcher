@@ -79,7 +79,7 @@ impl Default for DownloadConfig {
             force_overwrite: false,
             max_retries: 3,
             user_agent: Some(format!(
-                "NoRiskClient-Launcher/{} (support@norisk.gg)",
+                "VXL-Launcher/{} (support@voxelstudios.co.uk)",
                 env!("CARGO_PKG_VERSION")
             )),
             progress_callback: None,

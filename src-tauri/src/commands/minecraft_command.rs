@@ -307,6 +307,7 @@ pub async fn upload_skin<R: tauri::Runtime>(
         variant: skin_variant,
         description: format!("Uploaded on {}", chrono::Local::now().format("%Y-%m-%d")),
         added_at: chrono::Utc::now(),
+        order: i32::MAX, // New skins get highest order value
     };
 
     // Add the skin to the database
@@ -420,6 +421,7 @@ pub async fn add_skin(
         variant,
         description: description.unwrap_or_default(),
         added_at: chrono::Utc::now(),
+        order: i32::MAX, // New skins get highest order value
     };
 
     debug!("Adding skin to local database");
@@ -672,6 +674,7 @@ pub async fn add_skin_locally(
             .description
             .unwrap_or_else(|| format!("Added on {}", current_time.format("%Y-%m-%d"))),
         added_at: current_time,
+        order: i32::MAX, // New skins get highest order value
     };
 
     state.skin_manager.add_skin(skin_to_add.clone()).await?;
@@ -855,6 +858,31 @@ pub async fn get_crafatar_avatar(
         }
         Err(e) => {
             error!("Command failed: get_crafatar_avatar: {:?}", e);
+            Err(CommandError::from(e))
+        }
+    }
+}
+
+/// Reorder skins by updating their order values
+#[tauri::command]
+pub async fn reorder_skins(skin_ids: Vec<String>) -> Result<(), CommandError> {
+    debug!("Command called: reorder_skins with {} skin IDs", skin_ids.len());
+
+    let state = match State::get().await {
+        Ok(s) => s,
+        Err(e) => {
+            debug!("Failed to get state: {:?}", e);
+            return Err(CommandError::from(e));
+        }
+    };
+
+    match state.skin_manager.reorder_skins(&skin_ids).await {
+        Ok(_) => {
+            debug!("Successfully reordered {} skins", skin_ids.len());
+            Ok(())
+        }
+        Err(e) => {
+            debug!("Failed to reorder skins: {:?}", e);
             Err(CommandError::from(e))
         }
     }

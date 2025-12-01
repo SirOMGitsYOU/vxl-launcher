@@ -17,6 +17,7 @@ export interface MinecraftSkin {
   variant: SkinVariant; // Changed from string
   description?: string | null;
   added_at: string; // DateTime<Utc> as ISO string
+  order: number; // Order position for drag and drop reordering
 }
 
 /**

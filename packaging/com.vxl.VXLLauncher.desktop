@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=VXL Launcher
+Exec=vxl-launcher
+Type=Application
+Icon=com.vxl.VXLLauncher
+Categories=Game;

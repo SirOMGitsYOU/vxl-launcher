@@ -211,7 +211,7 @@ pub async fn create_updater_window(app_handle: &AppHandle) -> tauri::Result<Webv
         "updater",                              // Unique label
         WebviewUrl::App("updater.html".into()), // Load local HTML file
     )
-    .title("NoRiskClient Updater")
+    .title("VXL Launcher Updater")
     .inner_size(325.0, 400.0)
     .resizable(false)
     .center()

@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "NoRisk Launcher",
-  "version": "0.6.13",
+  "productName": "VXL Launcher",
+  "version": "1.0.0",
   "identifier": "com.vxl.VXLLauncher",
   "build": {
     "beforeDevCommand": "yarn dev",
@@ -26,7 +26,7 @@
       {
         "fullscreen": false,
         "resizable": true,
-        "title": "NoRiskClient",
+        "title": "VXL Launcher",
         "width": 1280,
         "height": 800,
         "minWidth": 1080,
@@ -109,9 +109,9 @@
     "createUpdaterArtifacts": true,
     "fileAssociations": [
       {
-        "ext": ["noriskpack"],
-        "name": "NoriskPack File",
-        "description": "NoRiskClient Modpack File"
+        "ext": ["vxlpack"],
+        "name": "VXL Pack File",
+        "description": "VXL Launcher Modpack File"
       }
     ]
   }

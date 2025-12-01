@@ -6,7 +6,7 @@ use std::sync::RwLock;
 
 pub static LAUNCHER_DIRECTORY: Lazy<ProjectDirs> =
     Lazy::new(
-        || match ProjectDirs::from("gg", "norisk", "NoRiskClientV3") {
+        || match ProjectDirs::from("com", "vxl", "VXLLauncher") {
             Some(proj_dirs) => proj_dirs,
             None => panic!("Failed to get application directory"),
         },

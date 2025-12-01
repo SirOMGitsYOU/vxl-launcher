@@ -192,4 +192,13 @@ export class MinecraftSkinService {
         // The Rust command returns a PathBuf, which will be serialized as a string (the path).
         return await invoke<string>("get_crafatar_avatar", { payload });
     }
+
+    /**
+     * Reorders skins by updating their order values.
+     * @param skinIds - Array of skin IDs in the desired order.
+     * @returns A promise that resolves when the reordering is complete.
+     */
+    static async reorderSkins(skinIds: string[]): Promise<void> {
+        await invoke("reorder_skins", { skinIds });
+    }
 }

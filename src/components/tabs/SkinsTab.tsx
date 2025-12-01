@@ -23,352 +23,224 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { SearchWithFilters } from "../ui/SearchWithFilters";
 import { useGlobalModal } from "../../hooks/useGlobalModal";
 import { AddSkinModal } from "../modals/AddSkinModal";
+import { SkinView3DWrapper } from "../common/SkinView3DWrapper";
 import { cn } from "../../lib/utils";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragOverlay } from "@dnd-kit/core";
+import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
-const SkinPreview = memo(
-  ({
-    skin,
-    index,
-    loading,
-    localSkinsLoading,
-    selectedLocalSkin,
-    isApplied,
-    onClick,
-    onEditSkin,
-    onDeleteSkin,
-  }: {
-    skin: MinecraftSkin;
-    index: number;
-    loading: boolean;
-    localSkinsLoading: boolean;
-    selectedLocalSkin: MinecraftSkin | null;
-    isApplied?: boolean;
-    onClick: (skin: MinecraftSkin) => void;
-    onEditSkin?: (
-      skin: MinecraftSkin,
-      event: React.MouseEvent<HTMLButtonElement>,
-    ) => void;
-    onDeleteSkin?: (
-      skinId: string,
-      skinName: string,
-      event: React.MouseEvent<HTMLButtonElement>,
-    ) => void;
-  }) => {
-    const [isHovered, setIsHovered] = useState(false);
-    const accentColor = useThemeStore((state) => state.accentColor);
-    const isBackgroundAnimationEnabled = useThemeStore(
-      (state) => state.isBackgroundAnimationEnabled,
-    );
-    const isSelected = selectedLocalSkin?.id === skin.id;
-    const isDisabled = loading && isSelected;
+// SkinPreview component for grid items
+const SkinPreview = memo(({ 
+  skin, 
+  renderType = 'dungeons',
+  width = 140, 
+  height = 140,
+  className 
+}: { 
+  skin: MinecraftSkin;
+  renderType?: string;
+  width?: number; 
+  height?: number; 
+  className?: string;
+}) => {
+  const [renderUrl, setRenderUrl] = useState<string>("");
+  const [isRenderLoading, setIsRenderLoading] = useState<boolean>(true);
+  const [canShowSpinner, setCanShowSpinner] = useState<boolean>(false);
+  const spinnerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    const [starlightRenderUrl, setStarlightRenderUrl] = useState<string | null>(
-      null,
-    );
-    const [isRenderLoading, setIsRenderLoading] = useState<boolean>(true);
-    const [canShowSpinner, setCanShowSpinner] = useState<boolean>(false);
-    const spinnerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    let isMounted = true;
+    setIsRenderLoading(true);
+    setRenderUrl("");
+    setCanShowSpinner(false);
 
-    useEffect(() => {
-      let isMounted = true;
-      setIsRenderLoading(true);
-      setStarlightRenderUrl(null);
-      setCanShowSpinner(false);
+    if (spinnerTimeoutRef.current) {
+      clearTimeout(spinnerTimeoutRef.current);
+    }
 
-      if (spinnerTimeoutRef.current) {
-        clearTimeout(spinnerTimeoutRef.current);
+    spinnerTimeoutRef.current = setTimeout(() => {
+      if (isMounted && isRenderLoading) {
+        setCanShowSpinner(true);
       }
+    }, 500);
 
-      spinnerTimeoutRef.current = setTimeout(() => {
-        if (isMounted && isRenderLoading) {
-          setCanShowSpinner(true);
-        }
-      }, 500);
-
-      const fetchRender = async () => {
-        if (skin && skin.name) {
-          try {
-            const payload: GetStarlightSkinRenderPayload = {
-              player_name: "skin",
-              render_type: "default",
-              render_view: "full",
-              base64_skin_data: skin.base64_data,
-            };
-            const localPath =
-              await MinecraftSkinService.getStarlightSkinRender(payload);
-            if (isMounted) {
-              if (localPath) {
-                setStarlightRenderUrl(convertFileSrc(localPath));
-              } else {
-                console.warn(
-                  `[SkinPreview] Starlight render returned empty path for ${skin.name}.`,
-                );
-                setStarlightRenderUrl("");
-              }
-              setIsRenderLoading(false);
-              setCanShowSpinner(false);
-              if (spinnerTimeoutRef.current)
-                clearTimeout(spinnerTimeoutRef.current);
-            }
-          } catch (error) {
-            console.error(
-              `[SkinPreview] Failed to fetch Starlight skin render for ${skin.name}:`,
-              error,
-            );
-            if (isMounted) {
-              setStarlightRenderUrl("");
-              setIsRenderLoading(false);
-              setCanShowSpinner(false);
-              if (spinnerTimeoutRef.current)
-                clearTimeout(spinnerTimeoutRef.current);
-            }
-          }
-        } else {
+    const fetchRender = async () => {
+      if (skin && skin.name) {
+        try {
+          const payload: GetStarlightSkinRenderPayload = {
+            player_name: skin.name.replace(/[^a-zA-Z0-9_]/g, '_') || 'skin',
+            render_type: renderType as any,
+            render_view: 'full',
+            base64_skin_data: skin.base64_data,
+          };
+          
+          const localPath = await MinecraftSkinService.getStarlightSkinRender(payload);
+          
           if (isMounted) {
-            console.warn(
-              `[SkinPreview] No skin.name provided, cannot fetch Starlight render.`,
-            );
-            setStarlightRenderUrl("");
+            if (localPath) {
+              setRenderUrl(convertFileSrc(localPath));
+            } else {
+              console.warn(`[SkinPreview] Starlight render returned empty path for ${skin.name}.`);
+              setRenderUrl("");
+            }
+            setIsRenderLoading(false);
+            setCanShowSpinner(false);
+            if (spinnerTimeoutRef.current)
+              clearTimeout(spinnerTimeoutRef.current);
+          }
+        } catch (error) {
+          console.error(`[SkinPreview] Failed to fetch skin render for ${skin.name}:`, error);
+          
+          if (isMounted) {
+            setRenderUrl("");
             setIsRenderLoading(false);
             setCanShowSpinner(false);
             if (spinnerTimeoutRef.current)
               clearTimeout(spinnerTimeoutRef.current);
           }
         }
-      };
-
-      fetchRender();
-
-      return () => {
-        isMounted = false;
-        if (spinnerTimeoutRef.current) {
-          clearTimeout(spinnerTimeoutRef.current);
+      } else {
+        if (isMounted) {
+          console.warn(`[SkinPreview] No skin.name provided, cannot fetch skin render.`);
+          setRenderUrl("");
+          setIsRenderLoading(false);
+          setCanShowSpinner(false);
+          if (spinnerTimeoutRef.current)
+            clearTimeout(spinnerTimeoutRef.current);
         }
-      };
-    }, [skin?.name, skin?.base64_data, skin]);
+      }
+    };
 
-    const animationStyle = isBackgroundAnimationEnabled
-      ? { animationDelay: `${index * 0.075}s` }
-      : {};
-    const animationClasses = isBackgroundAnimationEnabled
-      ? "animate-in fade-in duration-500 fill-mode-both"
-      : "";
+    fetchRender();
 
-    return (
-      <div
-        key={skin.id}
-        style={{
-          ...animationStyle,
-          backgroundColor: isHovered ? `${accentColor.value}20` : undefined,
-          borderColor: isHovered ? `${accentColor.value}60` : undefined,
-        }}
-        className={cn(
-          "relative flex flex-col gap-3 p-4 rounded-lg bg-black/20 border border-white/10 hover:border-white/20 transition-all duration-200 cursor-pointer",
-          animationClasses,
-          isDisabled ? "opacity-60 pointer-events-none" : ""
-        )}
-        onClick={() =>
-          !isDisabled && !isApplied && !isSelected && onClick(skin)
-        }
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        {/* Action buttons - top right */}
-        <div className="absolute top-3 right-3 z-20 flex flex-col gap-1">
-          {onEditSkin && (
-            <button
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                onEditSkin(skin, event);
-              }}
-              className="w-8 h-8 flex items-center justify-center bg-black/30 hover:bg-black/50 text-white/70 hover:text-white border border-white/10 hover:border-white/20 rounded transition-all duration-200"
-              title="Edit skin properties"
-              disabled={isDisabled}
-            >
-              <Icon icon="solar:pen-bold" className="w-4 h-4" />
-            </button>
-          )}
+    return () => {
+      isMounted = false;
+      if (spinnerTimeoutRef.current) {
+        clearTimeout(spinnerTimeoutRef.current);
+      }
+    };
+  }, [skin?.name, skin?.base64_data, renderType]);
 
-          {onDeleteSkin && (
-            <button
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                onDeleteSkin(skin.id, skin.name, event);
-              }}
-              className="w-8 h-8 flex items-center justify-center bg-black/30 hover:bg-red-700/80 text-white/70 hover:text-white border border-white/10 hover:border-white/20 rounded transition-all duration-200"
-              title="Delete skin"
-              disabled={isDisabled}
-            >
-              <Icon
-                icon="solar:trash-bin-trash-bold"
-                className="w-4 h-4"
-              />
-            </button>
-          )}
+  return (
+    <div className={`relative ${className}`}>
+      {isRenderLoading && canShowSpinner ? (
+        <div className="flex flex-col items-center justify-center space-y-2 w-full h-full">
+          <div className="w-6 h-6 border-4 border-t-transparent border-[var(--accent)] rounded-full animate-spin"></div>
+          <p className="font-minecraft text-xs text-white/70 lowercase">Loading...</p>
         </div>
+      ) : !isRenderLoading ? (
+        <SkinViewer
+          skinUrl={renderUrl || ""}
+          width={width}
+          height={height}
+          className="w-full h-full"
+        />
+      ) : null}
+    </div>
+  );
+});
 
-        {/* Skin content */}
-        <div className="flex flex-col items-center gap-3 relative z-10 w-full">
-          {/* Skin Image */}
-          <div
-            className="relative flex-shrink-0 rounded-lg flex items-center justify-center overflow-hidden border border-transparent transition-all duration-300 ease-out"
-            style={{
-              width: "140px",
-              height: "280px",
-            }}
-          >
-            {isRenderLoading && canShowSpinner ? (
-              <div className="flex flex-col items-center justify-center space-y-2">
-                <div className="w-8 h-8 border-4 border-t-transparent border-[var(--accent)] rounded-full animate-spin"></div>
-                <p className="font-minecraft text-xs text-white/70 lowercase">Loading...</p>
-              </div>
-            ) : !isRenderLoading ? (
-              <SkinViewer
-                skinUrl={starlightRenderUrl || ""}
-                width={140}
-                height={280}
-                className="rounded-sm block"
-              />
-            ) : null}
+// SortableSkinCard component for drag and drop
+const SortableSkinCard = ({ skin, selectedLocalSkin, accentColor, loading, onSelectSkin, onEditSkin, onDeleteSkin }: {
+  skin: MinecraftSkin;
+  selectedLocalSkin: MinecraftSkin | null;
+  accentColor: any;
+  loading: boolean;
+  onSelectSkin: (skin: MinecraftSkin) => void;
+  onEditSkin: (skin: MinecraftSkin, event: React.MouseEvent) => void;
+  onDeleteSkin: (id: string, name: string) => void;
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: skin.id });
 
-            {/* Applying overlay */}
-            {isDisabled && (
-              <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-lg">
-                <Icon
-                  icon="solar:refresh-bold"
-                  className="w-8 h-8 animate-spin mb-1"
-                  style={{ color: accentColor.value }}
-                />
-                <span className="font-minecraft text-xs text-white lowercase">
-                  Applying
-                </span>
-              </div>
-            )}
-          </div>
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    scale: isDragging ? 1.02 : 1,
+    zIndex: isDragging ? 1000 : 1,
+    boxShadow: isDragging ? '0 10px 30px rgba(0,0,0,0.3)' : 'none',
+  };
 
-          {/* Skin Info */}
-          <div className="flex-grow min-w-0 w-full text-center">
-            {/* Skin Name */}
-            <h3
-              className="font-minecraft-ten text-white text-base whitespace-nowrap overflow-hidden text-ellipsis max-w-full normal-case mb-1"
-              title={skin.name}
-            >
-              {skin.name}
-            </h3>
-
-            {/* Skin Variant & Applied Status */}
-            <div className="flex items-center justify-center gap-2 text-xs font-minecraft-ten">
-              <div className="text-white/60 flex items-center gap-1">
-                <Icon
-                  icon="solar:palette-bold"
-                  className="w-3 h-3 text-white/50"
-                />
-                <span>{skin.variant === "slim" ? "Slim" : "Classic"}</span>
-              </div>
-
-              {isApplied && (
-                <>
-                  <div className="w-px h-3 bg-white/30"></div>
-                  <div className="text-green-400 flex items-center gap-1">
-                    <Icon
-                      icon="solar:check-circle-bold"
-                      className="w-3 h-3"
-                    />
-                    <span>Applied</span>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative group p-3 rounded-lg cursor-pointer transition-all border-2 ${
+        selectedLocalSkin?.id === skin.id
+          ? `border-[${accentColor.value}] bg-black/40`
+          : 'border-white/10 hover:border-white/20 bg-black/20 hover:bg-black/30'
+      }`}
+      onClick={() => onSelectSkin(skin)}
+    >
+      {/* Drag handle */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute top-2 left-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-move"
+      >
+        <div className="w-8 h-8 flex items-center justify-center bg-black/30 hover:bg-black/50 text-white/70 hover:text-white border border-white/10 hover:border-white/20 rounded transition-all duration-200">
+          <Icon icon="radix-icons:drag-handle-dots-2" className="w-4 h-4" />
         </div>
       </div>
-    );
-  },
-);
 
-const AddSkinCard = memo(
-  ({ index, onClick }: { index: number; onClick: () => void }) => {
-    const [isHovered, setIsHovered] = useState(false);
-    const isBackgroundAnimationEnabled = useThemeStore(
-      (state) => state.isBackgroundAnimationEnabled,
-    );
-    const accentColor = useThemeStore((state) => state.accentColor);
+      {/* Hover edit/delete buttons */}
+      <div className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col gap-1">
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onDeleteSkin(skin.id, skin.name);
+          }}
+          className="w-8 h-8 flex items-center justify-center bg-black/30 hover:bg-red-700/80 text-white/70 hover:text-white border border-white/10 hover:border-white/20 rounded transition-all duration-200"
+          title="Delete skin"
+          disabled={loading}
+        >
+          <Icon icon="solar:trash-bin-trash-bold" className="w-4 h-4" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onEditSkin(skin, e);
+          }}
+          className="w-8 h-8 flex items-center justify-center bg-black/30 hover:bg-black/50 text-white/70 hover:text-white border border-white/10 hover:border-white/20 rounded transition-all duration-200"
+          title="Edit skin properties"
+          disabled={loading}
+        >
+          <Icon icon="solar:pen-bold" className="w-4 h-4" />
+        </button>
+      </div>
 
-    const animationStyle = isBackgroundAnimationEnabled
-      ? { animationDelay: `${index * 0.075}s` }
-      : {};
-    const animationClasses = isBackgroundAnimationEnabled
-      ? "animate-in fade-in duration-500 fill-mode-both"
-      : "";
+      <div className="aspect-square rounded mb-2 overflow-hidden flex items-center justify-center">
+        <SkinPreview
+          skin={skin}
+          renderType="dungeons"
+          width={160}
+          height={160}
+          className="w-full h-full"
+        />
+      </div>
 
-    return (
-      <div
-        key={`add-skin-${index}`}
-        style={animationStyle}
-        className={cn(
-          "relative flex flex-col gap-3 p-4 rounded-lg bg-black/20 border border-dashed border-white/10 hover:border-white/30 transition-all duration-200 cursor-pointer",
-          animationClasses
-        )}
-        onClick={onClick}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        {/* Skin content */}
-        <div className="flex flex-col items-center gap-3 relative z-10 w-full">
-          {/* Skin Image */}
-          <div
-            className="relative flex-shrink-0 rounded-lg flex items-center justify-center overflow-hidden border border-transparent transition-all duration-300 ease-out"
-            style={{
-              width: "140px",
-              height: "280px",
-            }}
-          >
-            <SkinViewer
-              skinUrl="/skins/default_skin_full.png"
-              width={140}
-              height={280}
-              className="rounded-sm block opacity-70 hover:opacity-100 transition-opacity"
-            />
-
-            {/* Plus icon overlay */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Icon
-                icon="solar:add-circle-bold"
-                className="w-12 h-12 text-white/70 hover:text-white transition-colors"
-                style={{ color: isHovered ? accentColor.value : undefined }}
-              />
-            </div>
-          </div>
-
-          {/* Skin Info */}
-          <div className="flex-grow min-w-0 w-full text-center">
-            {/* Skin Name */}
-            <h3
-              className="font-minecraft-ten text-white text-base whitespace-nowrap overflow-hidden text-ellipsis max-w-full normal-case mb-1"
-              title="Add New Skin"
-            >
-              Add New Skin
-            </h3>
-
-            {/* Description */}
-            <div className="flex items-center justify-center gap-2 text-xs font-minecraft-ten">
-              <div className="text-white/60 flex items-center gap-1">
-                <Icon
-                  icon="solar:upload-bold"
-                  className="w-3 h-3 text-white/50"
-                />
-                <span>Upload or import</span>
-              </div>
-            </div>
-          </div>
+      <div className="text-center">
+        <h3 className="text-2xl font-minecraft text-white text-med lowercase truncate">
+          {skin.name}
+        </h3>
+        <div className="mt-1">
+          <span className="px-2 py-1 text-lg font-minecraft rounded bg-white/20 text-white border border-white/30">
+            {skin.variant === "slim" ? "SLIM" : "CLASSIC"}
+          </span>
         </div>
       </div>
-    );
-  },
-);
-
+    </div>
+  );
+};
 
 export function SkinsTab() {
   const {
@@ -384,10 +256,13 @@ export function SkinsTab() {
   const [localSkins, setLocalSkins] = useState<MinecraftSkin[]>([]);
   const [localSkinsLoading, setLocalSkinsLoading] = useState<boolean>(false);
   const [localSkinsError, setLocalSkinsError] = useState<string | null>(null);
-  const [selectedLocalSkin, setSelectedLocalSkin] =
-    useState<MinecraftSkin | null>(null);
+  const [selectedLocalSkin, setSelectedLocalSkin] = useState<MinecraftSkin | null>(null);
   const [search, setSearch] = useState<string>("");
   const [currentSkinId, setCurrentSkinId] = useState<string | null>(null);
+  const [playerCurrentSkin, setPlayerCurrentSkin] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [delayedActiveId, setDelayedActiveId] = useState<string | null>(null);
+  const [draggedItem, setDraggedItem] = useState<{oldIndex: number, newIndex: number, skin: MinecraftSkin} | null>(null);
 
   const debouncedSearch = useDebounce(search, 250);
   const accentColor = useThemeStore((state) => state.accentColor);
@@ -398,6 +273,72 @@ export function SkinsTab() {
       skin.name.toLowerCase().includes(debouncedSearch.toLowerCase()),
     );
   }, [localSkins, debouncedSearch]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragStart = (event: any) => {
+    setActiveId(event.active.id);
+    setDelayedActiveId(event.active.id);
+    
+    // Store initial position
+    const oldIndex = localSkins.findIndex((skin) => skin.id === event.active.id);
+    const skin = localSkins.find((skin) => skin.id === event.active.id);
+    if (skin) {
+      setDraggedItem({ oldIndex, newIndex: oldIndex, skin });
+    }
+  };
+
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+    
+    console.log('Drag end:', { activeId: active.id, overId: over?.id });
+
+    if (draggedItem && draggedItem.oldIndex !== draggedItem.newIndex) {
+      console.log('Showing reorder toast');
+      
+      // Show toast confirmation
+      toast.success('Skins reordered successfully');
+      
+      // TODO: Update skin order in storage when API is available
+      // MinecraftSkinService.updateSkinOrder(newSkins);
+    } else {
+      console.log('No position change, no toast');
+    }
+
+    setActiveId(null);
+    setDraggedItem(null);
+    
+    // Remove ghost immediately to prevent animation conflict
+    setDelayedActiveId(null);
+  };
+
+  const handleDragOver = (event: any) => {
+    const { active, over } = event;
+    
+    if (active.id !== over.id) {
+      const oldIndex = localSkins.findIndex((skin) => skin.id === active.id);
+      const newIndex = localSkins.findIndex((skin) => skin.id === over.id);
+
+      // Only update if position actually changed
+      if (oldIndex !== newIndex) {
+        const newSkins = [...localSkins];
+        const [reorderedSkin] = newSkins.splice(oldIndex, 1);
+        newSkins.splice(newIndex, 0, reorderedSkin);
+
+        setLocalSkins(newSkins);
+        
+        // Update dragged item tracking
+        if (draggedItem && draggedItem.skin.id === active.id) {
+          setDraggedItem({ ...draggedItem, newIndex });
+        }
+      }
+    }
+  };
 
   const loadSkinData = useCallback(async () => {
     if (!activeAccount) return;
@@ -423,6 +364,9 @@ export function SkinsTab() {
             const skinInfo = texturesJson.textures?.SKIN;
 
             if (skinInfo?.url) {
+              // Extract the actual skin texture URL from Mojang
+              setPlayerCurrentSkin(skinInfo.url);
+              
               const urlParts = skinInfo.url.split("/");
               const skinIdFromUrl = urlParts[urlParts.length - 1].split(".")[0];
               setCurrentSkinId(skinIdFromUrl);
@@ -626,106 +570,214 @@ export function SkinsTab() {
     return skin.id === currentSkinId;
   };
 
+  const handleSelectSkin = useCallback((skin: MinecraftSkin) => {
+    console.log('Selected skin:', skin);
+    setSelectedLocalSkin(skin);
+  }, []);
+
+  const handleEquipSkin = useCallback(async (skin: MinecraftSkin) => {
+    await applyLocalSkin(skin);
+  }, [activeAccount]);
+
   // Add skin button
   const addSkinButton = (
-    <button
+    <Button
       onClick={() => startEditSkin(null)}
-      className="flex items-center gap-2 px-4 py-2 bg-black/30 hover:bg-black/40 text-white/70 hover:text-white border border-white/10 hover:border-white/20 rounded-lg font-minecraft text-2xl lowercase transition-all duration-200"
-      title="Add Skin"
       disabled={!activeAccount}
+      size="sm"
     >
-      <div className="w-4 h-4 flex items-center justify-center">
-        <Icon icon="solar:add-circle-bold" className="w-4 h-4" />
+      <div className="inline-flex items-center">
+        <Icon icon="solar:add-square-bold" className="w-4 h-4 mr-2 flex-shrink-0" />
+        <span>Add Skin</span>
       </div>
-      <span>add skin</span>
-    </button>
+    </Button>
   );
 
   return (
-    <div className="h-full flex flex-col overflow-hidden p-4 relative">
-      <div className="flex-1 overflow-y-auto no-scrollbar">
-        {/* Search & Filters */}
-        <div className="mb-6 pb-4 border-b border-white/10">
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <SearchWithFilters
-                placeholder="Search skins..."
-                searchValue={search}
-                onSearchChange={setSearch}
-                onSearchEnter={() => {}} // Optional: implement instant search
-              />
-            </div>
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="p-4 border-b border-white/10 flex items-center justify-between">
+        <h2 className="text-3xl font-minecraft text-white">Skins</h2>
+        <div className="flex items-center gap-4">
+          <div className="flex-1 max-w-md">
+            <SearchWithFilters
+              placeholder="Search skins..."
+              searchValue={search}
+              onSearchChange={setSearch}
+              onSearchEnter={() => {}}
+            />
+          </div>
+          {activeAccount && addSkinButton}
+        </div>
+      </div>
 
-            {/* Action Button */}
-            <div className="flex items-center gap-3">
-              {activeAccount && addSkinButton}
-            </div>
+      {/* Main content */}
+      <div className="flex-1 overflow-hidden flex gap-4 p-4">
+        {/* Left Side - Player Preview */}
+        <div className="w-1/3 bg-black/30 rounded-lg overflow-hidden border border-white/10 flex flex-col">
+          {/* 3D Preview */}
+          <div className="flex-1 bg-black/50 relative flex items-center justify-center">
+            {(selectedLocalSkin || playerCurrentSkin) ? (
+              <div className="w-full h-full relative">
+                <SkinView3DWrapper
+                  skinUrl={selectedLocalSkin ? `data:image/png;base64,${selectedLocalSkin.base64_data}` : playerCurrentSkin}
+                  skinVariant={selectedLocalSkin ? (selectedLocalSkin.variant === 'slim' ? 'slim' : 'classic') : 'classic'}
+                  enableAutoRotate={true}
+                  autoRotateSpeed={0.3}
+                  zoom={0.9}
+                  enableRotate={true}
+                  enableZoom={false}
+                  enablePan={false}
+                  horizontalRotationOnly={true}
+                />
+              </div>
+            ) : (
+              <div className="text-center">
+                <Icon icon="solar:clothing-bold" className="w-16 h-16 text-white/30 mx-auto mb-2" />
+                <p className="font-minecraft text-white/70">Loading current skin...</p>
+              </div>
+            )}
+          </div>
+
+          {/* Skin Info and Equip Button */}
+          <div className="p-4 border-t border-white/10 bg-black/20">
+            <h3 className="text-2xl text-medium font-minecraft text-white mb-3 lowercase">
+              {selectedLocalSkin ? selectedLocalSkin.name : (playerCurrentSkin ? 'Current Skin' : 'No Skin Selected')}
+            </h3>
+
+            <Button
+              onClick={() => selectedLocalSkin && handleEquipSkin(selectedLocalSkin)}
+              disabled={loading || !selectedLocalSkin || isSkinApplied(selectedLocalSkin)}
+              size="md"
+              className="w-full"
+            >
+              {loading ? (
+                <>
+                  <Icon icon="solar:refresh-bold" className="w-4 h-4 mr-2 animate-spin" />
+                  Applying...
+                </>
+              ) : !selectedLocalSkin ? (
+                'Select a skin to equip'
+              ) : isSkinApplied(selectedLocalSkin) ? (
+                'Currently Equipped'
+              ) : (
+                'Equip This Skin'
+              )}
+            </Button>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="space-y-8">
-        {accountLoading ? (
-          <p className="text-white/70 font-minecraft text-xl text-center py-4">
-            Loading account...
-          </p>
-        ) : accountError ? (
-          <StatusMessage
-            type="error"
-            className="font-minecraft text-lg"
-            message={`Account Error: ${accountError}`}
-          />
-        ) : !activeAccount ? (
-          <p className="text-white/70 italic font-minecraft text-xl text-center py-10">
-            Please log in to a Minecraft account to manage skins.
-          </p>
-        ) : (
-          <>
-            <div className="space-y-5 text-center">
-              {localSkinsLoading ? (
-                <p className="text-white/70 font-minecraft text-xl text-center py-4">
-                  Loading skins...
-                </p>
-              ) : localSkinsError ? (
-                <StatusMessage
-                  type="error"
-                  className="font-minecraft text-lg"
-                  message={localSkinsError}
-                />
-              ) : !localSkinsLoading &&
-                localSkins.length > 0 &&
-                filteredSkins.length === 0 &&
-                !localSkinsError ? (
-                <p className="text-white/70 italic font-minecraft text-lg">
-                  No skins match your search. Try a different search term.
-                </p>
-              ) : (
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
-                  <AddSkinCard
-                    index={0}
-                    onClick={() => startEditSkin(null, undefined)}
-                  />
-                  {filteredSkins.map((skin, index) => (
-                    <SkinPreview
-                      key={skin.id}
-                      skin={skin}
-                      index={index + 1}
-                      loading={loading}
-                      localSkinsLoading={localSkinsLoading}
-                      selectedLocalSkin={selectedLocalSkin}
-                      isApplied={isSkinApplied(skin)}
-                      onClick={applyLocalSkin}
-                      onEditSkin={startEditSkin}
-                      onDeleteSkin={handleDeleteSkin}
-                    />
-                  ))}
+        {/* Right Side - Skin Grid */}
+        <div className="w-2/3 overflow-hidden flex flex-col">
+          {/* Account check */}
+          {accountLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-white/70 font-minecraft text-xl text-center py-4">
+                Loading account...
+              </p>
+            </div>
+          ) : accountError ? (
+            <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 mb-4">
+              <p className="text-red-300 font-minecraft text-sm">Account Error: {accountError}</p>
+            </div>
+          ) : !activeAccount ? (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-white/70 italic font-minecraft text-xl text-center py-10">
+                Please log in to a Minecraft account to manage skins.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Error state */}
+              {localSkinsError && (
+                <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 mb-4">
+                  <p className="text-red-300 font-minecraft text-sm">{localSkinsError}</p>
                 </div>
               )}
-            </div>
-          </>
-        )}
-        </div>
 
+              {/* Skin Grid */}
+              <div className="flex-1 overflow-y-auto">
+                {localSkinsLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <Icon icon="solar:refresh-bold" className="w-8 h-8 animate-spin text-white/50 mx-auto mb-2" />
+                      <p className="text-white/70 font-minecraft">Loading skins...</p>
+                    </div>
+                  </div>
+                ) : filteredSkins.length === 0 && !localSkinsError ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <Icon icon="solar:sad-bold" className="w-12 h-12 text-white/30 mx-auto mb-2" />
+                      <p className="text-4xl text-white/70 font-minecraft">
+                        {debouncedSearch ? 'No skins match your search' : 'No skins found'}
+                      </p>
+                      <p className="text-2xl text-white/50 font-minecraft text-medium mt-2">
+                        {debouncedSearch ? 'Try a different search term' : 'Add your first skin to get started'}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragStart={handleDragStart}
+                    onDragOver={handleDragOver}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={filteredSkins.map(skin => skin.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3">
+                        {filteredSkins.map((skin) => (
+                          <SortableSkinCard
+                            key={skin.id}
+                            skin={skin}
+                            selectedLocalSkin={selectedLocalSkin}
+                            accentColor={accentColor}
+                            loading={loading}
+                            onSelectSkin={handleSelectSkin}
+                            onEditSkin={startEditSkin}
+                            onDeleteSkin={handleDeleteSkin}
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
+                    <DragOverlay
+                    dropAnimation={null}
+                  >
+                      {delayedActiveId ? (
+                        <div className="pointer-events-none">
+                          <div className="relative p-3 rounded-lg border-2 border-white/40 bg-black/50 shadow-2xl opacity-95">
+                            <div className="aspect-square rounded mb-2 overflow-hidden flex items-center justify-center">
+                              <SkinPreview
+                                skin={filteredSkins.find(skin => skin.id === delayedActiveId)!}
+                                renderType="dungeons"
+                                width={160}
+                                height={160}
+                                className="w-full h-full"
+                              />
+                            </div>
+                            <div className="text-center">
+                              <h3 className="font-minecraft text-white text-sm lowercase truncate">
+                                {filteredSkins.find(skin => skin.id === delayedActiveId)?.name}
+                              </h3>
+                              <div className="mt-1">
+                                <span className="px-2 py-1 text-xs font-minecraft rounded bg-white/20 text-white border border-white/30">
+                                  {filteredSkins.find(skin => skin.id === delayedActiveId)?.variant === "slim" ? "Slim" : "Classic"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
+                    </DragOverlay>
+                  </DndContext>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

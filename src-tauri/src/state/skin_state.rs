@@ -2,6 +2,7 @@ use crate::config::{ProjectDirsExt, LAUNCHER_DIRECTORY};
 use crate::error::Result;
 use crate::state::post_init::PostInitializationHandler;
 use async_trait::async_trait;
+use chrono;
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -11,6 +12,11 @@ use tokio::fs;
 use tokio::sync::{Mutex, RwLock};
 
 const SKINS_FILENAME: &str = "minecraft_skins.json";
+
+/// Default order value for new skins
+fn default_skin_order() -> i32 {
+    i32::MAX // New skins get the highest order value (placed at end)
+}
 
 /// Represents a Minecraft skin stored in the local database
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,6 +35,9 @@ pub struct MinecraftSkin {
     /// Timestamp when the skin was added
     #[serde(default = "chrono::Utc::now")]
     pub added_at: chrono::DateTime<chrono::Utc>,
+    /// Order position for drag and drop reordering
+    #[serde(default = "default_skin_order")]
+    pub order: i32,
 }
 
 /// Container for all stored skins
@@ -128,7 +137,12 @@ impl SkinManager {
     /// Get all skins from the database
     pub async fn get_all_skins(&self) -> Vec<MinecraftSkin> {
         debug!("Getting all skins from database");
-        let skins = self.skins.read().await.skins.clone();
+        let mut skins = self.skins.read().await.skins.clone();
+        // Sort skins by order field (ascending), then by added_at as fallback
+        skins.sort_by(|a, b| {
+            a.order.cmp(&b.order)
+                .then_with(|| a.added_at.cmp(&b.added_at))
+        });
         debug!("Retrieved {} skins from database", skins.len());
         skins
     }
@@ -221,6 +235,30 @@ impl SkinManager {
             debug!("No skin found with ID: {}", id);
             Ok(None)
         }
+    }
+
+    /// Reorder skins by updating their order values
+    pub async fn reorder_skins(&self, skin_ids: &[String]) -> Result<()> {
+        debug!("Reordering {} skins", skin_ids.len());
+        
+        let mut skins = self.skins.write().await;
+        
+        // Update the order for each skin based on the provided order
+        for (new_order, skin_id) in skin_ids.iter().enumerate() {
+            if let Some(skin) = skins.skins.iter_mut().find(|s| s.id == *skin_id) {
+                skin.order = new_order as i32;
+                debug!("Updated order for skin {} to {}", skin_id, new_order);
+            } else {
+                warn!("Skin with ID {} not found during reordering", skin_id);
+            }
+        }
+        
+        // Save the updated database
+        drop(skins); // Release the write lock before saving
+        self.save_skins().await?;
+        
+        debug!("Successfully reordered skins");
+        Ok(())
     }
 }
 
