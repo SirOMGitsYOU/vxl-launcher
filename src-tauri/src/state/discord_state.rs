@@ -340,10 +340,7 @@ impl DiscordManager {
     }
 
     pub async fn handle_focus_event(&self) -> Result<()> {
-        debug!("Handling focus event within DiscordManager.");
-
         if !self.is_enabled().await {
-            debug!("Focus handling: DRP is disabled, doing nothing.");
             return Ok(());
         }
 
@@ -364,20 +361,15 @@ impl DiscordManager {
         };
 
         if !is_game_running {
-            debug!(
-                "Focus handling: DRP enabled, no game running. Ensuring idle timestamp and state."
-            );
             self.ensure_idle_timestamp_set().await; // Ensure timestamp is set
             // Only force update if we're not already in Idle state
             let current_state = self.get_current_state().await;
+            
             if current_state != DiscordState::Idle {
                 debug!("Focus handling: Current state is not Idle ({:?}), updating to Idle", current_state);
                 self.set_state_internal(DiscordState::Idle, true).await?;
-            } else {
-                debug!("Focus handling: Already in Idle state, skipping Discord update");
             }
-        } else {
-            debug!("Focus handling: Game is running, yielding DRP control.");
+            // Skip completely when already Idle - no logging needed
         }
 
         Ok(())
