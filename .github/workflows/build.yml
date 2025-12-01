@@ -24,11 +24,11 @@ jobs:
             output_path: ./src-tauri/target/x86_64-apple-darwin/release/bundle
             asset_name_base: NoRiskClient-MacOS-x86_64
           - platform: 'ubuntu-22.04'
-            target: '' # Kein explizites Target für Linux x86_64
+            target: '' # No explicit target for Linux x86_64
             output_path: ./src-tauri/target/release/bundle
             asset_name_base: NoRiskClient-Linux
           - platform: 'windows-latest'
-            target: '' # Kein explizites Target für Windows x86_64
+            target: '' # No explicit target for Windows x86_64
             output_path: ./src-tauri/target/release/bundle
             asset_name_base: NoRiskClient-Windows-setup
 
@@ -70,15 +70,15 @@ jobs:
       - name: Build and Sign Tauri App
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Wird evtl. intern von Tauri benötigt
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # May be required internally by Tauri
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
           # Revert to using packageManager and args
-          args: --verbose ${{ matrix.target != '' && format('--target {0}', matrix.target) || '' }} # Füge --target hinzu, wenn es gesetzt ist
+          args: --verbose ${{ matrix.target != '' && format('--target {0}', matrix.target) || '' }} # Add --target if set
           packageManager: yarn # Set packageManager to yarn
           
-      # --- Umbenennen und Artefakte vorbereiten --- 
+      # --- Rename and prepare artifacts --- 
       - name: Rename Linux Artifacts
         if: matrix.platform == 'ubuntu-22.04'
         run: |
@@ -87,7 +87,7 @@ jobs:
           ls -R "${{ matrix.output_path }}" || true
           echo "-----------------------------------"
           
-          APP_BASE_NAME="NoRisk Launcher" # Dein productName
+          APP_BASE_NAME="NoRisk Launcher" # Your productName
           APPIMAGE_DIR=${{ matrix.output_path }}/appimage
           DEB_DIR=${{ matrix.output_path }}/deb
           
@@ -95,16 +95,16 @@ jobs:
           ls -R "$APPIMAGE_DIR" || true
           ls -R "$DEB_DIR" || true
           
-          # Verschiebe und benenne AppImage um (verwende einfachen Wildcard)
+          # Move and rename AppImage (use simple wildcard)
           mv "$APPIMAGE_DIR"/*.AppImage "$APPIMAGE_DIR"/${{ matrix.asset_name_base }}.AppImage
           
-          # Verschiebe und benenne AppImage Signatur um (verwende einfachen Wildcard)
+          # Move and rename AppImage signature (use simple wildcard)
           mv "$APPIMAGE_DIR"/*.AppImage.sig "$APPIMAGE_DIR"/${{ matrix.asset_name_base }}.AppImage.sig
           
-          # Verschiebe und benenne Deb Paket um
+          # Move and rename Deb package
           mv "$DEB_DIR"/*.deb "$APPIMAGE_DIR"/${{ matrix.asset_name_base }}.deb
           
-          # Verschiebe und benenne Deb Signatur um
+          # Move and rename Deb signature
           mv "$DEB_DIR"/*.deb.sig "$APPIMAGE_DIR"/${{ matrix.asset_name_base }}.deb.sig
           
           echo "Final content of $APPIMAGE_DIR after moves"
@@ -127,13 +127,13 @@ jobs:
           $ARTIFACT_DIR = "${{ matrix.output_path }}\nsis"
           echo "Listing content of $ARTIFACT_DIR"
           Get-ChildItem -Path $ARTIFACT_DIR -Recurse
-          # Finde die Originalnamen (angenommen nur eine .exe und eine .exe.sig)
+          # Find the original names (assuming only one .exe and one .exe.sig)
           $ExeFile = Get-ChildItem -Path $ARTIFACT_DIR -Filter *.exe
           $SigFile = Get-ChildItem -Path $ARTIFACT_DIR -Filter *.exe.sig
 
-          # Benenne .exe um
+          # Rename .exe
           Move-Item -Path $ExeFile.FullName -Destination "$ARTIFACT_DIR\${{ matrix.asset_name_base }}.exe"
-          # Benenne .exe.sig um
+          # Rename .exe.sig
           Move-Item -Path $SigFile.FullName -Destination "$ARTIFACT_DIR\${{ matrix.asset_name_base }}.exe.sig"
 
           echo "Final content of $ARTIFACT_DIR after move"
@@ -153,7 +153,7 @@ jobs:
           ls -R "${{ matrix.output_path }}" || true 
           echo "-----------------------------------"
           
-          APP_BASE_NAME="NoRisk Launcher" # Dein productName
+          APP_BASE_NAME="NoRisk Launcher" # Your productName
           ARTIFACT_DIR_DMG=${{ matrix.output_path }}/dmg
           ARTIFACT_DIR_APP=${{ matrix.output_path }}/macos
           RENAMED_DIR="$ARTIFACT_DIR_APP/renamed"
@@ -163,13 +163,13 @@ jobs:
           ls -R "$ARTIFACT_DIR_APP" || true
           mkdir -p "$RENAMED_DIR"
           
-          # Verschiebe DMG (Wildcard sollte ok sein)
+          # Move DMG (Wildcard should be fine)
           mv "$ARTIFACT_DIR_DMG"/*.dmg "$RENAMED_DIR"/${{ matrix.asset_name_base }}.dmg
           
-          # Verschiebe App Tarball (expliziter Name)
+          # Move App Tarball (explicit name)
           mv "$ARTIFACT_DIR_APP/${APP_BASE_NAME}.app.tar.gz" "$RENAMED_DIR"/${{ matrix.asset_name_base }}.app.tar.gz
           
-          # Verschiebe App Tarball Signatur (expliziter Name, ignoriere Fehler)
+          # Move App Tarball signature (explicit name, ignore errors)
           mv "$ARTIFACT_DIR_APP/${APP_BASE_NAME}.app.tar.gz.sig" "$RENAMED_DIR"/${{ matrix.asset_name_base }}.app.tar.gz.sig
           
           echo "Final content of $RENAMED_DIR after move"
@@ -181,7 +181,7 @@ jobs:
           echo "-----------------------------------"
         shell: bash
 
-      # --- Artefakte hochladen --- 
+      # --- Upload artifacts --- 
       - name: Upload Linux Artifact
         uses: actions/upload-artifact@v4
         if: matrix.platform == 'ubuntu-22.04'
@@ -209,10 +209,10 @@ jobs:
   # --- JOB 2: Create Release --- 
   release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    needs: build # Abhängigkeit vom Build-Job
+    needs: build # Dependency on build job
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Benötigt für Release-Erstellung
+      contents: write # Required for release creation
     steps:
       - name: Checkout repository (needed for release notes maybe)
         uses: actions/checkout@v4 
@@ -220,8 +220,8 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: artifacts # Alle Artefakte in ein Unterverzeichnis herunterladen
-          # Kein expliziter Name, lädt alle hochgeladenen Artefakte herunter
+          path: artifacts # Download all artifacts to a subdirectory
+          # No explicit name, downloads all uploaded artifacts
 
       - name: List downloaded artifacts
         run: ls -R artifacts
@@ -231,33 +231,33 @@ jobs:
         env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref_name }} # Verwendet den Tag, der den Workflow ausgelöst hat
-          name: Release ${{ github.ref_name }} # Name des Releases
+          tag_name: ${{ github.ref_name }} # Uses the tag that triggered the workflow
+          name: Release ${{ github.ref_name }} # Name of the release
           body: | # Optional: Release Notes
             Automated release for tag ${{ github.ref_name }}
             See assets below.
           draft: false
-          # Setze auf true, wenn der Tag '-alpha', '-beta' oder '-rc' enthält
+          # Set to true if tag contains '-alpha', '-beta' or '-rc'
           prerelease: ${{ contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
-          files: artifacts/**/* # Lädt alle heruntergeladenen Artefakte hoch
+          files: artifacts/**/* # Upload all downloaded artifacts
 
-      # --- Schritt: Produktions-Backend benachrichtigen --- 
+      # --- Step: Notify Production Backend --- 
       - name: Notify Production Backend
-        if: success() # Nur wenn Release-Erstellung erfolgreich war
+        if: success() # Only if release creation was successful
         run: |
           echo "Sending notification to PRODUCTION backend for tag ${{ github.ref_name }}"
           curl -X POST \
                -H "Content-Type: application/json" \
                -H "Authorization: Bearer ${{ secrets.BACKEND_API_KEY }}" \
-               https://api.norisk.gg/api/v1/launcher/releases/update
+               ${{ secrets.RELEASE_UPDATE_API_URL }}
         shell: bash
 
-  # --- JOB 3: Staging-Backend benachrichtigen ---
-  notify_staging: # Neuer Job für Staging/Manual
-    # Läuft bei Push zu staging ODER bei manuellem Start
+  # --- JOB 3: Notify Staging Backend ---
+  notify_staging: # New job for Staging/Manual
+    # Runs on push to staging OR on manual start
     if: (github.event_name == 'push' && github.ref == 'refs/heads/staging') || (github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
-    needs: build # Stellt sicher, dass Builds abgeschlossen sind (oder fehlgeschlagen sind)
+    needs: build # Ensures builds are completed (or failed)
     steps:
       - name: Notify Staging Backend
         run: |
@@ -265,5 +265,5 @@ jobs:
           curl -X POST \
                -H "Content-Type: application/json" \
                -H "Authorization: Bearer ${{ secrets.BACKEND_API_KEY }}" \
-               https://api-staging.norisk.gg/api/v1/launcher/releases/update
+               ${{ secrets.BETA_UPDATE_API_URL }}
         shell: bash
