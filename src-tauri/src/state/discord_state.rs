@@ -9,8 +9,8 @@ use tauri::Manager; // Keep for app_handle.state()
 use tokio::sync::{Mutex, RwLock};
 use uuid::Uuid;
 
-// Discord application ID for NoRiskClient
-const DISCORD_APP_ID: &str = "1237087999104122981"; // Replace with actual Discord application ID
+// Discord application ID for VXL Launcher
+const DISCORD_APP_ID: &str = "1443240317955477554"; // Replace with actual Discord application ID
 
 // Different states for Discord Rich Presence
 #[derive(Debug, Clone, PartialEq)]
