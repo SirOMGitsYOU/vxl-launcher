@@ -19,46 +19,6 @@ pub struct TargetMod {
     pub cache_path: PathBuf,
 }
 
-// --- Helper function to check if a filename is blocked by Flagsmith config ---
-async fn is_filename_blocked_by_config(filename: &str, enable_flagsmith_blocking: bool) -> bool {
-    if !enable_flagsmith_blocking {
-        return false; // Skip blocking if no NoRisk pack is selected
-    }
-    
-    match crate::commands::flagsmith_commands::is_filename_blocked(filename.to_string()).await {
-        Ok(is_blocked) => {
-            if is_blocked {
-                info!("Filename '{}' is blocked by Flagsmith configuration", filename);
-            }
-            is_blocked
-        }
-        Err(e) => {
-            warn!("Failed to check if filename '{}' is blocked: {:?}. Allowing by default.", filename, e);
-            false // Default to allowing if check fails
-        }
-    }
-}
-
-// --- Helper function to check if a Modrinth project ID is blocked by Flagsmith config ---
-async fn is_modrinth_project_id_blocked_by_config(project_id: &str, enable_flagsmith_blocking: bool) -> bool {
-    if !enable_flagsmith_blocking {
-        return false; // Skip blocking if no NoRisk pack is selected
-    }
-    
-    match crate::commands::flagsmith_commands::is_modrinth_project_id_blocked(project_id.to_string()).await {
-        Ok(is_blocked) => {
-            if is_blocked {
-                info!("Modrinth project ID '{}' is blocked by Flagsmith configuration", project_id);
-            }
-            is_blocked
-        }
-        Err(e) => {
-            warn!("Failed to check if Modrinth project ID '{}' is blocked: {:?}. Allowing by default.", project_id, e);
-            false // Default to allowing if check fails
-        }
-    }
-}
-
 // --- Unified helper function to add a mod to final_mods with all necessary checks ---
 async fn try_add_mod_to_final_list(
     canonical_key: String,
@@ -67,30 +27,8 @@ async fn try_add_mod_to_final_list(
     final_mods: &mut HashMap<String, TargetMod>,
     mod_type_str: &str,
     mod_name: &str,
-    project_id: Option<&str>, // Only for Modrinth mods
-    enable_flagsmith_blocking: bool, // Flag to enable/disable Flagsmith blocking
 ) -> bool {
-    // 1. Check Modrinth Project ID if applicable
-    if let Some(pid) = project_id {
-        if is_modrinth_project_id_blocked_by_config(pid, enable_flagsmith_blocking).await {
-            info!(
-                "Skipping {} mod '{}' (project ID: {}) because project ID is blocked by configuration",
-                mod_type_str, mod_name, pid
-            );
-            return false;
-        }
-    }
-    
-    // 2. Check filename
-    if is_filename_blocked_by_config(&filename, enable_flagsmith_blocking).await {
-        info!(
-            "Skipping {} mod '{}' because filename '{}' is blocked by configuration",
-            mod_type_str, mod_name, filename
-        );
-        return false;
-    }
-    
-    // 3. Check if file exists in cache
+    // 1. Check if file exists in cache
     let cache_path = mod_cache_dir.join(&filename);
     if !cache_path.exists() {
         warn!(
@@ -100,7 +38,7 @@ async fn try_add_mod_to_final_list(
         return false;
     }
     
-    // 4. Add to final mods
+    // 2. Add to final mods
     if final_mods.contains_key(&canonical_key) {
         info!(
             "Overriding pack {} mod with key '{}' with version: {}",
@@ -135,11 +73,6 @@ pub async fn resolve_target_mods(
     mod_cache_dir: &PathBuf,
 ) -> Result<Vec<TargetMod>> {
     let mut final_mods: HashMap<String, TargetMod> = HashMap::new(); // Key: Canonical Mod Identifier
-    
-    // Enable Flagsmith blocking only if a NoRisk pack is selected
-    // Removed: No pre-installed modpacks
-    let enable_flagsmith_blocking = false;
-    debug!("Flagsmith mod blocking is disabled (no NoRisk pack selected)");
 
     // --- Helper: Get Canonical Key ---
     fn get_canonical_key_profile(source: &ModSource) -> Option<String> {
@@ -233,8 +166,6 @@ pub async fn resolve_target_mods(
                                 &mut final_mods,
                                 "profile Modrinth",
                                 mod_name,
-                                Some(project_id),
-                                enable_flagsmith_blocking,
                             ).await;
                         }
                         Err(e) => {
@@ -271,8 +202,6 @@ pub async fn resolve_target_mods(
                                 &mut final_mods,
                                 "profile CurseForge",
                                 mod_name,
-                                Some(project_id),
-                                enable_flagsmith_blocking,
                             ).await;
                         }
                         Err(e) => {
@@ -314,8 +243,6 @@ pub async fn resolve_target_mods(
                                 &mut final_mods,
                                 mod_type_str,
                                 mod_name,
-                                None, // URL/Maven mods don't have project IDs
-                                enable_flagsmith_blocking,
                             ).await;
                         }
                         Err(e) => {
@@ -358,15 +285,6 @@ pub async fn resolve_target_mods(
         let mut custom_mods_added = 0;
         for info in custom_mods {
             if info.is_enabled {
-                // Check if filename is blocked by Flagsmith config first (no project ID check for custom mods)
-                if is_filename_blocked_by_config(&info.filename, enable_flagsmith_blocking).await {
-                    info!(
-                        "Skipping custom mod '{}' because filename is blocked by configuration",
-                        info.filename
-                    );
-                    continue;
-                }
-                
                 // Create a unique key for the HashMap
                 let canonical_key = format!("local:{}", info.filename);
 

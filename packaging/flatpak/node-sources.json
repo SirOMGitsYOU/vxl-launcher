@@ -3576,13 +3576,6 @@
     },
     {
         "type": "file",
-        "url": "https://registry.yarnpkg.com/flagsmith/-/flagsmith-9.2.2.tgz#6a30b18da472abd86b36fd4a97a155bd162b4fb1",
-        "sha512": "f54348e5176dbf8af7ac4aee4f7b0b8a7643287d68edca3c912a299860c1e6af5f0961d72dad472db8c0c1ef713e832d58ca5d4bc82a2dd63651905d7f1b9576",
-        "dest-filename": "flagsmith-9.2.2.tgz",
-        "dest": "flatpak-node/yarn-mirror"
-    },
-    {
-        "type": "file",
         "url": "https://registry.yarnpkg.com/fs-minipass/-/fs-minipass-2.1.0.tgz#7f5036fdbf12c63c169190cbe4199c852271f9fb",
         "sha512": "57f26038b1424be47a55cab4b250ae69e58474d0b7a2e0e524c348b1a707d95b402e2bbd995e0b3eb1dce5c0e5f24e5ac3a27c8f08165a9893a39458866233be",
         "dest-filename": "fs-minipass-2.1.0.tgz",

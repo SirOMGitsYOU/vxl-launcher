@@ -2,7 +2,6 @@ import { invoke } from "@tauri-apps/api/core";
 // Import the actual type with corrected path
 import type { ProcessMetadata, CrashlogDto } from "../types/processState";
 import { getLauncherConfig } from "./launcher-config-service";
-import flagsmith from "flagsmith";
 import { toast } from "react-hot-toast";
 import { logInfo, logWarn } from "../utils/logging-utils";
 
@@ -30,23 +29,6 @@ export async function launch(
   migrationInfo?: any,
   skipLastPlayedUpdate?: boolean
 ): Promise<void> {
-  // Guard: If experimental mode is enabled in settings, require feature flag to be enabled
-  try {
-    const config = await getLauncherConfig();
-    if (config?.is_experimental) {
-      logInfo("[ProcessService] Experimental mode is enabled in settings");
-      const isAllowed = flagsmith.hasFeature("show_experimental_mode", { fallback: false });
-      logInfo(`[ProcessService] Feature flag check result: ${isAllowed}`);
-      if (!isAllowed) {
-        toast.error("Please disable experimental mode in Settings.");
-        return; // Block launch
-      }
-    }
-  } catch (e) {
-    logWarn(
-      `[ProcessService] Failed to check experimental mode flag: ${e instanceof Error ? e.message : String(e)}`,
-    );
-  }
 
   return invoke<void>("launch_profile", {
     id,

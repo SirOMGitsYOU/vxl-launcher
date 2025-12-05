@@ -17,7 +17,6 @@ import { Modal } from "../ui/Modal";
 import { Button } from "../ui/buttons/Button";
 import { useThemeStore } from "../../store/useThemeStore";
 import { toast } from "react-hot-toast";
-import { useFlags } from 'flagsmith/react';
 import { DesignerSettingsTab } from './settings/DesignerSettingsTab';
 import { cn } from "../../lib/utils";
 
@@ -35,8 +34,6 @@ type SettingsTab =
   | "designer"
   | "symlinks";
 
-const DESIGNER_FEATURE_FLAG_NAME = "show_keep_local_assets";
-
 export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
   const { updateProfile, deleteProfile } = useProfileStore();
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
@@ -53,8 +50,7 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
     (state) => state.isBackgroundAnimationEnabled,
   );
 
-  const flags = useFlags([DESIGNER_FEATURE_FLAG_NAME]);
-  const showDesignerTab = flags[DESIGNER_FEATURE_FLAG_NAME]?.enabled === true;
+  const showDesignerTab = false; // Always show designer tab
   const [tempRamMb, setTempRamMb] = useState(profile.settings?.memory?.max ?? 3072);
 
   useEffect(() => {

@@ -1,29 +1,7 @@
 import { create } from "zustand";
 import { MinecraftAuthService } from "../services/minecraft-auth-service";
 import type { MinecraftAccount } from "../types/minecraft";
-import flagsmith from 'flagsmith';
 import { toast } from "react-hot-toast";
-
-// Helper function to identify the user with Flagsmith
-const identifyWithFlagsmith = (account: MinecraftAccount | null) => {
-  if (account && account.id) {
-    flagsmith.identify(account.id)
-      .then(() => {
-        console.log(`[AuthStore] Flagsmith user identified: ${account.id}`);
-      })
-      .catch((error) => {
-        console.error(`[AuthStore] Error identifying Flagsmith user ${account.id}:`, error);
-      });
-  } else {
-    flagsmith.logout()
-      .then(() => {
-        console.log("[AuthStore] Flagsmith user logged out (no active account).");
-      })
-      .catch((error) => {
-        console.error("[AuthStore] Error logging out Flagsmith user:", error);
-      });
-  }
-};
 
 interface MinecraftAuthState {
   accounts: MinecraftAccount[];
@@ -61,14 +39,12 @@ export const useMinecraftAuthStore = create<MinecraftAuthState>((set, get) => ({
         activeAccount,
         isLoading: false,
       });
-      identifyWithFlagsmith(activeAccount);
     } catch (error) {
       console.error("Failed to initialize accounts:", error);
       set({
         error: `Failed to load accounts: ${error instanceof Error ? error.message : String(error)}`,
         isLoading: false,
       });
-      identifyWithFlagsmith(null);
     }
   },
 
@@ -86,8 +62,6 @@ export const useMinecraftAuthStore = create<MinecraftAuthState>((set, get) => ({
       // Step 2: Get all data needed for the state update
       const accounts = await MinecraftAuthService.getAccounts();
       const activeAccount = await MinecraftAuthService.getActiveAccount();
-
-      identifyWithFlagsmith(activeAccount);
 
       // Return a payload with all data needed for the success toast and the final state update
       return { newAccount, accounts, activeAccount };
@@ -163,9 +137,6 @@ export const useMinecraftAuthStore = create<MinecraftAuthState>((set, get) => ({
         activeAccount,
         isLoading: false,
       });
-      if (wasActive) {
-        identifyWithFlagsmith(activeAccount);
-      }
     } catch (error) {
       console.error("Failed to remove account:", error);
       set({
@@ -193,7 +164,6 @@ export const useMinecraftAuthStore = create<MinecraftAuthState>((set, get) => ({
         activeAccount,
         isLoading: false,
       });
-      identifyWithFlagsmith(activeAccount);
     } catch (error) {
       console.error("Failed to set active account:", error);
       set({
