@@ -16,8 +16,6 @@ pub enum EventType {
     DownloadingAssets,
     ReusingMinecraftAssets,
     CopyingInitialData,
-    CopyingNoRiskClientAssets,
-    DownloadingNoRiskClientAssets,
     DownloadingClient,
     InstallingFabric,
     InstallingQuilt,
