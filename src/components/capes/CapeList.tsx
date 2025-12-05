@@ -29,7 +29,7 @@ import { IconButton } from "../ui/buttons/IconButton";
 // Removed ListComponent - using native grid layout instead
 
 interface CapeItemDisplayProps {
-  cape: CosmeticCape | VanillaCape;
+  cape: VanillaCape;
   imageUrl: string;
   isCurrentlyEquipping: boolean;
   isEquipped?: boolean;
@@ -128,7 +128,7 @@ function CapeItemDisplay({
 
 
 export interface CapeListProps {
-  capes: CosmeticCape[] | VanillaCape[];
+  capes: VanillaCape[];
   onEquipCape: (capeHash: string) => void;
   isLoading?: boolean;
   isEquippingCapeId?: string | null;
@@ -151,11 +151,10 @@ export function CapeList({
   isVanilla = false,
 }: CapeListProps) {
   const accentColor = useThemeStore((state) => state.accentColor);
-  const creatorNameCacheRef = useRef<Map<string, string>>(new Map());
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
-    cape: CosmeticCape | null;
+    cape: null;
   } | null>(null);
   const authStore = useMinecraftAuthStore();
   const activeAccount = authStore.activeAccount;
