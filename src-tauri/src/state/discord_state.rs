@@ -262,7 +262,7 @@ impl DiscordManager {
                     .assets(
                         activity::Assets::new()
                             .large_image(icon)
-                            .large_text("NoRiskClient"),
+                            .large_text("VXL Launcher"),
                     )
                     .timestamps(activity::Timestamps::new().start(start_time))
                     .buttons(buttons) // Include buttons here
