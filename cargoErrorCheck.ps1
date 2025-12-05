@@ -1,9 +1,11 @@
 cd src-tauri
-cargo check 2>&1 |
-    Select-String "error\[" |
-    ForEach-Object {
-        $start = $_.LineNumber - 3
-        if ($start -lt 0) { $start = 0 }
-        cargo check 2>&1 |
-            Select-Object -Skip $start -First 15
+$cargo = cargo check 2>&1
+for ($i = 0; $i -lt $cargo.Count; $i++) {
+    if ($cargo[$i] -match "^error\[") {
+        $cargo[$i]
+        if ($i + 1 -lt $cargo.Count) {
+            $cargo[$i + 1]   # print the line below the error
+        }
     }
+}
+cd ../
