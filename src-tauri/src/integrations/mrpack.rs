@@ -1,9 +1,11 @@
 use crate::error::{AppError, Result};
 use crate::integrations::modrinth;
+use crate::minecraft::downloads::{ModDownloadService, mod_resolver};
 use crate::state::profile_state::{
     Mod, ModLoader, ModSource, ModPackInfo, ModPackSource, Profile, ProfileSettings, ProfileState,
 };
 use crate::state::state_manager::State;
+use crate::config::{ProjectDirsExt, LAUNCHER_DIRECTORY};
 use async_zip::tokio::read::seek::ZipFileReader;
 use chrono::Utc;
 use futures::future::try_join_all;
@@ -849,7 +851,54 @@ pub async fn import_mrpack_as_profile(
     extract_mrpack_overrides(&pack_path, &profile).await?;
     info!("Successfully extracted overrides.");
 
-    // 5. Save the profile using ProfileManager via State
+    // 5. Download mods to cache and sync to profile directory
+    info!(
+        "Downloading mods for profile '{}'...",
+        profile.name
+    );
+    
+    let state = State::get().await?;
+    let launcher_config = state.config_manager.get_config().await;
+    let mod_downloader_service = ModDownloadService::with_concurrency(launcher_config.concurrent_downloads);
+    
+    // Download mods to central cache
+    mod_downloader_service
+        .download_mods_to_cache(&profile)
+        .await?;
+    info!(
+        "Successfully downloaded mods to cache for profile '{}'",
+        profile.name
+    );
+    
+    // Get the profile's mods directory path
+    let profile_mods_path = state.profile_manager.get_profile_mods_path(&profile)?;
+    
+    // Sync mods from cache to profile directory
+    if profile.loader == ModLoader::Fabric {
+        info!(
+            "Skipping mods folder sync for Fabric (using addMods meta file instead)."
+        );
+    } else {
+        // Resolve target mods using the resolver
+        let mod_cache_dir = LAUNCHER_DIRECTORY.meta_dir().join("mod_cache");
+        let target_mods = crate::minecraft::downloads::mod_resolver::resolve_target_mods(
+            &profile,
+            None, // No custom mods for modpacks
+            &profile.game_version,
+            profile.loader.as_str(),
+            &mod_cache_dir,
+        ).await?;
+        
+        mod_downloader_service
+            .sync_mods_to_profile(&target_mods, &profile_mods_path)
+            .await?;
+    }
+    info!(
+        "Successfully synced mods to profile directory for '{}'",
+        profile.name
+    );
+
+    // 6. Save the profile using ProfileManager via State
     let state = State::get().await?;
     info!(
         "Saving the new profile '{}' (ID: {})...",
