@@ -240,7 +240,7 @@ impl DiscordManager {
         let icon = "icon_512px"; // Use a consistent icon name
 
         // TODO: Resolve button issue
-        let download_button = activity::Button::new("DOWNLOAD", "https://norisk.gg/");
+        let download_button = activity::Button::new("DOWNLOAD", "https://voxelstudios.co.uk/download/");
         let buttons = vec![download_button];
 
         debug!("Creating activity for Discord state: {:?}", state);
