@@ -1,5 +1,4 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { CapesBrowseResponse, BrowseCapesOptions, GetPlayerCapesPayloadOptions, CosmeticCape } from '../types/noriskCapes';
 import type { MinecraftProfile } from '../types/minecraft';
 
 /**
