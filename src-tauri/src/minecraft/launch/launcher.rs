@@ -255,7 +255,7 @@ impl MinecraftLauncher {
         // Create JVM arguments processor
         let jvm_args = JvmArguments::new(
             natives_path.clone(),
-            "noriskclient-launcher".to_string(),
+            "VXL-launcher".to_string(),
             "3.0.0".to_string(),
             classpath.clone(),
         );

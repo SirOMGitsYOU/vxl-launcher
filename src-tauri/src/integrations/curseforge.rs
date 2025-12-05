@@ -1920,7 +1920,7 @@ pub async fn download_and_install_curseforge_modpack(
         .header(
             "User-Agent",
             format!(
-                "NoRiskClient-Launcher/{} (support@norisk.gg)",
+                "VXL-Launcher/{} (contact@voxelstudios.co.uk)",
                 env!("CARGO_PKG_VERSION")
             ),
         )

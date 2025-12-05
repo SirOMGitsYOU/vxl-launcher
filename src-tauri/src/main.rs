@@ -127,7 +127,7 @@ async fn main() {
         eprintln!("FEHLER: Logging konnte nicht initialisiert werden: {}", e);
     }
 
-    info!("Starting NoRiskClient Launcher...");
+    info!("Starting VXL Launcher...");
 
     tauri::Builder::default()
         .plugin(tauri_plugin_process::init())

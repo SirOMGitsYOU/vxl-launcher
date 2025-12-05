@@ -18,26 +18,6 @@ export function TermsOfServiceModal({ isOpen }: TermsOfServiceModalProps) {
     toast.success("Terms of Service accepted!");
   };
 
-  const handleOpenPrivacyPolicy = async () => {
-    try {
-      await openExternalUrl('https://blog.norisk.gg/en/privacy-policy/');
-      toast.success("Privacy Policy opened in your browser!");
-    } catch (error) {
-      console.error("Failed to open Privacy Policy URL:", error);
-      toast.error("Could not open Privacy Policy. Please visit blog.norisk.gg/privacy-policy/ manually.");
-    }
-  };
-
-  const handleOpenTerms = async () => {
-    try {
-      await openExternalUrl('https://blog.norisk.gg/en/terms-of-use/');
-      toast.success("Terms of Service opened in your browser!");
-    } catch (error) {
-      console.error("Failed to open Terms URL:", error);
-      toast.error("Could not open Terms. Please visit blog.norisk.gg/en/terms-of-use/ manually.");
-    }
-  };
-
   if (!isOpen) {
     return null;
   }
@@ -92,25 +72,6 @@ export function TermsOfServiceModal({ isOpen }: TermsOfServiceModalProps) {
               </p>
             </div>
           </div>
-        </div>
-
-        <div className="flex justify-center gap-4">
-          <Button 
-            onClick={handleOpenPrivacyPolicy} 
-            variant="flat" 
-            icon={<Icon icon="solar:document-text-linear" className="w-4 h-4" />}
-            size="sm"
-          >
-            Privacy Policy
-          </Button>
-          <Button 
-            onClick={handleOpenTerms} 
-            variant="flat" 
-            icon={<Icon icon="solar:document-text-linear" className="w-4 h-4" />}
-            size="sm"
-          >
-            View Full Terms
-          </Button>
         </div>
 
         <div className="text-center text-sm text-gray-400">

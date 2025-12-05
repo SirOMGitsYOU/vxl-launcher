@@ -18,19 +18,19 @@ jobs:
           - platform: 'macos-latest'
             target: aarch64-apple-darwin
             output_path: ./src-tauri/target/aarch64-apple-darwin/release/bundle
-            asset_name_base: NoRiskClient-MacOS-arm64
+            asset_name_base: VXL-Launcher-MacOS-arm64
           - platform: 'macos-latest'
             target: x86_64-apple-darwin
             output_path: ./src-tauri/target/x86_64-apple-darwin/release/bundle
-            asset_name_base: NoRiskClient-MacOS-x86_64
+            asset_name_base: VXL-Launcher-MacOS-x86_64
           - platform: 'ubuntu-22.04'
             target: '' # No explicit target for Linux x86_64
             output_path: ./src-tauri/target/release/bundle
-            asset_name_base: NoRiskClient-Linux
+            asset_name_base: VXL-Launcher-Linux
           - platform: 'windows-latest'
             target: '' # No explicit target for Windows x86_64
             output_path: ./src-tauri/target/release/bundle
-            asset_name_base: NoRiskClient-Windows-setup
+            asset_name_base: VXL-Launcher-Windows-setup
 
     runs-on: ${{ matrix.platform }}
     steps:

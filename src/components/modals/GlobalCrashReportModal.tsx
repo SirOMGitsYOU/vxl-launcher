@@ -266,11 +266,11 @@ export function GlobalCrashReportModal() {
   
   const handleContactSupport = async () => {
     try {
-      await openExternalUrl('https://discord.norisk.gg');
+      await openExternalUrl('https://vxl.to/discord');
       toast.success("Opened NoRisk Discord in your browser!");
     } catch (error) {
       console.error("Failed to open Discord URL:", error);
-      toast.error("Could not open Discord. Please go to discord.norisk.gg manually.");
+      toast.error("Could not open Discord. Please go to vxl.to/discord manually.");
     }
   };
 

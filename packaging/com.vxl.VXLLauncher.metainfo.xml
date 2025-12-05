@@ -2,33 +2,33 @@
 <component type="desktop-application">
   <id>com.vxl.VXLLauncher</id>
 
-  <name>NoRisk Client Launcher</name>
-  <summary>A Launcher for the NoRisk Client</summary>
+  <name>VXL Launcher</name>
+  <summary>A Launcher for Minecraft from Voxel Studios</summary>
 
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-only</project_license>
 
   <developer id="com.vxl">
-    <name>NoRisk Client Team</name>
+    <name>Voxel Studios Team</name>
   </developer>
 
   <description>
     <p>
-      NoRisk Client Launcher to install and launch Minecraft with several new features.
+      VXL Launcher to install and launch Minecraft with various mod and modpack options.
     </p>
   </description>
 
   <launchable type="desktop-id">com.vxl.VXLLauncher.desktop</launchable>
 
-  <url type="homepage">https://norisk.gg/</url>
-  <url type="contribute">https://github.com/NoRiskClient/noriskclient-launcher</url>
-  <url type="bugtracker">https://github.com/NoRiskClient/issues</url>
+  <url type="homepage">https://voxelstudios.co.uk</url>
+  <url type="contribute">https://github.com/VicariousNetwork/vxl-launcher</url>
+  <url type="bugtracker">https://github.com/VicariousNetwork/vxl-launcher/issues</url>
   <screenshots>
     <screenshot type="default">
       <image>
-        https://cdn.norisk.gg/website-assets/launcher_flatpack_image.png
+        https://cdn.poitor.is-a.dev/images/vxl/launcher_flatpack_image.png
       </image>
-      <caption>NoRisk Client home screen</caption>
+      <caption>VXL Launcher</caption>
     </screenshot>
   </screenshots>
 
@@ -42,80 +42,8 @@
   </content_rating>
 
   <releases>
-    <release version="0.6.13" date="2025-11-23">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.13</url>
-    </release>
-    <release version="0.6.13~beta.16" date="2025-11-23">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.13-beta.16</url>
-    </release>
-    <release version="0.6.13~beta.15" date="2025-11-18">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.13-beta.15</url>
-    </release>
-    <release version="0.6.13~beta.14" date="2025-11-17">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.13-beta.14</url>
-    </release>
-    <release version="0.6.13~beta.13" date="2025-11-17">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.13-beta.13</url>
-    </release>
-    <release version="0.6.13~beta.12" date="2025-11-17">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.13-beta.12</url>
-    </release>
-    <release version="0.6.13~beta.11" date="2025-11-17">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.13-beta.11</url>
-    </release>
-    <release version="0.6.13~beta.10" date="2025-11-17">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.13-beta.10</url>
-    </release>
-    <release version="0.6.13~beta.9" date="2025-11-17">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.13-beta.9</url>
-    </release>
-    <release version="0.6.13~beta.8" date="2025-11-17">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.13-beta.8</url>
-    </release>
-    <release version="0.6.13~beta.7" date="2025-11-03">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.13-beta.7</url>
-    </release>
-    <release version="0.6.13~beta.6" date="2025-11-03">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.13-beta.6</url>
-    </release>
-    <release version="0.6.13~beta.5" date="2025-11-02">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.13-beta.5</url>
-    </release>
-    <release version="0.6.13~beta.4" date="2025-11-02">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.13-beta.4</url>
-    </release>
-    <release version="0.6.13~beta.3" date="2025-11-02">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.13-beta.3</url>
-    </release>
-    <release version="0.6.13~beta.2" date="2025-11-02">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.13-beta.2</url>
-    </release>
-    <release version="0.6.13~beta.1" date="2025-11-02">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.13-beta.1</url>
-    </release>
-    <release version="0.6.12" date="2025-10-25">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.12</url>
-    </release>
-    <release version="0.6.12~beta.2" date="2025-10-25">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.12-beta.2</url>
-    </release>
-    <release version="0.6.12~beta.1" date="2025-10-21">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.12-beta.1</url>
-    </release>
-    <release version="0.6.11" date="2025-10-14">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.11</url>
-    </release>
-    <release version="0.6.7" date="2025-08-18">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.7</url>
-    </release>
-    <release version="0.6.6" date="2025-06-29">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.6</url>
-    </release>
-    <release version="0.6.5" date="2025-06-24">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.5</url>
-    </release>
-    <release version="0.6.4" date="2025-06-23">
-      <url type="details">https://github.com/NoRiskClient/noriskclient-launcher/releases/tag/v0.6.4</url>
+    <release version="0.1.0" date="2025-11-23">
+      <url type="details">https://github.com/VicariousNetwork/vxl-launcher/releases/tag/v0.1.0</url>
     </release>
   </releases>
 </component>

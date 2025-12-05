@@ -944,7 +944,7 @@ pub async fn download_and_process_mrpack(
         .header(
             "User-Agent",
             format!(
-                "NoRiskClient-Launcher/{} (support@norisk.gg)",
+                "VXL-Launcher/{} (contact@voxelstudios.co.uk)",
                 env!("CARGO_PKG_VERSION")
             ),
         )
