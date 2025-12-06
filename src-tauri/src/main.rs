@@ -145,7 +145,7 @@ async fn main() {
                 let _ = window.unminimize(); // Ensure it's not minimized
                 let _ = window.set_focus();   // Bring to front and focus
             }
-            // Call the handler for .noriskpack files
+            // Call the handler for .vxlpack files
             let app_handle_clone = app.clone();
             tauri::async_runtime::spawn(async move {
                 norisk_packs::handle_noriskpack_file_paths(&app_handle_clone, argv).await;
@@ -219,7 +219,7 @@ async fn main() {
                 })
                 .build(app)?;
 
-            // --- Handle .noriskpack file opening on initial startup (all platforms) ---
+            // --- Handle .vxlpack file opening on initial startup (all platforms) ---
             // The single-instance plugin does not handle the *very first* launch with arguments.
             // We still need to check std::env::args() here for that first launch.
             /*info!("Checking for startup file arguments...");
@@ -231,7 +231,7 @@ async fn main() {
                     norisk_packs::handle_noriskpack_file_paths(&handle_clone, startup_args).await;
                 });
             }*/
-            // --- End .noriskpack handling on startup ---
+            // --- End .vxlpack handling on startup ---
 
             // Task for State Init and Updater Window
             let state_init_app_handle = app_handle.clone();

@@ -69,7 +69,7 @@ export function useGlobalDragAndDrop() {
             }, PROCESS_COOLDOWN_MS);
 
             const profilePackPath = droppedPaths.find(path =>
-              path.toLowerCase().endsWith('.noriskpack') || path.toLowerCase().endsWith('.mrpack') || path.toLowerCase().endsWith('.zip')
+              path.toLowerCase().endsWith('.vxlpack') || path.toLowerCase().endsWith('.mrpack') || path.toLowerCase().endsWith('.zip')
             );
 
             if (profilePackPath) {
@@ -112,7 +112,7 @@ export function useGlobalDragAndDrop() {
             if (currentMainTab === 'worlds' && currentProfileId) {
               // Filter for potential world folders (directories - paths without file extensions)
               // We'll try to import all dropped paths that don't have known file extensions
-              const knownFileExtensions = ['.jar', '.zip', '.noriskpack', '.mrpack', '.disabled'];
+              const knownFileExtensions = ['.jar', '.zip', '.vxlpack', '.mrpack', '.disabled'];
               const potentialWorldFolders = droppedPaths.filter(path => {
                 const lowerPath = path.toLowerCase();
                 // Check if path doesn't end with a known file extension
@@ -237,7 +237,7 @@ export function useGlobalDragAndDrop() {
                 toast(`No files matching expected types (${expectedExtensions.join(', ')}) for ${itemTypeName} were dropped.`);
               }
             } else {
-              toast('Drop files onto an active profile content area to import them, or drop a .noriskpack/.mrpack/.zip file anywhere to import a profile.');
+              toast('Drop files onto an active profile content area to import them, or drop a .vxlpack/.mrpack/.zip file anywhere to import a profile.');
             }
           } else if (payload.type === 'cancel') {
             console.log(`[DragDrop Hook ${instanceId}] File drop cancelled at ${eventTimestamp}`);

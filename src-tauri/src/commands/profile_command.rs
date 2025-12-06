@@ -1432,7 +1432,7 @@ pub async fn copy_profile(params: CopyProfileParams) -> Result<Uuid, CommandErro
     Ok(new_profile_id)
 }
 
-/// Exports a profile to a .noriskpack file format with a fixed export directory
+/// Exports a profile to a .vxlpack file format with a fixed export directory
 #[tauri::command]
 pub async fn export_profile(
     app_handle: tauri::AppHandle,
@@ -1449,7 +1449,7 @@ pub async fn export_profile(
         .await
         .map_err(|e| CommandError::from(AppError::Io(e)))?;
 
-    // Sanitize the filename and add .noriskpack extension
+    // Sanitize the filename and add .vxlpack extension
     let sanitized_name = sanitize(&params.file_name);
     if sanitized_name.is_empty() {
         return Err(CommandError::from(AppError::Other(
@@ -1458,7 +1458,7 @@ pub async fn export_profile(
     }
 
     // Generate complete filename with extension
-    let noriskpack_filename = format!("{}.noriskpack", sanitized_name);
+    let noriskpack_filename = format!("{}.vxlpack", sanitized_name);
 
     // Create full export path
     let export_path = exports_dir.join(&noriskpack_filename);

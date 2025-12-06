@@ -122,21 +122,11 @@ export function PlayerActionsDisplay({
         </div>
       )}
 
-      {displayMode === 'logo' ? (
-        <img
-          src="norisk_logo_color.png"
-          alt="NoRisk Logo"
-          className="h-48 sm:h-56 md:h-64 mb-[-80px] sm:mb-[-100px] md:mb-[-120px] relative z-0"
-          style={{
-            imageRendering: "pixelated",
-            filter: commonDropShadowStyle
-          }}
-        />
-      ) : (
+      (
         <h2 className="font-minecraft text-6xl text-center text-white mb-2 lowercase font-normal">
           {playerName || "no account"}
         </h2>
-      )}
+      )
 
       <div className={cn(
         "relative w-full max-w-[500px] flex flex-col items-center",

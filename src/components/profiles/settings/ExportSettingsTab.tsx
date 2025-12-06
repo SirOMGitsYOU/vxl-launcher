@@ -269,7 +269,7 @@ export function ExportSettingsTab({
             disabled={isExporting}
           />
           <p className="mt-1 text-xs text-white/50 font-minecraft-ten tracking-wide">
-            The .noriskpack extension will be added automatically.
+            The .vxlpack extension will be added automatically.
           </p>
         </div>
         {/* File selection section */}

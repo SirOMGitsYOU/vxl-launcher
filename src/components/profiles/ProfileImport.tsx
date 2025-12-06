@@ -127,7 +127,7 @@ export function ProfileImport({
         <div className="space-y-6">
           <div>
             <p className="text-lg text-white/70 mb-6 font-minecraft-ten tracking-wide select-none">
-              Select a file or drag and drop a .mrpack, .noriskpack, or .zip file into the launcher to import it and create a new profile.
+              Select a file or drag and drop a .mrpack, .vxlpack, or .zip file into the launcher to import it and create a new profile.
             </p>
 
             <div className="mb-6">
@@ -170,7 +170,7 @@ export function ProfileImport({
                       className="w-5 h-5 text-green-400"
                     />
                   </div>
-                  <span>.noriskpack (NoRisk Launcher)</span>
+                  <span>.vxlpack (VXL Launcher)</span>
                 </li>
                 <li className="flex items-center">
                   <div

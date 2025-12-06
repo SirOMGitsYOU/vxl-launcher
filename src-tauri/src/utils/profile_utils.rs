@@ -1023,22 +1023,22 @@ fn determine_compression(file_path: &Path, file_size: u64) -> Compression {
     Compression::Deflate
 }
 
-/// Exports a profile to a `.noriskpack` file
+/// Exports a profile to a `.vxlpack` file
 ///
-/// This creates a zip archive with the .noriskpack extension that contains:
+/// This creates a zip archive with the .vxlpack extension that contains:
 /// - The profile data as JSON (sanitized to remove user-specific data)  
 /// - An "overrides" folder containing any files specified in `include_files`
 ///
 /// @param profile_id: UUID of the profile to export
-/// @param output_path: Optional path where the .noriskpack file should be saved
+/// @param output_path: Optional path where the .vxlpack file should be saved
 /// @param include_files: Optional list of files/directories to include in the overrides folder
-/// @return: Result containing the path to the created .noriskpack file
+/// @return: Result containing the path to the created .vxlpack file
 pub async fn export_profile_to_noriskpack(
     profile_id: Uuid,
     output_path: Option<PathBuf>,
     include_files: Option<Vec<PathBuf>>,
 ) -> Result<PathBuf> {
-    info!("Exporting profile {} to .noriskpack", profile_id);
+    info!("Exporting profile {} to .vxlpack", profile_id);
 
     // Get the profile (no global semaphore - we'll use per-file permits)
     let state = crate::state::state_manager::State::get().await?;
@@ -1077,7 +1077,7 @@ pub async fn export_profile_to_noriskpack(
     }
 
     let total_files = all_files.len();
-    info!("Exporting {} files to .noriskpack", total_files);
+    info!("Exporting {} files to .vxlpack", total_files);
 
     // Create a sanitized copy of the profile for export
     let export_profile = sanitize_profile_for_export(&profile);
@@ -1089,7 +1089,7 @@ pub async fn export_profile_to_noriskpack(
             // Generate a default output path
             let safe_name = profile.name.replace(" ", "_").to_lowercase();
             let default_name = format!(
-                "{}_v{}_{}.noriskpack",
+                "{}_v{}_{}.vxlpack",
                 safe_name,
                 profile.game_version,
                 profile.loader.as_str()
@@ -1111,7 +1111,7 @@ pub async fn export_profile_to_noriskpack(
         }
     }
 
-    info!("Creating .noriskpack archive at: {}", output_file.display());
+    info!("Creating .vxlpack archive at: {}", output_file.display());
 
     // Create zip file and writer - write directly to target file
     let mut file = fs::File::create(&output_file)
