@@ -46,7 +46,7 @@ export function TermsOfServiceModal({ isOpen }: TermsOfServiceModalProps) {
       <div className="p-6 space-y-6 text-white">
         <div className="text-center space-y-4">
           <h3 className="text-3xl font-minecraft text-blue-400 lowercase">
-            Welcome to NoRisk Launcher!
+            Welcome to VXL Launcher!
           </h3>
           <p className="text-lg font-minecraft-ten text-gray-300">
             Before you start using our launcher, please read and accept our Terms of Service.
@@ -59,7 +59,6 @@ export function TermsOfServiceModal({ isOpen }: TermsOfServiceModalProps) {
             <ul className="space-y-2 list-disc list-inside text-sm">
               <li>You must own a legitimate copy of Minecraft to use this launcher</li>
               <li>This launcher is provided "as is" without warranties</li>
-              <li>We collect minimal usage data to improve the experience</li>
               <li>You are responsible for your use of mods and content</li>
               <li>We reserve the right to update these terms at any time</li>
               <li>By using this launcher, you agree to comply with Minecraft's EULA</li>
@@ -76,7 +75,7 @@ export function TermsOfServiceModal({ isOpen }: TermsOfServiceModalProps) {
 
         <div className="text-center text-sm text-gray-400">
           <p>
-            You can withdraw your consent at any time. However, you must accept the terms to use NoRisk Client.
+            You can withdraw your consent at any time. However, you must accept the terms to use VXL Launcher.
           </p>
         </div>
       </div>

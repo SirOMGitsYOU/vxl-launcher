@@ -48,7 +48,7 @@ export function App() {
 
   useEffect(() => {
     const root = document.documentElement;
-    const storedTheme = localStorage.getItem("norisk-theme-storage");
+    const storedTheme = localStorage.getItem("vxl-theme-storage");
     if (storedTheme) {
       try {
         const themeData = JSON.parse(storedTheme);

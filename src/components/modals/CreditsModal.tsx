@@ -70,12 +70,47 @@ export function CreditsModal({ isOpen, onClose }: CreditsModalProps) {
                 size="sm"
                 title="Visit deadmake.dev"
               />
+            </div>
+          </div>
+            <div className="flex items-center justify-between p-4 rounded-lg bg-black/20 border-2 border-white/20 transition-colors">
+            <div className="flex items-center gap-4">
+              <div 
+                className="w-10 h-10 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: `${accentColor.value}40` }}
+              >
+                <Icon
+                  icon="solar:server-bold"
+                  className="w-5 h-5"
+                  style={{ color: accentColor.value }}
+                />
+              </div>
+              <div className="min-h-[3rem] flex flex-col justify-center">
+                <div className="flex items-baseline gap-2">
+                  <h4 className="text-2xl font-minecraft text-white lowercase tracking-wider">
+                    NoRisk & LiquidBounce
+                  </h4>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="text-right">
+                <p className="text-white/80 font-minecraft text-lg lowercase tracking-wide">
+                  Base Code
+                </p>
+              </div>
               <IconButton
-                icon={<span className="text-sm" style={{ transform: "translateY(2px)"}}>🍋</span>}
-                onClick={() => handleOpenUrl("https://fruity.dev")}
+                icon={<Icon icon="solar:global-bold" className="w-4 h-4" />}
+                onClick={() => handleOpenUrl("https://github.com/NoRiskClient/noriskclient-launcher")}
                 variant="default"
                 size="sm"
-                title="Visit fruity.dev"
+                title="NoRisk Source Code"
+              />
+              <IconButton
+                icon={<Icon icon="solar:global-bold" className="w-4 h-4" />}
+                onClick={() => handleOpenUrl("https://github.com/CCBlueX/LiquidLauncher")}
+                variant="default"
+                size="sm"
+                title="LiquidBounce Source Code"
               />
             </div>
           </div>
@@ -94,15 +129,31 @@ export function CreditsModal({ isOpen, onClose }: CreditsModalProps) {
               <div className="min-h-[3rem] flex flex-col justify-center">
                 <div className="flex items-baseline gap-2">
                   <h4 className="text-2xl font-minecraft text-white lowercase tracking-wider">
-                    NoRisk
+                    Voxel Studios
                   </h4>
                 </div>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-white/80 font-minecraft text-lg lowercase tracking-wide">
-                Backend & Core
-              </p>
+            <div className="flex items-center gap-2">
+              <div className="text-right">
+                <p className="text-white/80 font-minecraft text-lg lowercase tracking-wide">
+                  Code & API
+                </p>
+              </div>
+              <IconButton
+                icon={<Icon icon="solar:global-bold" className="w-4 h-4" />}
+                onClick={() => handleOpenUrl("https://github.com/VicariousNetwork/vxl-launcher")}
+                variant="default"
+                size="sm"
+                title="VXL Launcher Source Code"
+              />
+              <IconButton
+                icon={<Icon icon="ic:baseline-discord" className="w-4 h-4" />}
+                onClick={() => handleOpenUrl("https://vxl.to/discord")}
+                variant="default"
+                size="sm"
+                title="VXL Studios Discord"
+              />
             </div>
           </div>
         </div>

@@ -152,18 +152,6 @@ export function ModrinthProjectCard({
                 )}
 
                 {typeof installStatus === "object" &&
-                  installStatus?.is_included_in_norisk_pack && (
-                    <Label
-                      variant="info"
-                      size="xs"
-                      icon={<Icon icon="pixel:cube-solid" />}
-                      withAnimation={false}
-                    >
-                      NORISK PACK
-                    </Label>
-                  )}
-
-                {typeof installStatus === "object" &&
                   installStatus?.is_installed && (
                     <Label
                       variant="success"
