@@ -29,7 +29,7 @@ export const useBackgroundEffectStore = create<BackgroundEffectState>()(
       setCurrentEffect: (effect) => set({ currentEffect: effect }),
     }),
     {
-      name: "norisk-background-effect-storage",
+      name: "vxl-background-effect-storage",
     },
   ),
 );

@@ -49,9 +49,9 @@ pub async fn check_update_available_detailed(
 
     // Determine the base part of the URL and the platform-specific segment template
     let base_repo_url = if is_beta_channel {
-        "https://api-staging.norisk.gg/api/v1/launcher/releases-v2"
+        "https://api.voxelstudios.co.uk/api/v1/launcher/releases"
     } else {
-        "https://api.norisk.gg/api/v1/launcher/releases-v2"
+        "https://api.voxelstudios.co.uk/api/v1/launcher/releases/beta"
     };
 
     let mut platform_specific_target = "{{target}}".to_string(); // Default: Tauri replaces {{target}}
@@ -423,9 +423,9 @@ pub async fn check_for_updates(
 
     // Determine the base part of the URL and the platform-specific segment template
     let base_repo_url = if is_beta_channel {
-        "https://api-staging.norisk.gg/api/v1/launcher/releases-v2"
+        "https://api.voxelstudios.co.uk/api/v1/launcher/releases/beta"
     } else {
-        "https://api.norisk.gg/api/v1/launcher/releases-v2"
+        "https://api.voxelstudios.co.uk/api/v1/launcher/releases"
     };
 
     let mut platform_specific_target = "{{target}}".to_string(); // Default: Tauri replaces {{target}}

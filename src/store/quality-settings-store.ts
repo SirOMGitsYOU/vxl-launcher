@@ -15,7 +15,7 @@ export const useQualitySettingsStore = create<QualitySettingsState>()(
       setQualityLevel: (level) => set({ qualityLevel: level }),
     }),
     {
-      name: "norisk-quality-settings-storage",
+      name: "vxl-quality-settings-storage",
     },
   ),
 );

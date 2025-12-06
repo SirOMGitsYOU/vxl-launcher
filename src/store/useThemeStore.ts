@@ -447,7 +447,7 @@ export const useThemeStore = create<ThemeState>()(
         set({ featureMode: enabled });
       },
     }),    {
-      name: "norisk-theme-storage",
+      name: "vxl-theme-storage",
       onRehydrateStorage: () => (state) => {
         if (state) {
           // Migration: Replace old "none" grouping criterion with "group"

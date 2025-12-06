@@ -21,7 +21,7 @@ interface VanillaCapeState {
   setError: (error: string | null) => void;
 }
 
-const STORAGE_KEY = "norisk-vanilla-capes";
+const STORAGE_KEY = "vxl-vanilla-capes";
 
 export const useVanillaCapeStore = create<VanillaCapeState>()(
   persist(
