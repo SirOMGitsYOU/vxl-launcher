@@ -2,7 +2,7 @@
 name = "vxl-launcher"
 version = "0.0.1"
 description = "VXL Laucher"
-authors = ["NoRiskk"]
+authors = ["Voxel Studios"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
