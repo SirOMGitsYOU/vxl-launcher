@@ -633,6 +633,7 @@ export function VXLStudiosSearchV2({
           onClientRequiredToggle={() => {}}
           filterServerRequired={false}
           onServerRequiredToggle={() => {}}
+          modSource={ModPlatform.Modrinth}
         />
       )}
     </div>

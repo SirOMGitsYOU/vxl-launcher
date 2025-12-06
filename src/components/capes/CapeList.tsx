@@ -16,7 +16,6 @@ import { CapeImage } from "./CapeImage";
 import { VanillaCapeImage } from "./VanillaCapeImage";
 import { CapePreview2D } from "./CapePreview2D";
 import { Tooltip } from "../ui/Tooltip";
-import { getPlayerProfileByUuidOrName, getCapesByHashes } from "../../services/cape-service";
 // Removed VirtuosoGrid import - using native scrolling instead
 import { useThemeStore } from "../../store/useThemeStore";
 import { cn } from "../../lib/utils";

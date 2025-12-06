@@ -612,8 +612,6 @@ async fn try_update_profile(id: Uuid, params: UpdateProfileParams) -> Result<(),
         profile.settings = settings; // Assuming ProfileSettings is Clone or params.settings is not used after this
     }
 
-    // Handle selected_norisk_pack_id - Removed: No pre-installed modpacks
-
     // Handle group based on clear_group and new value
     if params.clear_group == Some(true) {
         info!("Clearing group for profile {}", id);

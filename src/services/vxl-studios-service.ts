@@ -17,6 +17,7 @@ export class VXLStudiosService {
    * Fetch VXL Studios projects from Modrinth using V3 API for organization filtering
    * Step 1: Get project IDs from organization endpoint (V3)
    * Step 2: Fetch full project details using bulk API (V2)
+   * Step 3: Fetch version details for each project
    */
   static async getVXLStudiosModrinthProjects(): Promise<ModrinthProject[]> {
     try {
@@ -52,7 +53,25 @@ export class VXLStudiosService {
 
       const projects = await projectsResponse.json();
       console.log("[VXLStudiosService] Received Modrinth projects:", projects);
-      return projects as ModrinthProject[];
+      
+      // Step 3: Fetch version details for each project
+      const projectsWithVersions = await Promise.all(
+        (projects as ModrinthProject[]).map(async (project) => {
+          try {
+            const versionsUrl = `${MODRINTH_API_V2_BASE}/project/${project.id}/version`;
+            const versionsResponse = await fetch(versionsUrl);
+            if (versionsResponse.ok) {
+              const versions = await versionsResponse.json();
+              return { ...project, versions };
+            }
+          } catch (error) {
+            console.warn(`[VXLStudiosService] Failed to fetch versions for project ${project.id}:`, error);
+          }
+          return { ...project, versions: [] };
+        })
+      );
+      
+      return projectsWithVersions;
     } catch (error) {
       console.error("[VXLStudiosService] Error fetching Modrinth projects:", error);
       throw error;

@@ -453,16 +453,36 @@ export function ModrinthSearchV2({
 
     // Filter by game versions
     if (selectedGameVersions.length > 0) {
-      filtered = filtered.filter(proj =>
-        Array.isArray(proj.versions) && proj.versions.some(v => selectedGameVersions.some(gv => v.game_versions?.includes(gv)))
-      );
+      filtered = filtered.filter(proj => {
+        if (!Array.isArray(proj.versions)) return false;
+        
+        // Check if versions are objects (Modrinth) or strings (CurseForge)
+        return proj.versions.some((v: any) => {
+          if (typeof v === 'string') {
+            // CurseForge version IDs - can't filter by game versions, skip these projects
+            return false;
+          }
+          // Modrinth version objects - can filter by game_versions
+          return selectedGameVersions.some(gv => (v as any).game_versions?.includes(gv));
+        });
+      });
     }
 
     // Filter by loaders
     if (currentSelectedLoaders.length > 0) {
-      filtered = filtered.filter(proj =>
-        Array.isArray(proj.versions) && proj.versions.some(v => currentSelectedLoaders.some(loader => v.loaders?.includes(loader)))
-      );
+      filtered = filtered.filter(proj => {
+        if (!Array.isArray(proj.versions)) return false;
+        
+        // Check if versions are objects (Modrinth) or strings (CurseForge)
+        return proj.versions.some((v: any) => {
+          if (typeof v === 'string') {
+            // CurseForge version IDs - can't filter by loaders, skip these projects
+            return false;
+          }
+          // Modrinth version objects - can filter by loaders
+          return currentSelectedLoaders.some(loader => (v as any).loaders?.includes(loader));
+        });
+      });
     }
 
     // Filter by environment (client/server required)

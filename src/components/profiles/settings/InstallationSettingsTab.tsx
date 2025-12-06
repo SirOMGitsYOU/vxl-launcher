@@ -238,7 +238,7 @@ export function InstallationSettingsTab({
     }
 
     fetchResolvedLoaderVersion();
-  }, [editedProfile.id, editedProfile.game_version, editedProfile.loader, editedProfile.loader_version, editedProfile.settings.use_overwrite_loader_version, editedProfile.settings.overwrite_loader_version, editedProfile.selected_norisk_pack_id]);
+  }, [editedProfile.id, editedProfile.game_version, editedProfile.loader, editedProfile.loader_version, editedProfile.settings.use_overwrite_loader_version, editedProfile.settings.overwrite_loader_version]);
 
   // Separate function that can be called externally
   const fetchResolvedLoaderVersion = async () => {
