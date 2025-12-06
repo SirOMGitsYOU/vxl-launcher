@@ -8,7 +8,7 @@ import GeneralSettingsTab from "./settings/GeneralSettingsTab";
 import { InstallationSettingsTab } from "./settings/InstallationSettingsTab";
 import { JavaSettingsTab } from "./settings/JavaSettingsTab";
 import { WindowSettingsTab } from "./settings/WindowSettingsTab";
-import { NRCTab } from "./settings/NRCTab";
+import { AdvancedTab } from "./settings/AdvancedTab";
 import { SymlinkSettingsTab } from "./settings/SymlinkSettingsTab";
 
 import { useProfileStore } from "../../store/profile-store";
@@ -173,7 +173,7 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
     { id: "installation", label: "Installation", icon: "solar:download-bold" },
     { id: "java", label: "JAVA & Memory", icon: "solar:code-bold" },
     { id: "window", label: "Window", icon: "solar:widget-bold" },
-    { id: "nrc", label: "NRC", icon: "solar:gamepad-bold" },
+    { id: "nrc", label: "Advanced", icon: "solar:shield-check-bold" },
     { id: "symlinks", label: "Symlinks", icon: "solar:link-bold" },
   ];
 
@@ -231,7 +231,7 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
         );
       case "nrc":
         return (
-          <NRCTab
+          <AdvancedTab
             profile={profile}
             editedProfile={editedProfile}
             updateProfile={updateProfileData}

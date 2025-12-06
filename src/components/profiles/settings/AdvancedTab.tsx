@@ -9,19 +9,19 @@ import { gsap } from "gsap";
 import { toast } from "react-hot-toast";
 import * as ProfileService from "../../../services/profile-service";
 
-interface NRCTabProps {
+interface AdvancedTabProps {
   profile: Profile;
   editedProfile: Profile;
   updateProfile: (updates: Partial<Profile>) => void;
   onRefresh?: () => Promise<Profile>;
 }
 
-export function NRCTab({
+export function AdvancedTab({
   profile,
   editedProfile,
   updateProfile,
   onRefresh,
-}: NRCTabProps) {
+}: AdvancedTabProps) {
   const [isRepairing, setIsRepairing] = useState(false);
   const isBackgroundAnimationEnabled = useThemeStore(
     (state) => state.isBackgroundAnimationEnabled,
