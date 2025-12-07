@@ -242,6 +242,7 @@ impl MinecraftApiService {
             MOJANG_API_URL, name_or_uuid_query
         );
         debug!("Username lookup URL: {}", username_lookup_url);
+        debug!("MOJANG_API_URL constant: {}", MOJANG_API_URL);
 
         let response = HTTP_CLIENT.get(&username_lookup_url).send().await.map_err(|e| {
             debug!("Failed to call Mojang API for username lookup: {:?}", e);

@@ -240,8 +240,9 @@ export const AddSkinModal = memo(
           sourceDetails = { type: "Profile", details: { query: trimmedInput } };
         } else if (UUID_REGEX.test(trimmedInput)) {
           sourceDetails = { type: "Profile", details: { query: trimmedInput } };
-        } else if (trimmedInput.startsWith("iVBORw0KGgo") || /^[A-Za-z0-9+/=]+$/.test(trimmedInput)) {
+        } else if ((trimmedInput.startsWith("iVBORw0KGgo") || /^[A-Za-z0-9+/=]+$/.test(trimmedInput)) && trimmedInput.length > 100) {
           // Detect base64 data (PNG starts with iVBORw0KGgo or is valid base64)
+          // Only treat as base64 if it's long enough to be actual image data
           sourceDetails = { type: "Base64", details: { base64_content: trimmedInput } };
         } else {
           let isHttpUrl = false;
@@ -271,8 +272,12 @@ export const AddSkinModal = memo(
 
           if (isHttpUrl) {
             // Check if finalUrl is base64 data (from website parsing like Crafty.gg)
-            if (finalUrl.startsWith("iVBORw0KGgo") || /^[A-Za-z0-9+/=]+$/.test(finalUrl)) {
+            // But only if it's actually base64 image data, not just a username
+            if ((finalUrl.startsWith("iVBORw0KGgo") || /^[A-Za-z0-9+/=]+$/.test(finalUrl)) && finalUrl.length > 100) {
               sourceDetails = { type: "Base64", details: { base64_content: finalUrl } };
+            } else if (MINECRAFT_USERNAME_REGEX.test(finalUrl)) {
+              // If finalUrl is a username (from Crafty.gg profile parsing), treat as Profile
+              sourceDetails = { type: "Profile", details: { query: finalUrl } };
             } else {
               sourceDetails = { type: "Url", details: { url: finalUrl } };
             }
