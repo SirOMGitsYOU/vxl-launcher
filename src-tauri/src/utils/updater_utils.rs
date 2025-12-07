@@ -1,7 +1,7 @@
 use crate::error::{AppError, Result as AppResult};
 use log::{error, info, warn};
 use serde::Serialize;
-use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 use tauri_plugin_updater::UpdaterExt;
 use tokio::time::{sleep, Duration};
 
@@ -49,9 +49,9 @@ pub async fn check_update_available_detailed(
 
     // Determine the base part of the URL and the platform-specific segment template
     let base_repo_url = if is_beta_channel {
-        "https://api.voxelstudios.co.uk/api/v1/launcher/releases"
-    } else {
         "https://api.voxelstudios.co.uk/api/v1/launcher/releases/beta"
+    } else {
+        "https://api.voxelstudios.co.uk/api/v1/launcher/releases"
     };
 
     let mut platform_specific_target = "{{target}}".to_string(); // Default: Tauri replaces {{target}}
@@ -332,23 +332,15 @@ async fn handle_update(
             // Convert updater::Error to AppError::Other for download step
             AppError::Other(format!("Updater download error: {}", e))
         })?;
+    
     info!(
         "Update download finished successfully ({} bytes).",
         bytes.len()
     );
 
-    // --- Debug Delay 2 ---
-    #[cfg(debug_assertions)]
-    {
-        info!("DEBUG: Pausing after download completed...");
-        sleep(Duration::from_secs(2)).await;
-    }
-    // --- End Debug Delay ---
-
     // --- Step 2: Install the update ---
-    // This block can be commented out for testing to prevent actual installation
-    /* START INSTALL BLOCK */
     info!("Starting update installation...");
+    
     update
         .install(bytes) // Use the install method with the downloaded bytes
         .map_err(|e| {
@@ -356,19 +348,7 @@ async fn handle_update(
             // Convert updater::Error to AppError::Other for install step
             AppError::Other(format!("Updater install error: {}", e))
         })?;
-    // Simulate install time if commented out
-    #[cfg(debug_assertions)]
-    if true {
-        // Change to check if install block IS commented out if needed
-        info!("DEBUG: Simulating installation time...");
-        sleep(Duration::from_secs(2)).await;
-        info!("DEBUG: Simulated installation finished.");
-    } else {
-        info!("DEBUG: Installation block active (no extra delay added here).");
-    }
-    // Remove the line below if install block is active
-    info!("Skipping actual installation (commented out).");
-    /* END INSTALL BLOCK */
+    info!("Update installation completed successfully.");
 
     // Emit final statuses after successful install (or after download if install is commented out)
     emit_status(
