@@ -287,53 +287,63 @@ export function ProfileWizardV2Step2({
     }
 
     return (
-      <div className="h-[380px] flex flex-col space-y-6">
+      <div className="flex flex-col space-y-3">
         {/* Mod Loader Selection */}
-        <div className="grid grid-cols-2 gap-3 flex-shrink-0">
+        <div className="grid grid-cols-2 gap-2 flex-shrink-0">
           {modLoaders.map(loader => {
             const isUnavailable = unavailableLoaders.has(loader.key);
             const isDisabled = isUnavailable && loader.key !== "vanilla";
-            
             return (
               <div
                 key={loader.key}
-                className={`relative p-4 h-28 transition-all duration-200 rounded-lg overflow-hidden ${
+                className={`relative overflow-hidden transition-all duration-200 rounded-lg cursor-pointer flex items-center ${
                   isDisabled
-                    ? "opacity-50 cursor-not-allowed pointer-events-none border-0"
-                    : selectedLoader === loader.key
-                    ? "border-2 border-current hover:bg-current/15 cursor-pointer"
-                    : "border-2 border-transparent hover:bg-black/30 cursor-pointer"
+                    ? "opacity-50 cursor-not-allowed pointer-events-none"
+                    : "hover:bg-black/20"
                 }`}
                 style={{
-                  backgroundImage: `url('${loader.backgroundImage}')`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat',
-                  borderColor: isDisabled ? 'transparent' : (selectedLoader === loader.key ? accentColor.value : 'transparent'),
-                  color: selectedLoader === loader.key && !isDisabled ? accentColor.value : undefined
+                  borderWidth: '2px',
+                  borderColor: isDisabled 
+                    ? 'transparent' 
+                    : (selectedLoader === loader.key ? accentColor.value : 'rgba(255, 255, 255, 0.1)'),
+                  backgroundColor: selectedLoader === loader.key ? `${accentColor.value}15` : 'rgba(0, 0, 0, 0.2)',
                 }}
                 onClick={() => !isDisabled && setSelectedLoader(loader.key)}
               >
-                {/* Dark overlay for better text readability */}
-                <div className={`absolute inset-0 transition-all duration-200 ${
-                  selectedLoader === loader.key && !isDisabled
-                    ? "bg-black/40"
-                    : isDisabled
-                    ? "bg-black/80"
-                    : "bg-black/60"
-                }`} />
-                
                 {/* Content */}
-                <div className="relative z-10 flex flex-col items-center text-center justify-center h-full">
-                  <h4 className="font-minecraft text-4xl text-white lowercase drop-shadow-lg">
-                    {loader.label}
-                  </h4>
-                  {isDisabled && (
-                    <p className="font-minecraft text-2xl text-white/70 lowercase mt-1">
-                      not available
-                    </p>
-                  )}
+                <div className="relative z-10 flex items-center gap-4 px-4 py-3 w-full">
+                  {/* Background Image - Icon on left */}
+                  <div
+                    className="w-16 h-16 flex-shrink-0"
+                    style={{
+                      backgroundImage: `url('${loader.backgroundImage}')`,
+                      backgroundSize: 'contain',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat',
+                    }}
+                  />
+                  
+                  {/* Text */}
+                  <div className="flex flex-col items-start">
+                    <h4 className="font-minecraft text-4xl text-white lowercase drop-shadow-lg">
+                      {loader.label}
+                    </h4>
+                    {isDisabled && (
+                      <p className="font-minecraft text-2xl text-white/70 lowercase">
+                        not available
+                      </p>
+                    )}
+                  </div>
                 </div>
+                
+                {/* Dark overlay for better text readability */}
+                <div className={`absolute inset-0 z-0 transition-all duration-200 ${
+                  selectedLoader === loader.key && !isDisabled
+                    ? "bg-black/35"
+                    : isDisabled
+                    ? "bg-black/75"
+                    : "bg-black/55"
+                }`} />
               </div>
             );
           })}
@@ -412,7 +422,7 @@ export function ProfileWizardV2Step2({
       width="lg"
       footer={renderFooter()}
     >
-      <div className="min-h-[500px] p-6 overflow-hidden">
+      <div className="min-h-[400px] p-6 overflow-hidden">
         {renderContent()}
       </div>
     </Modal>
