@@ -632,21 +632,6 @@ impl ProcessManager {
             );
         }
 
-        // --- BEGIN Discord State Update ---
-        match State::get().await {
-            Ok(state) => {
-                log::debug!(
-                    "Notifying Discord manager about game process {} start.",
-                    process_id
-                );
-                state.discord_manager.notify_game_start(process_id).await;
-            }
-            Err(e) => {
-                log::error!("Failed to get global state to update Discord timestamp for process {}: {}. Discord state might be incorrect.", process_id, e);
-                // Continue execution, Discord state update is not critical for process start
-            }
-        }
-        // --- END Discord State Update ---
 
         if let Err(e) = self.save_processes().await {
             log::error!(
@@ -856,6 +841,22 @@ impl ProcessManager {
                     );
                 }
 
+                // Check if there are any remaining running processes
+                let remaining_processes = {
+                    let processes_map_reader = processes_arc_clone.read().await;
+                    processes_map_reader
+                        .iter()
+                        .any(|(_, p)| p.metadata.state == ProcessState::Running)
+                };
+                
+                // If no more processes are running, force Discord to Idle
+                if !remaining_processes {
+                    log::info!("Monitor task: All game processes have stopped. Force updating Discord state to Idle.");
+                    if let Err(e) = state.discord_manager.force_idle().await {
+                        log::warn!("Monitor task: Failed to force update Discord state to Idle: {}", e);
+                    }
+                }
+
                 // Execute post-exit hook if process was successful
                 Self::execute_post_exit_hook_if_needed(
                     success,
@@ -1061,6 +1062,23 @@ impl ProcessManager {
                     processes_map_writer.remove(id);
                 }
                 drop(processes_map_writer);
+                
+                // Update Discord Rich Presence when a game process stops
+                // Check if there are any remaining running processes
+                let remaining_processes = {
+                    let processes_map_reader = processes_arc.read().await;
+                    processes_map_reader
+                        .iter()
+                        .any(|(_, p)| p.metadata.state == ProcessState::Running)
+                };
+                
+                if !remaining_processes {
+                    log::info!("All game processes have stopped. Force updating Discord state to Idle.");
+                    if let Err(e) = global_state.discord_manager.force_idle().await {
+                        log::warn!("Failed to force update Discord state to Idle after process stop: {}", e);
+                    }
+                }
+                
                 // Speichere Änderungen an der Prozessliste
                 if let Err(e) = global_state.process_manager.save_processes().await {
                     log::error!(
@@ -1500,7 +1518,7 @@ impl ProcessManager {
     }
 
     /// Aborts an ongoing launch process for the given profile ID
-    pub fn abort_launch_process(&self, profile_id: Uuid) -> Result<()> {
+    pub async fn abort_launch_process(&self, profile_id: Uuid) -> Result<()> {
         if let Some((_, handle)) = self.launching_processes.remove(&profile_id) {
             log::info!("Aborting launch task for profile ID: {}", profile_id);
 
@@ -1510,6 +1528,15 @@ impl ProcessManager {
                 "Successfully aborted launch task for profile ID: {}",
                 profile_id
             );
+
+            // Force Discord to Idle since the launch was aborted
+            if let Ok(state) = state::State::get().await {
+                if let Err(e) = state.discord_manager.force_idle().await {
+                    log::warn!("Failed to force update Discord state to Idle after aborting launch: {}", e);
+                }
+            } else {
+                log::warn!("Could not get global state to update Discord after aborting launch");
+            }
 
             return Ok(());
         } else {

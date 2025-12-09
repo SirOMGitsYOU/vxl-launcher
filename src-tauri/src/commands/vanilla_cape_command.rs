@@ -15,6 +15,14 @@ pub async fn get_owned_vanilla_capes() -> Result<Vec<VanillaCape>, CommandError>
 
     let state = State::get().await?;
     
+    // Check if cache has data
+    let cache = state.vanilla_capes_cache.read().await;
+    if !cache.is_empty() {
+        debug!("Returning cached vanilla capes - found {} capes", cache.len());
+        return Ok(cache.clone());
+    }
+    drop(cache);
+    
     let active_account = state
         .minecraft_account_manager_v2
         .get_active_account()
@@ -48,6 +56,11 @@ pub async fn get_owned_vanilla_capes() -> Result<Vec<VanillaCape>, CommandError>
             cape.equipped = true;
         }
     }
+
+    // Cache the result
+    let mut cache = state.vanilla_capes_cache.write().await;
+    *cache = result_capes.clone();
+    drop(cache);
 
     debug!("Command completed: get_owned_vanilla_capes - found {} capes", result_capes.len());
     Ok(result_capes)
@@ -133,6 +146,14 @@ pub async fn get_vanilla_cape_info() -> Result<Vec<VanillaCapeInfo>, CommandErro
 #[tauri::command]
 pub async fn refresh_vanilla_cape_data() -> Result<(), CommandError> {
     debug!("Command called: refresh_vanilla_cape_data");
-    debug!("Command completed: refresh_vanilla_cape_data");
+    
+    let state = State::get().await?;
+    
+    // Clear the cache to force a fresh API call on next get_owned_vanilla_capes
+    let mut cache = state.vanilla_capes_cache.write().await;
+    cache.clear();
+    drop(cache);
+    
+    debug!("Command completed: refresh_vanilla_cape_data - cache cleared");
     Ok(())
 }

@@ -162,6 +162,7 @@ export function PlayerActionsDisplay({
                 onVersionChange={onLaunchVersionChange}
                 versions={launchButtonVersions}
                 selectedVersionLabel={selectedVersionLabel}
+                selectedProfileName={selectedVersionLabel}
                 mainButtonWidth="w-80"
                 maxWidth="400px"
                 mainButtonHeight="h-20"

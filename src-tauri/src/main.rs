@@ -121,6 +121,14 @@ use commands::java_command::{
     invalidate_java_cache_command, validate_java_path_command,
 };
 
+// Import Discord commands
+use commands::discord_command::{
+    set_discord_state_browsing_library, set_discord_state_browsing_vxl_studios,
+    set_discord_state_browsing_modded_content, set_discord_state_playing, set_discord_state_idle,
+    set_discord_state_getting_ready_to_play, set_discord_state_browsing_outfits,
+    set_discord_state_browsing_capes, set_discord_state_tinkering,
+};
+
 #[tokio::main]
 async fn main() {
     if let Err(e) = logging::setup_logging().await {
@@ -325,8 +333,9 @@ async fn main() {
                 //debug_utils::debug_unified_mod_versions().await;
             });
 
-            // --- Register Focus Event Listener for Discord RPC --- 
+            // --- Register Focus/Blur Event Listeners for Discord RPC --- 
             if let Some(main_window) = app.get_webview_window("main") { 
+                // Handle focus event (window gains focus)
                 let focus_app_handle = app_handle.clone(); 
                 main_window.listen("tauri://focus", move |_event| {
                     let listener_app_handle = focus_app_handle.clone(); 
@@ -335,7 +344,7 @@ async fn main() {
                         match state::state_manager::State::get().await {
                             Ok(state_manager_instance) => { 
                                 if state_manager_instance.discord_manager.is_enabled().await {
-                                    debug!("Main window focused - checking Discord Rich Presence");
+                                    debug!("Main window focused - restoring Discord state");
                                 }
                                 if let Err(e) = state_manager_instance.discord_manager.handle_focus_event().await {
                                     error!("Error during DiscordManager focus handling: {}", e);
@@ -343,6 +352,27 @@ async fn main() {
                             }
                             Err(e) => {
                                 error!("Focus event listener: Failed to get global state using State::get(): {}", e);
+                            }
+                        }
+                    });
+                });
+
+                // Handle blur event (window loses focus)
+                let blur_app_handle = app_handle.clone();
+                main_window.listen("tauri://blur", move |_event| {
+                    let listener_app_handle = blur_app_handle.clone();
+                    tokio::spawn(async move {
+                        match state::state_manager::State::get().await {
+                            Ok(state_manager_instance) => {
+                                if state_manager_instance.discord_manager.is_enabled().await {
+                                    debug!("Main window blurred - setting Discord to Idle");
+                                }
+                                if let Err(e) = state_manager_instance.discord_manager.handle_blur_event().await {
+                                    error!("Error during DiscordManager blur handling: {}", e);
+                                }
+                            }
+                            Err(e) => {
+                                error!("Blur event listener: Failed to get global state using State::get(): {}", e);
                             }
                         }
                     });
@@ -508,7 +538,16 @@ async fn main() {
             commands::profile_command::remove_profile_symlink,
             commands::profile_command::get_profile_symlinks,
             commands::profile_command::get_profile_instance_path,
-            commands::profile_command::get_default_profile_path
+            commands::profile_command::get_default_profile_path,
+            set_discord_state_browsing_library,
+            set_discord_state_browsing_vxl_studios,
+            set_discord_state_browsing_modded_content,
+            set_discord_state_playing,
+            set_discord_state_idle,
+            set_discord_state_getting_ready_to_play,
+            set_discord_state_browsing_outfits,
+            set_discord_state_browsing_capes,
+            set_discord_state_tinkering
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

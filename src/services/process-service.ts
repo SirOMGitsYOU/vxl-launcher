@@ -27,8 +27,18 @@ export async function launch(
   quickPlaySingleplayer?: string,
   quickPlayMultiplayer?: string,
   migrationInfo?: any,
-  skipLastPlayedUpdate?: boolean
+  skipLastPlayedUpdate?: boolean,
+  profileName?: string
 ): Promise<void> {
+  // Update Discord state when launching a profile
+  if (profileName) {
+    try {
+      await invoke('set_discord_state_playing', { profileName });
+    } catch (error) {
+      console.error('[ProcessService] Failed to update Discord state:', error);
+      // Don't throw - Discord is non-critical
+    }
+  }
 
   return invoke<void>("launch_profile", {
     id,

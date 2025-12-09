@@ -30,6 +30,7 @@ interface MainLaunchButtonProps {
   selectedVersionLabel?: string;
   mainButtonWidth?: string;
   mainButtonHeight?: string;
+  selectedProfileName?: string;
 }
 
 export function MainLaunchButton({
@@ -41,6 +42,7 @@ export function MainLaunchButton({
   selectedVersionLabel,
   mainButtonWidth,
   mainButtonHeight,
+  selectedProfileName,
 }: MainLaunchButtonProps) {
   // Local state for transient success message styling (can be further integrated if needed)
   const [transientSuccessActive, setTransientSuccessActive] = useState(false);
@@ -51,6 +53,7 @@ export function MainLaunchButton({
   // Use the profile launch hook for launch logic
   const { handleLaunch: hookHandleLaunch, isLaunching, statusMessage, launchState } = useProfileLaunch({
     profileId: selectedVersion,
+    profileName: selectedProfileName,
     onLaunchSuccess: () => {
       setTransientSuccessActive(true);
       setTimeout(() => {

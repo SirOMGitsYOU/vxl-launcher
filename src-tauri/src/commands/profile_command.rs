@@ -315,6 +315,11 @@ pub async fn launch_profile(
         );
     }
 
+    // Update Discord Rich Presence to show the profile being played
+    if let Err(e) = state.discord_manager.set_playing(profile.name.clone()).await {
+        warn!("Failed to update Discord Rich Presence for playing state: {}", e);
+    }
+
     // Spawn the installation task and get the JoinHandle
     let handle = tokio::spawn(async move {
         let install_result = installer::install_minecraft_version(
@@ -421,7 +426,7 @@ pub async fn abort_profile_launch(profile_id: Uuid) -> Result<(), CommandError> 
     }
 
     // Attempt to abort the process
-    match state.process_manager.abort_launch_process(profile_id) {
+    match state.process_manager.abort_launch_process(profile_id).await {
         Ok(_) => {
             info!(
                 "Successfully aborted launch process for profile ID: {}",

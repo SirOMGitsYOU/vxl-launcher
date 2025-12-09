@@ -16,14 +16,22 @@ const DISCORD_APP_ID: &str = "1443240317955477554"; // Replace with actual Disco
 #[derive(Debug, Clone, PartialEq)]
 pub enum DiscordState {
     Idle,
-    // TODO: Add other states like InGame(profile_name), Editing(profile_name) etc.
+    BrowsingLibrary,
+    BrowsingVXLStudios,
+    BrowsingModdedContent,
+    Playing(String), // Profile name
+    GettingReadyToPlay,
+    BrowsingOutfits,
+    BrowsingCapes,
+    Tinkering,
 }
 
 pub struct DiscordManager {
     client: Arc<Mutex<Option<DiscordIpcClient>>>,
     current_state: Arc<RwLock<DiscordState>>,
     enabled: Arc<RwLock<bool>>,
-    idle_start_timestamp: Arc<RwLock<Option<i64>>>,
+    global_start_timestamp: Arc<RwLock<i64>>, // Global timer for all states
+    previous_state: Arc<RwLock<DiscordState>>, // Store state before going idle on blur
 }
 
 impl DiscordManager {
@@ -33,17 +41,18 @@ impl DiscordManager {
             enabled
         );
 
-        // Get current time for initial idle timestamp
-        let initial_timestamp = SystemTime::now()
+        // Get current time for global timer
+        let global_timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_secs() as i64)
-            .ok();
+            .unwrap_or(0);
 
         let manager = Self {
             client: Arc::new(Mutex::new(None)),
             current_state: Arc::new(RwLock::new(DiscordState::Idle)),
             enabled: Arc::new(RwLock::new(enabled)),
-            idle_start_timestamp: Arc::new(RwLock::new(initial_timestamp)),
+            global_start_timestamp: Arc::new(RwLock::new(global_timestamp)),
+            previous_state: Arc::new(RwLock::new(DiscordState::Idle)),
         };
 
         // Initialize Discord presence if enabled
@@ -235,39 +244,52 @@ impl DiscordManager {
         Ok(())
     }
 
-    // Make async to allow reading the timestamp lock
-    async fn create_activity_for_state(&self, state: &DiscordState) -> activity::Activity {
-        let icon = "icon_512px"; // Use a consistent icon name
+    /// Get the state text for a given Discord state
+    fn get_state_text(&self, state: &DiscordState) -> String {
+        match state {
+            DiscordState::Idle => "Idling...".to_string(),
+            DiscordState::BrowsingLibrary => "Browsing their library".to_string(),
+            DiscordState::BrowsingVXLStudios => "Browsing VXL Studios' Content".to_string(),
+            DiscordState::BrowsingModdedContent => "Browsing modded content".to_string(),
+            DiscordState::Playing(profile_name) => format!("Playing {}", profile_name),
+            DiscordState::GettingReadyToPlay => "Getting ready to play".to_string(),
+            DiscordState::BrowsingOutfits => "Getting all cosy with their outfit".to_string(),
+            DiscordState::BrowsingCapes => "Browsing their royal cape attire".to_string(),
+            DiscordState::Tinkering => "Tinkering....".to_string(),
+        }
+    }
 
-        // TODO: Resolve button issue
+    /// Create a base activity that will be reused and only state text will change
+    fn create_base_activity(&self) -> activity::Activity {
+        let icon = "icon_512px";
         let download_button = activity::Button::new("DOWNLOAD", "https://voxelstudios.co.uk/download/");
         let buttons = vec![download_button];
 
-        debug!("Creating activity for Discord state: {:?}", state);
-        match state {
-            DiscordState::Idle => {
-                // Read the idle start timestamp
-                let idle_timestamp = *self.idle_start_timestamp.read().await;
+        activity::Activity::new()
+            .assets(
+                activity::Assets::new()
+                    .large_image(icon)
+                    .large_text("VXL Launcher"),
+            )
+            .buttons(buttons)
+    }
 
-                let start_time = idle_timestamp.unwrap_or_else(|| {
-                    warn!("Idle state detected but no idle timestamp found. Using current time.");
-                    SystemTime::now()
-                        .duration_since(UNIX_EPOCH)
-                        .map(|d| d.as_secs() as i64)
-                        .unwrap_or(0) // Fallback if time is before epoch
-                });
+    /// Create activity for state with dynamic state text only
+    async fn create_activity_for_state(&self, state: &DiscordState) -> activity::Activity {
+        let mut activity = self.create_base_activity();
+        let state_text = self.get_state_text(state);
+        activity = activity.state(state_text.leak());
 
-                activity::Activity::new()
-                    .state("Idling...")
-                    .assets(
-                        activity::Assets::new()
-                            .large_image(icon)
-                            .large_text("VXL Launcher"),
-                    )
-                    .timestamps(activity::Timestamps::new().start(start_time))
-                    .buttons(buttons) // Include buttons here
-            }
+        // Use global timer for all states
+        let global_timestamp = *self.global_start_timestamp.read().await;
+        activity = activity.timestamps(activity::Timestamps::new().start(global_timestamp));
+
+        // Only add details for Playing state
+        if matches!(state, DiscordState::Playing(_)) {
+            activity = activity.details("In-game");
         }
+
+        activity
     }
 
     // Set enable/disable state
@@ -312,20 +334,6 @@ impl DiscordManager {
         Ok(())
     }
 
-    /// Clears the idle start timestamp, typically called when a non-idle activity begins.
-    pub async fn clear_idle_timestamp(&self) {
-        if !*self.enabled.read().await {
-            debug!("Discord is disabled, skipping clear_idle_timestamp.");
-            return;
-        }
-        let mut timestamp_lock = self.idle_start_timestamp.write().await;
-        if timestamp_lock.is_some() {
-            debug!("Clearing Discord idle start timestamp.");
-            *timestamp_lock = None;
-        } else {
-            debug!("Discord idle start timestamp was already None.");
-        }
-    }
 
     pub async fn get_current_state(&self) -> DiscordState {
         let state = self.current_state.read().await.clone();
@@ -339,6 +347,63 @@ impl DiscordManager {
         enabled
     }
 
+    /// Handle window blur event (loses focus) - set to Idle and save previous state
+    /// But don't transition to Idle if a game is currently running
+    pub async fn handle_blur_event(&self) -> Result<()> {
+        if !self.is_enabled().await {
+            return Ok(());
+        }
+
+        let current_state = self.get_current_state().await;
+        
+        // Check if a game is currently running
+        let is_game_running = match state::State::get().await {
+            Ok(state) => {
+                let processes = state.process_manager.list_processes().await;
+                processes
+                    .iter()
+                    .any(|p| p.state == state::process_state::ProcessState::Running)
+            }
+            Err(e) => {
+                error!("Blur handling: Failed to get global state: {}. Assuming game might be running.", e);
+                true // Safety: assume game is running if we can't check
+            }
+        };
+
+        // If in Playing state but no game is running, force to Idle
+        if matches!(current_state, DiscordState::Playing(_)) && !is_game_running {
+            debug!("Window blur: In Playing state but no game is running, forcing to Idle");
+            self.force_idle().await?;
+            return Ok(());
+        }
+
+        // Never override Playing state if game is actually running
+        if matches!(current_state, DiscordState::Playing(_)) {
+            debug!("Window blur: Currently in Playing state with game running, not transitioning to Idle");
+            return Ok(());
+        }
+
+        // Only transition to Idle if no game is running
+        if !is_game_running {
+            // Only save and transition if not already idle
+            if current_state != DiscordState::Idle {
+                debug!("Window blur: Saving state {:?} and transitioning to Idle", current_state);
+                // Save current state before going idle
+                let mut prev_state = self.previous_state.write().await;
+                *prev_state = current_state;
+                drop(prev_state);
+                
+                // Transition to idle
+                self.set_state_internal(DiscordState::Idle, true).await?;
+            }
+        } else {
+            debug!("Window blur: Game is running, keeping current Discord state");
+        }
+
+        Ok(())
+    }
+
+    /// Handle window focus event (gains focus) - restore previous state or check game status
     pub async fn handle_focus_event(&self) -> Result<()> {
         if !self.is_enabled().await {
             return Ok(());
@@ -361,52 +426,69 @@ impl DiscordManager {
         };
 
         if !is_game_running {
-            self.ensure_idle_timestamp_set().await; // Ensure timestamp is set
-            // Only force update if we're not already in Idle state
             let current_state = self.get_current_state().await;
             
-            if current_state != DiscordState::Idle {
-                debug!("Focus handling: Current state is not Idle ({:?}), updating to Idle", current_state);
-                self.set_state_internal(DiscordState::Idle, true).await?;
+            // If we're in Idle, restore the previous state
+            if current_state == DiscordState::Idle {
+                let prev_state = self.previous_state.read().await.clone();
+                if prev_state != DiscordState::Idle {
+                    debug!("Window focus: Restoring previous state {:?}", prev_state);
+                    self.set_state_internal(prev_state, true).await?;
+                } else {
+                    debug!("Window focus: Previous state was also Idle, staying Idle");
+                }
             }
-            // Skip completely when already Idle - no logging needed
         }
 
         Ok(())
     }
 
-    /// Notifies the Discord manager that a game process has started.
-    /// This will clear the idle timestamp if Discord is enabled.
-    pub async fn notify_game_start(&self, process_id: Uuid) {
-        debug!(
-            "Received game start notification for process {}, clearing idle timestamp.",
-            process_id
-        );
-        self.clear_idle_timestamp().await;
+
+    // Convenience methods for setting specific states
+    pub async fn set_idle(&self) -> Result<()> {
+        self.set_state(DiscordState::Idle, false).await
     }
 
-    /// Ensures the idle_start_timestamp is set to the current time if it is None.
-    /// This is typically called when transitioning to an Idle state when no game is running.
-    async fn ensure_idle_timestamp_set(&self) {
-        // This check might seem redundant if called only when DRP is enabled,
-        // but it's good practice for a private helper.
-        if !*self.enabled.read().await {
-            return;
+    pub async fn set_browsing_library(&self) -> Result<()> {
+        self.set_state(DiscordState::BrowsingLibrary, false).await
+    }
+
+    pub async fn set_browsing_vxl_studios(&self) -> Result<()> {
+        self.set_state(DiscordState::BrowsingVXLStudios, false).await
+    }
+
+    pub async fn set_browsing_modded_content(&self) -> Result<()> {
+        self.set_state(DiscordState::BrowsingModdedContent, false).await
+    }
+
+    pub async fn set_playing(&self, profile_name: String) -> Result<()> {
+        self.set_state(DiscordState::Playing(profile_name), false).await
+    }
+
+    pub async fn set_getting_ready_to_play(&self) -> Result<()> {
+        self.set_state(DiscordState::GettingReadyToPlay, false).await
+    }
+
+    pub async fn set_browsing_outfits(&self) -> Result<()> {
+        self.set_state(DiscordState::BrowsingOutfits, false).await
+    }
+
+    pub async fn set_browsing_capes(&self) -> Result<()> {
+        self.set_state(DiscordState::BrowsingCapes, false).await
+    }
+
+    pub async fn set_tinkering(&self) -> Result<()> {
+        self.set_state(DiscordState::Tinkering, false).await
+    }
+
+    /// Force the Discord state to Idle, overriding any current state (including Playing).
+    /// This is used when a game process is detected as stopped to immediately reflect the change.
+    pub async fn force_idle(&self) -> Result<()> {
+        if !self.is_enabled().await {
+            return Ok(());
         }
-        let mut timestamp_lock = self.idle_start_timestamp.write().await;
-        if timestamp_lock.is_none() {
-            debug!("ensure_idle_timestamp_set: Timestamp was None, setting to current time.");
-            *timestamp_lock = Some(
-                SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .map(|d| d.as_secs() as i64)
-                    .unwrap_or_else(|_| {
-                        error!("System time is before UNIX EPOCH!");
-                        0 // Fallback timestamp
-                    }),
-            );
-        } else {
-            debug!("ensure_idle_timestamp_set: Timestamp already set.");
-        }
+        
+        debug!("Force setting Discord state to Idle (overriding current state)");
+        self.set_state_internal(DiscordState::Idle, true).await
     }
 }

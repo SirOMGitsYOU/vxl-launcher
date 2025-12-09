@@ -29,6 +29,7 @@ import {
 } from "./services/launcher-config-service";
 import { useGlobalDragAndDrop } from './hooks/useGlobalDragAndDrop';
 import { loadIcons } from '@iconify/react';
+import { invoke } from '@tauri-apps/api/core';
 
 export type ProfilesTabContext = {
   currentGroupingCriterion: string;
@@ -212,8 +213,41 @@ export function App() {
     }
   };
 
-  const handleNavChange = (tabId: string) => {
+  const handleNavChange = async (tabId: string) => {
     navigate(`/${tabId}`);
+    
+    // Update Discord state based on tab
+    try {
+      switch (tabId) {
+        case 'play':
+          await invoke('set_discord_state_getting_ready_to_play');
+          break;
+        case 'profiles':
+          await invoke('set_discord_state_browsing_library');
+          break;
+        case 'mods':
+          await invoke('set_discord_state_browsing_modded_content');
+          break;
+        case 'vxlstudios':
+          await invoke('set_discord_state_browsing_vxl_studios');
+          break;
+        case 'skins':
+          await invoke('set_discord_state_browsing_outfits');
+          break;
+        case 'capes':
+          await invoke('set_discord_state_browsing_capes');
+          break;
+        case 'settings':
+          await invoke('set_discord_state_tinkering');
+          break;
+        default:
+          // For other tabs, keep current state
+          break;
+      }
+    } catch (error) {
+      console.error('[App.tsx] Failed to update Discord state:', error);
+      // Don't show error to user, Discord is non-critical
+    }
   };
 
   const profilesTabContext: ProfilesTabContext = {

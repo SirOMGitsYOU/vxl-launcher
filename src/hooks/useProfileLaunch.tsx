@@ -15,6 +15,7 @@ import { MigrationInfo } from "../types/profile";
 
 interface UseProfileLaunchOptions {
   profileId: string;
+  profileName?: string;
   quickPlaySingleplayer?: string;
   quickPlayMultiplayer?: string;
   onLaunchSuccess?: () => void;
@@ -23,7 +24,7 @@ interface UseProfileLaunchOptions {
 }
 
 export function useProfileLaunch(options: UseProfileLaunchOptions) {
-  const { profileId, quickPlaySingleplayer, quickPlayMultiplayer, onLaunchSuccess, onLaunchError, skipLastPlayedUpdate } = options;
+  const { profileId, profileName, quickPlaySingleplayer, quickPlayMultiplayer, onLaunchSuccess, onLaunchError, skipLastPlayedUpdate } = options;
 
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { showModal, hideModal } = useGlobalModal();
@@ -157,7 +158,7 @@ export function useProfileLaunch(options: UseProfileLaunchOptions) {
     initiateButtonLaunch(profileId);
 
     try {
-      await ProcessService.launch(profileId, quickPlaySingleplayer, quickPlayMultiplayer, migrationInfo, skipLastPlayedUpdate);
+      await ProcessService.launch(profileId, quickPlaySingleplayer, quickPlayMultiplayer, migrationInfo, skipLastPlayedUpdate, profileName);
     } catch (err: any) {
       console.error("Failed to launch profile:", err);
       const launchErrorMsg =

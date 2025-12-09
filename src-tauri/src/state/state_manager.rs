@@ -1,6 +1,7 @@
 use crate::config::{ProjectDirsExt, LAUNCHER_DIRECTORY};
 use crate::error::{AppError, Result};
 use crate::minecraft::minecraft_auth::MinecraftAuthStore;
+use crate::minecraft::api::vanilla_cape_api::VanillaCape;
 use crate::state::config_state::ConfigManager;
 use crate::state::discord_state::DiscordManager;
 use crate::state::event_state::{EventPayload, EventState};
@@ -9,7 +10,7 @@ use crate::state::process_state::{default_processes_path, ProcessManager};
 use crate::state::profile_state::ProfileManager;
 use crate::state::skin_state::{default_skins_path, SkinManager};
 use std::sync::Arc;
-use tokio::sync::{OnceCell, Semaphore};
+use tokio::sync::{OnceCell, RwLock, Semaphore};
 
 // Global state that will be initialized once
 static LAUNCHER_STATE: OnceCell<Arc<State>> = OnceCell::const_new();
@@ -25,6 +26,7 @@ pub struct State {
     pub skin_manager: SkinManager,
     pub discord_manager: DiscordManager,
     pub io_semaphore: Arc<Semaphore>,
+    pub vanilla_capes_cache: Arc<RwLock<Vec<VanillaCape>>>, // Cache for vanilla capes
 }
 
 impl State {
@@ -53,6 +55,7 @@ impl State {
                     skin_manager,
                     discord_manager,
                     io_semaphore,
+                    vanilla_capes_cache: Arc::new(RwLock::new(Vec::new())),
                 }))
             })
             .await?;

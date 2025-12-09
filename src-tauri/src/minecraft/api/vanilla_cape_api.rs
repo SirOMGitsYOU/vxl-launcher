@@ -3,6 +3,8 @@ use crate::error::{AppError, Result};
 use log::{debug, error};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use tokio::sync::RwLock;
+use std::sync::Arc;
 
 const MOJANG_API_URL: &str = "https://api.minecraftservices.com";
 
