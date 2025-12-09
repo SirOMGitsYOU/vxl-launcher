@@ -107,6 +107,31 @@ export async function deleteModFromProfile(
   return invoke<void>("delete_mod_from_profile", { profileId, modId });
 }
 
+/**
+ * Checks if a profile has mods from a specific platform
+ * @param profile The profile to check
+ * @param platform The platform to check for ('modrinth' or 'curseforge')
+ * @returns true if the profile has mods from the specified platform
+ */
+export function hasModsFromPlatform(profile: Profile, platform: 'modrinth' | 'curseforge'): boolean {
+  return profile.mods.some(mod => mod.source.type === platform);
+}
+
+/**
+ * Gets the platforms that have mods installed in a profile
+ * @param profile The profile to check
+ * @returns Array of platform names that have mods
+ */
+export function getInstalledModPlatforms(profile: Profile): ('modrinth' | 'curseforge')[] {
+  const platforms = new Set<'modrinth' | 'curseforge'>();
+  for (const mod of profile.mods) {
+    if (mod.source.type === 'modrinth' || mod.source.type === 'curseforge') {
+      platforms.add(mod.source.type);
+    }
+  }
+  return Array.from(platforms);
+}
+
 export async function addModrinthModToProfile(
   profileId: string,
   projectId: string,

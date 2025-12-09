@@ -131,7 +131,16 @@ export async function submitCrashLog(payload: CrashlogDto): Promise<void> {
     await invoke<void>("submit_crash_log_command", { payload });
     console.log("[ProcessService] Crash log submitted successfully.");
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    // Check if the command is not found (backend doesn't support it yet)
+    if (errorMessage.includes("not found") || errorMessage.includes("Command submit_crash_log_command not found")) {
+      console.warn("[ProcessService] Crash log submission not yet implemented in backend. Skipping submission.");
+      // Don't throw - gracefully handle missing backend support
+      return;
+    }
+    
     console.error("[ProcessService] Failed to submit crash log:", error);
-    throw error; // Re-throw or handle as needed
+    throw error; // Re-throw for other errors
   }
 }

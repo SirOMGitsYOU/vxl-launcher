@@ -72,6 +72,12 @@ pub enum ProcessState {
     Crashed(String),
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CrashlogDto {
+    pub mcLogsUrl: String,
+    pub metadata: Option<ProcessMetadata>,
+}
+
 #[derive(Debug)]
 struct Process {
     metadata: ProcessMetadata,

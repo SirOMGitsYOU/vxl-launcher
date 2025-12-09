@@ -8,6 +8,7 @@ import {
   addModrinthContentToProfile,
   addModrinthModToProfile,
   isContentInstalled,
+  hasModsFromPlatform,
 } from "../services/profile-service";
 import { ModrinthService } from "../services/modrinth-service";
 
@@ -39,10 +40,17 @@ export function useModrinthInstaller(
       const versionId = version.id;
 
       try {
-        const profileExists = profiles.some((p) => p.id === profileId);
-        if (!profileExists) {
+        const profile = profiles.find((p) => p.id === profileId);
+        if (!profile) {
           throw new Error(
             `Profile with ID ${profileId} not found. Please select a different profile.`,
+          );
+        }
+
+        // Check for platform conflicts - prevent mixing CurseForge and Modrinth mods in a single install
+        if (hasModsFromPlatform(profile, 'curseforge')) {
+          throw new Error(
+            `This profile already has CurseForge mods installed. When installing from Modrinth, all dependencies must come from Modrinth to avoid duplicate mods. Please create a new profile or remove CurseForge mods first.`,
           );
         }
 
@@ -112,10 +120,17 @@ export function useModrinthInstaller(
       const versionId = version.id;
 
       try {
-        const profileExists = profiles.some((p) => p.id === profileId);
-        if (!profileExists) {
+        const profile = profiles.find((p) => p.id === profileId);
+        if (!profile) {
           throw new Error(
             `Profile with ID ${profileId} not found. Please select a different profile.`,
+          );
+        }
+
+        // Check for platform conflicts - prevent mixing CurseForge and Modrinth mods in a single install
+        if (hasModsFromPlatform(profile, 'curseforge')) {
+          throw new Error(
+            `This profile already has CurseForge mods installed. When installing from Modrinth, all dependencies must come from Modrinth to avoid duplicate mods. Please create a new profile or remove CurseForge mods first.`,
           );
         }
 

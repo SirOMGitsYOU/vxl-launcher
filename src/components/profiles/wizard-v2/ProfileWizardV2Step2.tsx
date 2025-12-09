@@ -309,11 +309,8 @@ export function ProfileWizardV2Step2({
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
                   backgroundRepeat: 'no-repeat',
-                  border: isDisabled ? 'none' : undefined,
-                  ...(selectedLoader === loader.key && !isDisabled ? {
-                    borderColor: accentColor.value,
-                    color: accentColor.value
-                  } : {})
+                  borderColor: isDisabled ? 'transparent' : (selectedLoader === loader.key ? accentColor.value : 'transparent'),
+                  color: selectedLoader === loader.key && !isDisabled ? accentColor.value : undefined
                 }}
                 onClick={() => !isDisabled && setSelectedLoader(loader.key)}
               >
