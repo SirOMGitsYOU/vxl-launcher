@@ -262,7 +262,7 @@ impl DiscordManager {
     /// Create a base activity that will be reused and only state text will change
     fn create_base_activity(&self) -> activity::Activity {
         let icon = "icon_512px";
-        let download_button = activity::Button::new("DOWNLOAD", "https://voxelstudios.co.uk/download/");
+        let download_button = activity::Button::new("Download VXL Launcher", "https://voxelstudios.co.uk/download/");
         let buttons = vec![download_button];
 
         activity::Activity::new()
