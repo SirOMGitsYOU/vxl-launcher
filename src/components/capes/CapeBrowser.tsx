@@ -13,6 +13,7 @@ import { SkinView3DWrapper } from "../common/SkinView3DWrapper";
 import { CapePreview2D } from "./CapePreview2D";
 import { getSkinUrl } from "../../lib/avatar-utils";
 import { MinecraftSkinService } from "../../services/minecraft-skin-service";
+import { ToggleSwitch } from "../ui/ToggleSwitch";
 
 
 
@@ -136,29 +137,19 @@ export function CapeBrowser(): JSX.Element {
       {/* Header */}
       <div className="p-4 border-b border-white/10 flex items-center justify-between">
         <h2 className="text-3xl font-minecraft text-white">Vanilla Capes</h2>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-2 text-white/70 font-minecraft text-xl">
-              <input
-                type="checkbox"
-                checked={showPlayer}
-                onChange={(e) => setShowPlayer(e.target.checked)}
-                className="w-4 h-4"
-              />
-              Show Player
-            </label>
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-2 text-white/70 font-minecraft text-xl">
-              <input
-                type="checkbox"
-                checked={showElytra}
-                onChange={(e) => setShowElytra(e.target.checked)}
-                className="w-4 h-4"
-              />
-              Show Elytra
-            </label>
-          </div>
+        <div className="flex items-center gap-6">
+          <ToggleSwitch
+            checked={showPlayer}
+            onChange={setShowPlayer}
+            label="Show Player"
+            size="md"
+          />
+          <ToggleSwitch
+            checked={showElytra}
+            onChange={setShowElytra}
+            label="Show Elytra"
+            size="md"
+          />
           <Button
             onClick={handleRefresh}
             disabled={isLoading}
@@ -178,7 +169,7 @@ export function CapeBrowser(): JSX.Element {
             {selectedCape ? (
               <div className="w-full h-full relative">
                 <SkinView3DWrapper
-                  skinUrl={playerSkin}
+                  skinUrl={showPlayer ? playerSkin : null}
                   skinVariant={playerSkinVariant}
                   capeUrl={selectedCape.id === "no-cape" ? undefined : selectedCape.url}
                   enableAutoRotate={true}
