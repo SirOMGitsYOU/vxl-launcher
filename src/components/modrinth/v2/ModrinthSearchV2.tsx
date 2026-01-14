@@ -319,7 +319,7 @@ export function ModrinthSearchV2({
           } else {
             // Fetch CurseForge mod IDs from VXL Studios API
             try {
-              const response = await fetch('https://api.voxelstudios.co.uk/api/v1/curseforge/projects');
+              const response = await fetch('https://api.voxelstudios.co.uk/api/v1/curseforge/projects?game=minecraft');
               if (!response.ok) {
                 throw new Error(`Failed to fetch CurseForge project IDs: ${response.statusText}`);
               }

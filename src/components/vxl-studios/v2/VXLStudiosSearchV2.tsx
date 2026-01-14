@@ -313,7 +313,7 @@ export function VXLStudiosSearchV2({
           console.log("[VXLStudiosSearchV2] Using cached CurseForge projects:", vxlStudiosCache.curseforge.length);
         } else {
           // Fetch CurseForge project IDs from VXL Studios API
-          const vxlApiResponse = await fetch('https://api.voxelstudios.co.uk/api/v1/curseforge/projects');
+          const vxlApiResponse = await fetch('https://api.voxelstudios.co.uk/api/v1/curseforge/projects?game=minecraft');
           const vxlApiData = await vxlApiResponse.json();
           const curseForgeModIds: number[] = vxlApiData.projects?.map((p: { id: number }) => p.id) || [];
           
