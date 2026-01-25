@@ -248,6 +248,24 @@ pub async fn get_modrinth_project_details(
     Ok(result)
 }
 
+/// Fetches team members for a specific Modrinth project.
+#[tauri::command]
+pub async fn get_modrinth_project_members(
+    project_id_or_slug: String,
+) -> Result<Vec<modrinth::ModrinthTeamMember>, CommandError> {
+    log::debug!(
+        "Received get_modrinth_project_members command for project: {}",
+        project_id_or_slug
+    );
+
+    let members = modrinth::get_project_members(project_id_or_slug)
+        .await
+        .map_err(CommandError::from)?;
+
+    log::info!("Successfully fetched {} team members", members.len());
+    Ok(members)
+}
+
 /// Efficiently checks for updates to multiple mods using a single API call.
 /// Takes hashes of current mod files and returns the latest available versions.
 /// Mods without updates or not found on Modrinth are omitted from the results.

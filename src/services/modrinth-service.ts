@@ -88,6 +88,12 @@ export class ModrinthService {
     });
   }
 
+  static async getProjectMembers(projectIdOrSlug: string): Promise<any[]> {
+    return invoke<any[]>("get_modrinth_project_members", {
+      projectIdOrSlug,
+    });
+  }
+
   static async checkUpdates(
     request: ModrinthBulkUpdateRequestBody,
   ): Promise<Record<string, ModrinthVersion>> {

@@ -182,3 +182,78 @@ export interface ModpackSwitchResponse {
   /// List of mods extracted from the modpack
   mods: Mod[];
 }
+
+// --- Unified Project Details (for Mod Detail Page) ---
+
+export interface UnifiedGalleryImage {
+  url: string;
+  thumbnail_url: string;
+  title: string | null;
+  description: string | null;
+  featured: boolean;
+  ordering: number;
+}
+
+export interface UnifiedProjectLinks {
+  issues: string | null;
+  source: string | null;
+  wiki: string | null;
+  discord: string | null;
+  website: string | null;
+}
+
+export interface UnifiedDonationLink {
+  platform: string;
+  url: string;
+}
+
+export interface UnifiedLicense {
+  id: string;
+  name: string;
+  url: string | null;
+}
+
+export interface UnifiedTeamMember {
+  username: string;
+  avatar_url: string | null;
+  role: string;
+  profile_url: string;
+}
+
+export interface UnifiedProjectDependency {
+  project_id: string;
+  title: string;
+  slug: string;
+  icon_url: string | null;
+  dependency_type: UnifiedDependencyType;
+  source: ModPlatform;
+}
+
+export interface UnifiedProjectDetails {
+  id: string;
+  source: ModPlatform;
+  title: string;
+  slug: string;
+  description: string;
+  body: string;
+  author: string;
+  author_avatar_url: string | null;
+  icon_url: string | null;
+  downloads: number;
+  followers: number;
+  categories: string[];
+  gallery: UnifiedGalleryImage[];
+  links: UnifiedProjectLinks;
+  project_type: string;
+  project_url: string;
+  date_created: string;
+  date_modified: string;
+  license: UnifiedLicense | null;
+  donation_urls: UnifiedDonationLink[];
+  client_side: string | null;
+  server_side: string | null;
+  team_members: UnifiedTeamMember[];
+  game_versions: string[];
+  loaders: string[];
+  dependencies: UnifiedProjectDependency[];
+}

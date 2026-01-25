@@ -20,6 +20,7 @@ import { toast } from "react-hot-toast";
 import { preloadIcons } from "../../../lib/icon-utils";
 import { ThemedSurface } from "../../ui/ThemedSurface";
 import { Tooltip } from "../../ui/Tooltip";
+import { useNavigate } from "react-router-dom";
 
 type Profile = any;
 
@@ -197,6 +198,8 @@ export const ModrinthProjectCardV2 = React.memo<ModrinthProjectCardV2Props>(
     isBlocked = false, // Deprecated
     projectNoRiskStatus = null,
   }) => {
+    const navigate = useNavigate();
+
     useEffect(() => {
       preloadIcons([
         "solar:download-minimalistic-bold",
@@ -204,6 +207,12 @@ export const ModrinthProjectCardV2 = React.memo<ModrinthProjectCardV2Props>(
         "solar:alt-arrow-down-bold",
       ]);
     }, []);
+
+    const handleTitleClick = (e: React.MouseEvent) => {
+      e.preventDefault();
+      const source = hit.source === 'Modrinth' ? 'modrinth' : 'curseforge';
+      navigate(`/mods/${source}/${hit.project_id}`);
+    };
 
     return (
       <div>
@@ -269,24 +278,13 @@ export const ModrinthProjectCardV2 = React.memo<ModrinthProjectCardV2Props>(
         {/* Project Info */}
         <div className="flex-1 min-w-0">
           <div className="flex flex-row items-baseline space-x-1.5 mb-1">
-            <a
-              href={hit.project_url}
-              onClick={async (e) => {
-                e.preventDefault();
-                try {
-                  await openExternalUrl(hit.project_url);
-                } catch (error) {
-                  console.error("Failed to open external URL:", error);
-                  toast.error("Could not open link in browser.");
-                }
-              }}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-white font-minecraft-ten text-lg whitespace-nowrap overflow-hidden text-ellipsis normal-case hover:underline cursor-pointer"
-              title={`Open ${hit.title} on ${hit.source === 'Modrinth' ? 'Modrinth' : 'CurseForge'}`}
+            <button
+              onClick={handleTitleClick}
+              className="text-white font-minecraft-ten text-lg whitespace-nowrap overflow-hidden text-ellipsis normal-case hover:underline cursor-pointer text-left"
+              title={`View ${hit.title} details`}
             >
               {hit.title}
-            </a>
+            </button>
             {hit.author && (
               <a
                 href={
