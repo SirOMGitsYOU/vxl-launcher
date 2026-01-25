@@ -281,14 +281,67 @@ impl MinecraftLauncher {
         info!("Adding RAM JVM argument: -Xmx{}M", params.memory_max_mb);
         command.arg(format!("-Xmx{}M", params.memory_max_mb));
 
-        // Add recommended GC flags
-        command.arg("-XX:+UnlockExperimentalVMOptions");
-        command.arg("-XX:+UseG1GC");
-        // Add additional G1GC optimization flags like vanilla launcher
-        command.arg("-XX:G1NewSizePercent=20");
-        command.arg("-XX:G1ReservePercent=20");
-        command.arg("-XX:MaxGCPauseMillis=50");
-        command.arg("-XX:G1HeapRegionSize=32M");
+        // Check if custom JVM args contain a custom GC setting
+        // fix for https://github.com/NoRiskClient/issues/issues/2357
+        let conflicting_gc_patterns = [
+            "-XX:+UseZGC",
+            "-XX:+UseShenandoahGC",
+            "-XX:+UseParallelGC",
+            "-XX:+UseSerialGC",
+        ];
+        
+        let g1gc_patterns = [
+            "-XX:+UseG1GC",
+            "-XX:G1NewSizePercent",
+            "-XX:G1ReservePercent",
+            "-XX:MaxGCPauseMillis",
+            "-XX:G1HeapRegionSize",
+            "-XX:+UnlockExperimentalVMOptions",
+        ];
+        
+        // Check if user has specified a conflicting GC in custom args
+        let has_conflicting_gc = params.additional_jvm_args.iter().any(|arg| {
+            conflicting_gc_patterns.iter().any(|pattern| arg.contains(pattern))
+        });
+        
+        // Also check the profile's custom_jvm_args string
+        let mut has_conflicting_gc_in_profile = false;
+        if let Some(profile_ref) = &profile {
+            if let Some(custom_args_str) = &profile_ref.settings.custom_jvm_args {
+                has_conflicting_gc_in_profile = conflicting_gc_patterns.iter().any(|pattern| custom_args_str.contains(pattern));
+            }
+        }
+        
+        let has_conflicting_gc_total = has_conflicting_gc || has_conflicting_gc_in_profile;
+
+        // Add recommended GC flags only if user hasn't specified a conflicting GC
+        if has_conflicting_gc_total {
+            info!("Conflicting GC detected in JVM arguments, skipping default G1GC flags");
+            // Filter out G1GC-related args from params if they exist
+            let filtered_args: Vec<String> = params.additional_jvm_args.iter()
+                .filter(|arg| !g1gc_patterns.iter().any(|pattern| arg.contains(pattern)))
+                .cloned()
+                .collect();
+            
+            // Update params with filtered args
+            for arg in filtered_args {
+                command.arg(arg);
+            }
+        } else {
+            // Add default G1GC flags
+            command.arg("-XX:+UnlockExperimentalVMOptions");
+            command.arg("-XX:+UseG1GC");
+            // Add additional G1GC optimization flags like vanilla launcher
+            command.arg("-XX:G1NewSizePercent=20");
+            command.arg("-XX:G1ReservePercent=20");
+            command.arg("-XX:MaxGCPauseMillis=50");
+            command.arg("-XX:G1HeapRegionSize=32M");
+            
+            // Add remaining custom args
+            for arg in &params.additional_jvm_args {
+                command.arg(arg);
+            }
+        }
 
         // Add profile name for ingame display
         if let Some(p) = &profile {

@@ -500,8 +500,39 @@ pub async fn install_minecraft_version(
     if let Some(jvm_args_str) = &profile.settings.custom_jvm_args {
         if !jvm_args_str.trim().is_empty() {
             let mut current_jvm_args = launch_params.additional_jvm_args.clone();
-            let custom_args: Vec<String> =
+            let mut custom_args: Vec<String> =
                 jvm_args_str.split_whitespace().map(String::from).collect();
+            
+            // Check if user has specified a conflicting GC
+            let conflicting_gc_patterns = [
+                "-XX:+UseZGC",
+                "-XX:+UseShenandoahGC",
+                "-XX:+UseParallelGC",
+                "-XX:+UseSerialGC",
+            ];
+            
+            let has_conflicting_gc = custom_args.iter().any(|arg| {
+                conflicting_gc_patterns.iter().any(|pattern| arg.contains(pattern))
+            });
+            
+            // If conflicting GC detected, filter out G1GC-related args
+            if has_conflicting_gc {
+                let g1gc_patterns = [
+                    "-XX:+UseG1GC",
+                    "-XX:G1NewSizePercent",
+                    "-XX:G1ReservePercent",
+                    "-XX:MaxGCPauseMillis",
+                    "-XX:G1HeapRegionSize",
+                    "-XX:+UnlockExperimentalVMOptions",
+                ];
+                
+                custom_args = custom_args.into_iter()
+                    .filter(|arg| !g1gc_patterns.iter().any(|pattern| arg.contains(pattern)))
+                    .collect();
+                
+                info!("Conflicting GC detected in custom JVM args, removed G1GC-related arguments");
+            }
+            
             info!(
                 "Adding custom JVM arguments from profile: {:?}",
                 custom_args
