@@ -11,6 +11,7 @@ use crate::state::profile_state::ProfileManager;
 use crate::state::skin_state::{default_skins_path, SkinManager};
 use std::sync::Arc;
 use tokio::sync::{OnceCell, RwLock, Semaphore};
+use tokio::task::JoinHandle;
 
 // Global state that will be initialized once
 static LAUNCHER_STATE: OnceCell<Arc<State>> = OnceCell::const_new();
@@ -27,6 +28,7 @@ pub struct State {
     pub discord_manager: DiscordManager,
     pub io_semaphore: Arc<Semaphore>,
     pub vanilla_capes_cache: Arc<RwLock<Vec<VanillaCape>>>, // Cache for vanilla capes
+    pub login_server_handle: Arc<RwLock<Option<JoinHandle<()>>>>, // Handle for login server
 }
 
 impl State {
@@ -56,6 +58,7 @@ impl State {
                     discord_manager,
                     io_semaphore,
                     vanilla_capes_cache: Arc::new(RwLock::new(Vec::new())),
+                    login_server_handle: Arc::new(RwLock::new(None)),
                 }))
             })
             .await?;

@@ -2,6 +2,7 @@ use crate::config::{ProjectDirsExt, LAUNCHER_DIRECTORY, update_custom_game_dir};
 use crate::error::Result;
 use crate::state::post_init::PostInitializationHandler;
 use crate::state::profile_state::MemorySettings;
+use crate::utils::updater_utils;
 use async_trait::async_trait;
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
@@ -55,6 +56,8 @@ pub struct LauncherConfig {
     pub custom_game_directory: Option<PathBuf>,
     #[serde(default = "default_multiple_log_windows")]
     pub multiple_log_windows: bool,
+    #[serde(default = "default_use_browser_based_login")]
+    pub use_browser_based_login: bool,
 }
 
 fn default_config_version() -> u32 {
@@ -89,6 +92,10 @@ fn default_multiple_log_windows() -> bool {
     false
 }
 
+fn default_use_browser_based_login() -> bool {
+    false
+}
+
 fn default_global_memory_settings() -> MemorySettings {
     MemorySettings {
         min: 3072, // 2GB
@@ -114,6 +121,7 @@ impl Default for LauncherConfig {
             global_memory_settings: default_global_memory_settings(),
             custom_game_directory: None,
             multiple_log_windows: default_multiple_log_windows(),
+            use_browser_based_login: default_use_browser_based_login(),
         }
     }
 }
@@ -154,9 +162,15 @@ impl ConfigManager {
         let config_data = fs::read_to_string(&self.config_path).await?;
 
         match serde_json::from_str::<LauncherConfig>(&config_data) {
-            Ok(loaded_config) => {
+            Ok(mut loaded_config) => {
                 info!("Successfully loaded launcher configuration");
                 debug!("Loaded config: {:?}", loaded_config);
+
+                // Auto-enable browser-based login if running in Flatpak
+                if updater_utils::is_flatpak() && !loaded_config.use_browser_based_login {
+                    info!("Flatpak environment detected - automatically enabling browser-based login");
+                    loaded_config.use_browser_based_login = true;
+                }
 
                 // Update the stored config
                 let mut config = self.config.write().await;
@@ -336,6 +350,7 @@ impl ConfigManager {
                 && current.global_memory_settings.max == new_config.global_memory_settings.max
                 && current.custom_game_directory == new_config.custom_game_directory
                 && current.multiple_log_windows == new_config.multiple_log_windows
+                && current.use_browser_based_login == new_config.use_browser_based_login
             {
                 debug!("No config changes detected, skipping save");
                 false
@@ -430,6 +445,12 @@ impl ConfigManager {
                         current.multiple_log_windows, new_config.multiple_log_windows
                     );
                 }
+                if current.use_browser_based_login != new_config.use_browser_based_login {
+                    info!(
+                        "Changing use browser based login: {} -> {}",
+                        current.use_browser_based_login, new_config.use_browser_based_login
+                    );
+                }
 
                 // Update config while preserving version
                 *config = LauncherConfig {
@@ -448,6 +469,7 @@ impl ConfigManager {
                     global_memory_settings: new_config.global_memory_settings,
                     custom_game_directory: new_config.custom_game_directory.clone(),
                     multiple_log_windows: new_config.multiple_log_windows,
+                    use_browser_based_login: new_config.use_browser_based_login,
                 };
 
                 true

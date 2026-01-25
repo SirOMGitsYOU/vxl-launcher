@@ -9,6 +9,11 @@ const DEFAULT_STEVE_UUID = "8667ba71b85a4004af54457a9734eed7";
 const avatarCache = new Map<string, string>();
 const loadingPromises = new Map<string, Promise<string>>();
 
+// Export cache population function for pre-fetching
+export function populateAvatarCache(cacheKey: string, url: string) {
+  avatarCache.set(cacheKey, url);
+}
+
 interface UseCrafatarAvatarOptions {
   uuid: string | null | undefined;
   size?: number;
@@ -76,14 +81,10 @@ export function useCrafatarAvatar({
       } catch (error) {
         console.error("[useCrafatarAvatar] Failed to load avatar:", error);
         
-        if (fallbackToDefault) {
-          // Fallback to default Steve avatar with primary and fallback support
-          const fallbackUrl = getFallbackAvatarUrl(DEFAULT_STEVE_UUID, { overlay: true, size });
-          avatarCache.set(cacheKey, fallbackUrl);
-          setAvatarUrl(fallbackUrl);
-        } else {
-          setAvatarUrl(null);
-        }
+        // Fallback to remote URL instead of local file
+        const remoteUrl = getAvatarUrl(uuid, { overlay, size });
+        avatarCache.set(cacheKey, remoteUrl);
+        setAvatarUrl(remoteUrl);
       } finally {
         loadingPromises.delete(cacheKey);
       }

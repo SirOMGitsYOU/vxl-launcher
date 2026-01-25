@@ -46,4 +46,34 @@ export class MinecraftAuthService {
       throw error;
     }
   }
+
+  static async cancelLogin(): Promise<void> {
+    try {
+      await invoke("cancel_login");
+    } catch (error) {
+      console.error("Failed to cancel login:", error);
+      throw error;
+    }
+  }
+
+  static async isFlatpak(): Promise<boolean> {
+    const maxRetries = 3;
+    const retryDelay = 100; // ms
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await invoke<boolean>("is_flatpak");
+      } catch (error) {
+        if (attempt < maxRetries - 1) {
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+        } else {
+          // Final attempt failed, log and return false
+          console.error("Failed to check if Flatpak after retries:", error);
+          return false;
+        }
+      }
+    }
+    return false;
+  }
 }

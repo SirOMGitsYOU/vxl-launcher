@@ -27,4 +27,5 @@ export interface LauncherConfig {
   global_memory_settings: MemorySettings;
   custom_game_directory: string | null; // Option<PathBuf>
   multiple_log_windows: boolean;
+  use_browser_based_login: boolean;
 }

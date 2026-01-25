@@ -1,5 +1,8 @@
 import { create } from "zustand";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { MinecraftAuthService } from "../services/minecraft-auth-service";
+import { MinecraftSkinService } from "../services/minecraft-skin-service";
+import { populateAvatarCache } from "../hooks/useCrafatarAvatar";
 import type { MinecraftAccount } from "../types/minecraft";
 import { toast } from "react-hot-toast";
 
@@ -13,6 +16,63 @@ interface MinecraftAuthState {
   addAccount: () => Promise<void>;
   removeAccount: (accountId: string) => Promise<void>;
   setActiveAccount: (accountId: string) => Promise<void>;
+}
+
+// Default Steve UUID for fallback avatars
+const DEFAULT_STEVE_UUID = "8667ba71b85a4004af54457a9734eed7";
+
+// Helper function to pre-fetch avatars for all accounts
+async function prefetchAccountAvatars(accounts: MinecraftAccount[]) {
+  if (accounts.length === 0) return;
+  
+  // Pre-fetch avatars for both dropdown (32px) and modal (40px) sizes, plus button (28px)
+  // Also pre-fetch default Steve avatar for new profiles
+  const allUuids = [...new Set([...accounts.map(a => a.id), DEFAULT_STEVE_UUID])];
+  
+  const prefetchPromises = allUuids.flatMap(uuid => [
+    MinecraftSkinService.getCrafatarAvatar({
+      uuid,
+      size: 28,
+      overlay: true,
+    })
+      .then(path => {
+        const url = convertFileSrc(path);
+        // Populate the hook's cache so it can use the converted URL immediately
+        populateAvatarCache(`${uuid}-28-true`, url);
+        return url;
+      })
+      .catch(() => null),
+    MinecraftSkinService.getCrafatarAvatar({
+      uuid,
+      size: 32,
+      overlay: true,
+    })
+      .then(path => {
+        const url = convertFileSrc(path);
+        // Populate the hook's cache so it can use the converted URL immediately
+        populateAvatarCache(`${uuid}-32-true`, url);
+        return url;
+      })
+      .catch(() => null),
+    MinecraftSkinService.getCrafatarAvatar({
+      uuid,
+      size: 40,
+      overlay: true,
+    })
+      .then(path => {
+        const url = convertFileSrc(path);
+        // Populate the hook's cache so it can use the converted URL immediately
+        populateAvatarCache(`${uuid}-40-true`, url);
+        return url;
+      })
+      .catch(() => null),
+  ]);
+  
+  try {
+    await Promise.all(prefetchPromises);
+  } catch (err) {
+    console.error("Failed to prefetch avatars:", err);
+  }
 }
 
 export const useMinecraftAuthStore = create<MinecraftAuthState>((set, get) => ({
@@ -39,6 +99,9 @@ export const useMinecraftAuthStore = create<MinecraftAuthState>((set, get) => ({
         activeAccount,
         isLoading: false,
       });
+
+      // Pre-fetch avatars in the background after accounts are loaded
+      prefetchAccountAvatars(updatedAccounts);
     } catch (error) {
       console.error("Failed to initialize accounts:", error);
       set({
@@ -89,7 +152,11 @@ export const useMinecraftAuthStore = create<MinecraftAuthState>((set, get) => ({
     );
 
     try {
-      const { accounts, activeAccount } = await fullProcessPromise;
+      const { newAccount, accounts, activeAccount } = await fullProcessPromise;
+
+      // Pre-fetch the new account's avatar BEFORE updating state
+      // This ensures the avatar is cached and ready when the modal opens
+      await prefetchAccountAvatars([newAccount]);
 
       // Now, after the toast has finished, update the state in one go.
       const updatedAccounts = accounts.map((account) => ({
@@ -102,6 +169,9 @@ export const useMinecraftAuthStore = create<MinecraftAuthState>((set, get) => ({
         activeAccount,
         error: null,
       });
+
+      // Pre-fetch avatars for all accounts in the background
+      prefetchAccountAvatars(updatedAccounts);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -137,6 +207,9 @@ export const useMinecraftAuthStore = create<MinecraftAuthState>((set, get) => ({
         activeAccount,
         isLoading: false,
       });
+
+      // Pre-fetch avatars for remaining accounts in the background
+      prefetchAccountAvatars(updatedAccounts);
     } catch (error) {
       console.error("Failed to remove account:", error);
       set({
