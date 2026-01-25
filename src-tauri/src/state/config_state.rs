@@ -53,6 +53,8 @@ pub struct LauncherConfig {
     pub global_memory_settings: MemorySettings,
     #[serde(default)]
     pub custom_game_directory: Option<PathBuf>,
+    #[serde(default = "default_multiple_log_windows")]
+    pub multiple_log_windows: bool,
 }
 
 fn default_config_version() -> u32 {
@@ -83,6 +85,10 @@ fn default_hide_on_process_start() -> bool {
     false
 }
 
+fn default_multiple_log_windows() -> bool {
+    false
+}
+
 fn default_global_memory_settings() -> MemorySettings {
     MemorySettings {
         min: 3072, // 2GB
@@ -107,6 +113,7 @@ impl Default for LauncherConfig {
             hide_on_process_start: default_hide_on_process_start(),
             global_memory_settings: default_global_memory_settings(),
             custom_game_directory: None,
+            multiple_log_windows: default_multiple_log_windows(),
         }
     }
 }
@@ -328,6 +335,7 @@ impl ConfigManager {
                 && current.global_memory_settings.min == new_config.global_memory_settings.min
                 && current.global_memory_settings.max == new_config.global_memory_settings.max
                 && current.custom_game_directory == new_config.custom_game_directory
+                && current.multiple_log_windows == new_config.multiple_log_windows
             {
                 debug!("No config changes detected, skipping save");
                 false
@@ -416,6 +424,12 @@ impl ConfigManager {
                         current.custom_game_directory, new_config.custom_game_directory
                     );
                 }
+                if current.multiple_log_windows != new_config.multiple_log_windows {
+                    info!(
+                        "Changing multiple log windows: {} -> {}",
+                        current.multiple_log_windows, new_config.multiple_log_windows
+                    );
+                }
 
                 // Update config while preserving version
                 *config = LauncherConfig {
@@ -433,6 +447,7 @@ impl ConfigManager {
                     hide_on_process_start: new_config.hide_on_process_start,
                     global_memory_settings: new_config.global_memory_settings,
                     custom_game_directory: new_config.custom_game_directory.clone(),
+                    multiple_log_windows: new_config.multiple_log_windows,
                 };
 
                 true

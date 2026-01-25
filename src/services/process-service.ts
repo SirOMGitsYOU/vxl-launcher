@@ -84,11 +84,12 @@ export async function stopProcess(processId: string): Promise<void> {
 
 /**
  * Opens a dedicated log viewer window for the specified process ID.
+ * If processId is null, opens the log window without a specific process.
  */
-export async function openLogWindow(processId: string): Promise<void> {
+export async function openLogWindow(processId: string | null): Promise<void> {
   console.debug(`[ProcessService] Requesting log window for process ID: ${processId}`);
   try {
-    // Pass processId (Uuid as string) to the Rust command
+    // Pass processId (Uuid as string or null) to the Rust command
     await invoke<void>("open_log_window", { processId });
   } catch (error) {
     console.error(`[ProcessService] Failed to open log window for process ID ${processId}:`, error);

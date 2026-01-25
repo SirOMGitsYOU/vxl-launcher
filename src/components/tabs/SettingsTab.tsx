@@ -380,6 +380,19 @@ export function SettingsTab() {
                 hide_on_process_start: checked,
               }),
           },
+          {
+            id: "multiple-log-windows",
+            label: "Multiple Log Windows",
+            tooltip: "Allow multiple log windows to be open simultaneously. When disabled, opening logs will re-focus the existing window.",
+            type: "toggle",
+            value: tempConfig?.multiple_log_windows || false,
+            onChange: (checked) =>
+              tempConfig &&
+              setTempConfig({
+                ...tempConfig,
+                multiple_log_windows: checked,
+              }),
+          },
         ]}
         disabled={saving}
       />

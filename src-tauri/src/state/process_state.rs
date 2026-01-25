@@ -61,6 +61,7 @@ pub struct ProcessMetadata {
     pub norisk_pack: Option<String>,
     pub profile_name: Option<String>,
     pub post_exit_hook: Option<String>,
+    pub profile_image_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -563,6 +564,28 @@ impl ProcessManager {
         })?;
         let process_id = Uuid::new_v4();
 
+        // Try to get the profile image URL
+        let profile_image_url = if let Ok(global_state) = State::get().await {
+            if let Ok(profile) = global_state.profile_manager.get_profile(profile_id).await {
+                if let Some(banner) = profile.banner {
+                    // Try to resolve the image source to a URL
+                    match crate::commands::path_commands::resolve_image_path(banner.source, Some(profile_id.to_string())).await {
+                        Ok(url) => Some(url),
+                        Err(e) => {
+                            log::warn!("Failed to resolve profile image URL for profile {}: {:?}", profile_id, e);
+                            None
+                        }
+                    }
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
         let metadata = ProcessMetadata {
             id: process_id,
             profile_id,
@@ -577,6 +600,7 @@ impl ProcessManager {
             norisk_pack,
             profile_name: profile_name.clone(),
             post_exit_hook,
+            profile_image_url,
         };
 
         log::info!(
@@ -1668,7 +1692,7 @@ impl ProcessManager {
                         );
                         match crate::commands::process_command::open_log_window(
                             (*app_handle_clone).clone(),
-                            process_id,
+                            Some(process_id),
                             Some(true),
                         )
                         .await
