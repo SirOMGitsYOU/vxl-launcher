@@ -37,6 +37,9 @@ export interface GenericDetailListItemProps {
 
   // Visuals / Theming
   accentColor?: string; // For internal theming if necessary
+  
+  // Title click handler for navigation
+  onTitleClick?: () => void;
 }
 
 export function GenericDetailListItem({
@@ -56,6 +59,7 @@ export function GenericDetailListItem({
   dropdownNode,
   isDropdownVisible,
   accentColor = '#FFFFFF', // Default accent if not provided
+  onTitleClick,
 }: GenericDetailListItemProps) {
 
   const [isHovered, setIsHovered] = useState(false);
@@ -94,8 +98,14 @@ export function GenericDetailListItem({
       {/* Content Area - Title, Description, Badges */}
       <div className="flex-1 min-w-0">
         <h3 
-          className={`font-minecraft-ten text-sm whitespace-nowrap overflow-hidden text-ellipsis normal-case mb-1 ${isDisabled ? 'text-white/50 line-through' : 'text-white'}`}
+          className={`font-minecraft-ten text-sm whitespace-nowrap overflow-hidden text-ellipsis normal-case mb-1 ${isDisabled ? 'text-white/50 line-through' : 'text-white'} ${onTitleClick ? 'cursor-pointer hover:text-accent hover:underline transition-colors' : ''}`}
           title={typeof title === 'string' ? title : undefined}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onTitleClick && !isDisabled) {
+              onTitleClick();
+            }
+          }}
         >
           {title}
         </h3>

@@ -582,6 +582,18 @@ export function LocalContentTabV2<T extends LocalContentItem>({
     };
   }, [openVersionDropdownId]); // Effect runs when dropdown open state changes
 
+  const handleItemTitleClick = useCallback((item: T) => {
+    // Only navigate for mods with platform info (Modrinth or CurseForge)
+    if (contentType !== "Mod") return;
+    
+    // Use the platform field to determine which platform the mod is from
+    if (item.platform === ModPlatform.Modrinth && item.modrinth_info?.project_id) {
+      navigate(`/mods/modrinth/${item.modrinth_info.project_id}`);
+    } else if (item.platform === ModPlatform.CurseForge && item.curseforge_info?.project_id) {
+      navigate(`/mods/curseforge/${item.curseforge_info.project_id}`);
+    }
+  }, [contentType, navigate]);
+
   const renderListItem = useCallback(
     (item: T) => {
       const itemTitleRaw = getDisplayFileName(item);
@@ -1029,6 +1041,7 @@ export function LocalContentTabV2<T extends LocalContentItem>({
           dropdownNode={itemDropdownNode}
           isDropdownVisible={activeDropdownId === item.filename}
           accentColor={accentColor.value}
+          onTitleClick={() => handleItemTitleClick(item)}
         />
       );
     },
@@ -1071,6 +1084,7 @@ export function LocalContentTabV2<T extends LocalContentItem>({
       versionsError,
       handleSwitchContentVersion,
       isBlockedConfigLoaded,
+      handleItemTitleClick,
     ],
   );
 
