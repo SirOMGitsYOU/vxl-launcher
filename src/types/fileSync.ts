@@ -26,6 +26,12 @@ export interface FileSyncStatus {
   sync_timestamp: string | null;
 }
 
+export interface SyncFilePayload {
+  source_profile_id: string;
+  target_profile_id: string;
+  files_to_sync: SyncableFile[];
+}
+
 export interface BulkSyncPayload {
   source_profile_id: string;
   target_profile_ids: string[];
