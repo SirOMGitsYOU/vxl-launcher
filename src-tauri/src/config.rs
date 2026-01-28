@@ -30,6 +30,7 @@ pub static HTTP_CLIENT: Lazy<Client> = Lazy::new(|| {
 pub trait ProjectDirsExt {
     fn meta_dir(&self) -> PathBuf;
     fn root_dir(&self) -> PathBuf;
+    fn file_sync_hub_dir(&self) -> PathBuf;
 }
 
 impl ProjectDirsExt for ProjectDirs {
@@ -55,6 +56,10 @@ impl ProjectDirsExt for ProjectDirs {
             // macOS (und andere): Setze root_dir auf data_dir
             self.data_dir().to_path_buf()
         }
+    }
+
+    fn file_sync_hub_dir(&self) -> PathBuf {
+        standard_meta_dir().join("sharedFiles")
     }
 }
 

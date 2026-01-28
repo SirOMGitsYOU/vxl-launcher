@@ -10,6 +10,7 @@ import { JavaSettingsTab } from "./settings/JavaSettingsTab";
 import { WindowSettingsTab } from "./settings/WindowSettingsTab";
 import { AdvancedTab } from "./settings/AdvancedTab";
 import { SymlinkSettingsTab } from "./settings/SymlinkSettingsTab";
+import { FileSyncSettingsTab } from "./settings/FileSyncSettingsTab";
 
 import { useProfileStore } from "../../store/profile-store";
 import * as ProfileService from "../../services/profile-service";
@@ -32,7 +33,8 @@ type SettingsTab =
   | "window"
   | "nrc"
   | "designer"
-  | "symlinks";
+  | "symlinks"
+  | "filesync";
 
 export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
   const { updateProfile, deleteProfile } = useProfileStore();
@@ -175,6 +177,7 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
     { id: "window", label: "Window", icon: "solar:widget-bold" },
     { id: "nrc", label: "Advanced", icon: "solar:shield-check-bold" },
     { id: "symlinks", label: "Symlinks", icon: "solar:link-bold" },
+    { id: "filesync", label: "File Sync", icon: "solar:sync-bold" },
   ];
 
   const tabConfig = showDesignerTab
@@ -255,6 +258,12 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
             editedProfile={editedProfile}
             updateProfile={updateProfileData}
             allProfiles={useProfileStore.getState().profiles}
+          />
+        );
+      case "filesync":
+        return (
+          <FileSyncSettingsTab
+            profile={profile}
           />
         );
       default:

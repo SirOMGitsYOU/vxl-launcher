@@ -13,7 +13,6 @@ import { Select } from "../../ui/Select";
 import { Card } from "../../ui/Card";
 import { Checkbox } from "../../ui/Checkbox";
 import { invoke } from "@tauri-apps/api/core";
-// Removed NoriskModEntryDefinition, NoriskModpacksConfig imports - no pre-installed modpacks
 
 const forbiddenChars = /[<>:"/\\|?*]/g;
 const forbiddenTrailing = /[ .]$/;
@@ -35,6 +34,7 @@ interface ProfileWizardV2Step3Props {
         loaderVersion: string | null;
         memoryMaxMb: number;
         use_shared_minecraft_folder?: boolean;
+        enable_file_sync?: boolean;
     }) => void;
     selectedMinecraftVersion: string;
     selectedLoader: ModLoader;
@@ -59,6 +59,7 @@ export function ProfileWizardV2Step3({
     const [useSharedMinecraftFolder, setUseSharedMinecraftFolder] = useState(
         defaultGroup && defaultGroup.toLowerCase() !== "modpacks"
     ); // Default to true when group exists and is not "modpacks"
+    const [enableFileSync, setEnableFileSync] = useState(false); // File sync opt-in
     const [showAllVersions, setShowAllVersions] = useState(false); // Default to false to show only curated versions
 
     // Update profile group when defaultGroup changes
@@ -120,7 +121,8 @@ export function ProfileWizardV2Step3({
                 loader: selectedLoader,
                 loaderVersion: selectedLoaderVersion,
                 memoryMaxMb: memoryMaxMb,
-                use_shared_minecraft_folder: useSharedMinecraftFolder
+                use_shared_minecraft_folder: useSharedMinecraftFolder,
+                enable_file_sync: enableFileSync
             });
         } catch (err) {
             console.error("Failed to create profile:", err);
@@ -204,6 +206,19 @@ export function ProfileWizardV2Step3({
                         />
                         <p className="text-xs text-white/50 font-minecraft-ten ml-10 -mt-1">
                             (you can change this anytime)
+                        </p>
+                    </div>
+                    <div className="space-y-1">
+                        <Checkbox
+                            label="Enable Data sync"
+                            checked={enableFileSync}
+                            onChange={(event) => setEnableFileSync(event.target.checked)}
+                            description="Sync servers.dat and options.txt with other profiles. You can configure sync settings after profile creation."
+                            descriptionClassName="font-minecraft-ten text-sm"
+                            size="lg"
+                        />
+                        <p className="text-xs text-white/50 font-minecraft-ten ml-10 -mt-1">
+                            (optional - configure later)
                         </p>
                     </div>
                 </div>

@@ -110,6 +110,7 @@ export function ProfileWizardV2({ onClose, onSave, defaultGroup }: ProfileWizard
     loaderVersion: string | null;
     memoryMaxMb: number;
     use_shared_minecraft_folder?: boolean;
+    enable_file_sync?: boolean;
   }) => {
     const { createProfile } = useProfileStore.getState();
 
@@ -119,6 +120,7 @@ export function ProfileWizardV2({ onClose, onSave, defaultGroup }: ProfileWizard
       loader: profileData.loader,
       loader_version: profileData.loaderVersion || undefined,
       use_shared_minecraft_folder: profileData.use_shared_minecraft_folder,
+      enable_file_sync: profileData.enable_file_sync,
     };
 
     const creationPromise = async () => {

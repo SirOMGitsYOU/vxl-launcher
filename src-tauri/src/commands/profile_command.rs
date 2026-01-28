@@ -45,6 +45,7 @@ pub struct CreateProfileParams {
     loader: String,
     loader_version: Option<String>,
     use_shared_minecraft_folder: Option<bool>,
+    enable_file_sync: Option<bool>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -157,6 +158,15 @@ pub async fn create_profile(params: CreateProfileParams) -> Result<Uuid, Command
     };
 
     let id = state.profile_manager.create_profile(profile).await?;
+    
+    // If file sync is enabled, add this profile to the existing sync config
+    if params.enable_file_sync.unwrap_or(false) {
+        if let Err(e) = add_profile_to_sync_config(id).await {
+            log::warn!("Failed to add profile {} to sync config: {}", id, e);
+            // Don't fail the profile creation, just warn
+        }
+    }
+    
     Ok(id)
 }
 
@@ -272,6 +282,12 @@ pub async fn launch_profile(
 
     let profile_id = profile.id; // Store profile ID for later use
     let profile_clone = profile.clone();
+
+    // Perform file sync pull before launching (if sync is enabled for this profile)
+    if let Err(e) = perform_profile_sync_pull(profile_id).await {
+        warn!("File sync pull failed for profile {}: {}", profile_id, e);
+        // Don't fail the launch, just warn
+    }
 
     // Determine Quick Play parameters - use profile settings if none provided
     let (final_quick_play_sp, final_quick_play_mp) = if quick_play_singleplayer.is_none() && quick_play_multiplayer.is_none() {
@@ -702,6 +718,13 @@ async fn try_update_profile(id: Uuid, params: UpdateProfileParams) -> Result<(),
 pub async fn delete_profile(id: Uuid) -> Result<(), CommandError> {
     let state = State::get().await?;
     state.profile_manager.delete_profile(id).await?;
+    
+    // Remove profile from sync config if it exists
+    if let Err(e) = remove_profile_from_sync_config(id).await {
+        log::warn!("Failed to remove profile {} from sync config: {}", id, e);
+        // Don't fail the deletion, just warn
+    }
+    
     Ok(())
 }
 
@@ -2235,4 +2258,107 @@ pub async fn get_profile_folders(profile_id: Uuid) -> Result<Vec<String>, Comman
     }
 
     Ok(folders)
+}
+
+/// Helper function to perform file sync pull for a profile on launch
+async fn perform_profile_sync_pull(profile_id: Uuid) -> Result<(), String> {
+    use crate::commands::file_sync_command::{load_sync_configs, pull_from_hub};
+
+    // Load all sync configs
+    let configs = load_sync_configs()
+        .map_err(|e| format!("Failed to load sync configs: {}", e))?;
+
+    // Find configs that include this profile
+    for config in configs {
+        if !config.enabled {
+            continue;
+        }
+
+        // Check if this profile is in the target list
+        let is_target = if config.sync_all_profiles {
+            // If sync_all_profiles is true, sync to all profiles except source
+            true
+        } else {
+            // Otherwise, check if profile is in the explicit list
+            config.profile_ids.iter().any(|id| id == &profile_id.to_string())
+        };
+
+        if is_target {
+            info!(
+                "Pulling files for profile {} from sync config {}",
+                profile_id, config.id
+            );
+
+            // Pull files from hub to this profile
+            pull_from_hub(profile_id.to_string(), config.files_to_sync)
+                .await
+                .map_err(|e| format!("Failed to pull files: {}", e))?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Helper function to add a newly created profile to the existing sync config
+async fn add_profile_to_sync_config(profile_id: Uuid) -> Result<(), String> {
+    use crate::commands::file_sync_command::{load_sync_configs, save_sync_configs};
+
+    // Load existing sync configs
+    let mut configs = load_sync_configs()
+        .map_err(|e| format!("Failed to load sync configs: {}", e))?;
+
+    // If there's an existing config, add this profile to it
+    let should_save = if let Some(config) = configs.first_mut() {
+        let profile_id_str = profile_id.to_string();
+        
+        // Only add if not already in the list
+        if !config.profile_ids.contains(&profile_id_str) {
+            config.profile_ids.push(profile_id_str.clone());
+            info!("Added profile {} to sync config {}", profile_id, config.id);
+            true
+        } else {
+            false
+        }
+    } else {
+        false
+    };
+
+    // Save configs after dropping the mutable borrow
+    if should_save {
+        save_sync_configs(&configs)
+            .map_err(|e| format!("Failed to save sync configs: {}", e))?;
+    }
+
+    Ok(())
+}
+
+/// Helper function to remove a deleted profile from the sync config
+async fn remove_profile_from_sync_config(profile_id: Uuid) -> Result<(), String> {
+    use crate::commands::file_sync_command::{load_sync_configs, save_sync_configs};
+
+    // Load existing sync configs
+    let mut configs = load_sync_configs()
+        .map_err(|e| format!("Failed to load sync configs: {}", e))?;
+
+    // Remove the profile from all configs
+    let profile_id_str = profile_id.to_string();
+    let mut should_save = false;
+
+    for config in &mut configs {
+        let original_len = config.profile_ids.len();
+        config.profile_ids.retain(|id| id != &profile_id_str);
+        
+        if config.profile_ids.len() < original_len {
+            info!("Removed profile {} from sync config {}", profile_id, config.id);
+            should_save = true;
+        }
+    }
+
+    // Save configs if any changes were made
+    if should_save {
+        save_sync_configs(&configs)
+            .map_err(|e| format!("Failed to save sync configs: {}", e))?;
+    }
+
+    Ok(())
 }

@@ -20,6 +20,7 @@ import { useThemeStore } from "../../store/useThemeStore";
 import { useGlobalModal } from "../../hooks/useGlobalModal";
 import { ExportProfileModal } from "../profiles/ExportProfileModal";
 import { Icon } from "@iconify/react";
+ import { DataSyncModal } from "../modals/DataSyncModal";
 
 export function ProfilesTabV2() {
   const {
@@ -49,6 +50,7 @@ export function ProfilesTabV2() {
   
   // Local non-persistent state
   const [searchQuery, setSearchQuery] = useState("");
+  const [isDataSyncModalOpen, setIsDataSyncModalOpen] = useState(false);
   
   // Use persistent values instead of local state
   const activeGroup = profilesTabActiveGroup;
@@ -58,6 +60,15 @@ export function ProfilesTabV2() {
 
   // Action buttons configuration
   const actionButtons: ActionButton[] = [
+    {
+      id: "data-sync",
+      label: "DATA SYNC",
+      icon: "solar:share-bold",
+      tooltip: "Configure file sync",
+      onClick: () => {
+        setIsDataSyncModalOpen(true);
+      },
+    },
     {
       id: "import",
       label: "IMPORT",
@@ -381,7 +392,11 @@ export function ProfilesTabV2() {
       {/* Bottom tip */}
       </div>
 
-      {/* Modals from ProfilesTab.tsx */}
+      <DataSyncModal
+        isOpen={isDataSyncModalOpen}
+        onClose={() => setIsDataSyncModalOpen(false)}
+      />
+
       {confirmDialog}
     </div>
   );

@@ -767,6 +767,14 @@ impl ProcessManager {
                     .map(|p_entry| p_entry.metadata.clone())
             };
 
+            // Perform file sync push after profile closes (if sync is enabled for this profile)
+            if let Some(metadata) = &exiting_process_metadata_clone {
+                if let Err(e) = crate::commands::process_command::perform_profile_sync_push(metadata.profile_id).await {
+                    log::warn!("File sync push failed for profile {}: {}", metadata.profile_id, e);
+                    // Don't fail the exit, just warn
+                }
+            }
+
             // Try to get crash content if it was processed very fast. No extensive polling here.
             let crash_content_for_payload: Option<String> = {
                 if let Ok(state) = &state_for_monitor_res {

@@ -238,6 +238,7 @@ export interface CreateProfileParams {
   loader: string;
   loader_version?: string;
   use_shared_minecraft_folder?: boolean;
+  enable_file_sync?: boolean;
 }
 
 export interface UpdateProfileParams {

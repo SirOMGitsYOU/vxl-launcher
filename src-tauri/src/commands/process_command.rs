@@ -34,7 +34,25 @@ pub async fn get_processes_by_profile(
 #[tauri::command]
 pub async fn stop_process(process_id: Uuid) -> Result<(), CommandError> {
     let state = State::get().await?;
+    
+    // Get the profile ID associated with this process
+    let profile_id = state
+        .process_manager
+        .get_process_metadata(process_id)
+        .await
+        .map(|metadata| metadata.profile_id);
+    
+    // Stop the process
     state.process_manager.stop_process(process_id).await?;
+    
+    // Perform file sync push after profile closes (if sync is enabled for this profile)
+    if let Some(profile_id) = profile_id {
+        if let Err(e) = perform_profile_sync_push(profile_id).await {
+            log::warn!("File sync push failed for profile {}: {}", profile_id, e);
+            // Don't fail the stop, just warn
+        }
+    }
+    
     Ok(())
 }
 
@@ -347,5 +365,45 @@ pub async fn focus_main_window<R: tauri::Runtime>(
             )))
         })?;
     }
+    Ok(())
+}
+
+/// Helper function to perform file sync push for a profile when it closes
+pub async fn perform_profile_sync_push(profile_id: uuid::Uuid) -> Result<(), String> {
+    use crate::commands::file_sync_command::{load_sync_configs, push_to_hub};
+
+    // Load all sync configs
+    let configs = load_sync_configs()
+        .map_err(|e| format!("Failed to load sync configs: {}", e))?;
+
+    // Find configs that include this profile and push from it
+    for config in configs {
+        if !config.enabled {
+            continue;
+        }
+
+        // Check if this profile is part of the sync config (either source or target)
+        let is_part_of_config = if config.sync_all_profiles {
+            // If sync_all_profiles is true, all profiles are part of it
+            true
+        } else {
+            // Otherwise, check if profile is in the target list or is the source
+            profile_id.to_string() == config.source_profile_id
+                || config.profile_ids.iter().any(|id| id == &profile_id.to_string())
+        };
+
+        if is_part_of_config {
+            log::info!(
+                "Pushing files from profile {} to hub from sync config {}",
+                profile_id, config.id
+            );
+
+            // Push files from this profile to hub
+            push_to_hub(profile_id.to_string(), config.files_to_sync)
+                .await
+                .map_err(|e| format!("Failed to push files: {}", e))?;
+        }
+    }
+
     Ok(())
 }

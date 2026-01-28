@@ -89,6 +89,13 @@ use commands::file_command::{
     read_file_bytes, set_file_enabled,
 };
 
+use commands::file_sync_command::{
+    get_file_sync_configs,
+    create_file_sync_config, update_file_sync_config, delete_file_sync_config,
+    get_file_sync_status, check_profile_file_exists,
+    pull_from_hub, push_to_hub, get_shared_files,
+};
+
 // Import config commands
 use commands::config_commands::{get_app_version, get_launcher_config, set_launcher_config};
 use tauri::{
@@ -552,7 +559,16 @@ async fn main() {
             set_discord_state_getting_ready_to_play,
             set_discord_state_browsing_outfits,
             set_discord_state_browsing_capes,
-            set_discord_state_tinkering
+            set_discord_state_tinkering,
+            get_file_sync_configs,
+            create_file_sync_config,
+            update_file_sync_config,
+            delete_file_sync_config,
+            get_file_sync_status,
+            check_profile_file_exists,
+            pull_from_hub,
+            push_to_hub,
+            get_shared_files
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

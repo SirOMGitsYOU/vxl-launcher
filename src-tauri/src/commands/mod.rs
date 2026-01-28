@@ -3,6 +3,7 @@ pub mod content_command;
 pub mod curseforge_commands;
 pub mod discord_command;
 pub mod file_command;
+pub mod file_sync_command;
 pub mod java_command;
 pub mod minecraft_auth_command;
 pub mod minecraft_command;
