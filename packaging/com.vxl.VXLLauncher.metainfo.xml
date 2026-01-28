@@ -63,5 +63,8 @@
     <release version="0.1.6" date="2026-01-25">
       <url type="details">https://github.com/VicariousNetwork/vxl-launcher/releases/tag/v0.1.6</url>
     </release>
+    <release version="0.1.7" date="2026-01-28">
+      <url type="details">https://github.com/VicariousNetwork/vxl-launcher/releases/tag/v0.1.7</url>
+    </release>
   </releases>
 </component>
