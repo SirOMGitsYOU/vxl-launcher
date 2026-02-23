@@ -25,6 +25,7 @@ import { GenericDetailListItem } from "../items/GenericDetailListItem"; // Impor
 import { toast } from 'react-hot-toast'; // Import toast
 import { toggleContentFromProfile } from "../../../../services/content-service"; // Import toggleContentFromProfile
 import type { ToggleContentPayload } from "../../../../types/content"; // Import ToggleContentPayload
+import { ModIconCache } from "../../../../store/mod-icon-cache"; // Import global icon cache
 
 // Icons specific to ModsTabV2
 const MODS_TAB_ICONS_TO_PRELOAD = [
@@ -100,6 +101,11 @@ export function ModsTabV2({ profile, onRefreshRequired }: ModsTabV2Props) {
   const [isDialogActionLoading, setIsDialogActionLoading] = useState(false);
   const [isUpdatingAll, setIsUpdatingAll] = useState(false);
 
+  // Cache refs to prevent redundant API calls
+  const iconsLoadedRef = useRef<Set<string>>(new Set()); // Track which project IDs we've already fetched icons for
+  const localIconsLoadedRef = useRef<Set<string>>(new Set()); // Track which local paths we've already fetched icons for
+  const lastProfileIdRef = useRef<string | null>(null); // Track the last profile ID to detect profile changes
+
   useEffect(() => {
     preloadIcons(MODS_TAB_ICONS_TO_PRELOAD);
   }, []);
@@ -110,7 +116,7 @@ export function ModsTabV2({ profile, onRefreshRequired }: ModsTabV2Props) {
     setSelectedModIds(new Set()); // Clear selection when profile changes
   }, [profile.mods]);
 
-  // Fetch Modrinth icons
+  // Fetch Modrinth icons - use global cache to prevent redundant API calls
   useEffect(() => {
     const fetchAllModrinthIcons = async () => {
       if (!mods || mods.length === 0) {
@@ -122,30 +128,35 @@ export function ModsTabV2({ profile, onRefreshRequired }: ModsTabV2Props) {
         .filter((mod) => mod.source?.type === "modrinth" && (mod.source as ModSourceModrinth).project_id)
         .map((mod) => (mod.source as ModSourceModrinth).project_id!);
 
-      if (modrinthProjectIds.length > 0) {
+      // Get cached icons first
+      const cachedIcons = ModIconCache.getModrinthIcons(modrinthProjectIds);
+      setModrinthIcons(cachedIcons);
+
+      // Only fetch icons for project IDs we haven't cached yet
+      const newProjectIds = modrinthProjectIds.filter(id => !ModIconCache.hasModrinthIcon(id));
+
+      if (newProjectIds.length > 0) {
         try {
-          // Consider adding a loading state specifically for icons if needed
-          const projectDetailsList = await ModrinthService.getProjectDetails(modrinthProjectIds);
+          const projectDetailsList = await ModrinthService.getProjectDetails(newProjectIds);
           const icons: Record<string, string | null> = {};
           projectDetailsList.forEach((detail) => {
-            if (detail?.id && detail.icon_url) {
-              icons[detail.id] = detail.icon_url;
+            if (detail?.id) {
+              const iconUrl = detail.icon_url || null;
+              icons[detail.id] = iconUrl;
+              ModIconCache.setModrinthIcon(detail.id, iconUrl);
             }
           });
-          setModrinthIcons(icons);
+          setModrinthIcons(prevIcons => ({ ...prevIcons, ...icons }));
         } catch (err) {
           console.error("Failed to fetch Modrinth project details for icons:", err);
-          // Optionally set an error state for icons or handle partial failures
         }
-      } else {
-        setModrinthIcons({});
       }
     };
 
     fetchAllModrinthIcons();
   }, [mods]);
 
-  // Fetch local archive icons for mods
+  // Fetch local archive icons for mods - use global cache
   useEffect(() => {
     const fetchLocalArchiveIconsForMods = async () => {
       if (!profile || !mods || mods.length === 0) {
@@ -153,20 +164,23 @@ export function ModsTabV2({ profile, onRefreshRequired }: ModsTabV2Props) {
         return;
       }
 
-      const pathsToFetchIconsFor = mods
+      const localModPaths = mods
         .filter(mod => {
           const source = mod.source as ModSourceLocal;
-          // Only consider local mods where we can construct a path
-          return mod.source?.type === "local" && 
-                 source.file_name && 
-                 localArchiveIcons[`${profile.path}/mods/${source.file_name}`] === undefined;
+          return mod.source?.type === "local" && source.file_name;
         })
         .map(mod => {
           const source = mod.source as ModSourceLocal;
           return `${profile.path}/mods/${source.file_name}`;
         });
 
-      const uniquePaths = [...new Set(pathsToFetchIconsFor)];
+      // Get cached icons first
+      const cachedIcons = ModIconCache.getLocalIcons(localModPaths);
+      setLocalArchiveIcons(cachedIcons);
+
+      // Only fetch icons for paths we haven't cached yet
+      const pathsToFetch = localModPaths.filter(path => !ModIconCache.hasLocalIcon(path));
+      const uniquePaths = [...new Set(pathsToFetch)];
 
       if (uniquePaths.length > 0) {
         try {
@@ -178,7 +192,9 @@ export function ModsTabV2({ profile, onRefreshRequired }: ModsTabV2Props) {
           if (iconsResult) {
             const newLocalIcons: Record<string, string | null> = {};
             for (const path of uniquePaths) {
-              newLocalIcons[path] = iconsResult[path] || null; // Store null if not found
+              const iconData = iconsResult[path] || null;
+              newLocalIcons[path] = iconData;
+              ModIconCache.setLocalIcon(path, iconData);
             }
             setLocalArchiveIcons(prevIcons => ({ ...prevIcons, ...newLocalIcons }));
           }
@@ -611,15 +627,17 @@ export function ModsTabV2({ profile, onRefreshRequired }: ModsTabV2Props) {
     }
   };
 
-  // Initial check for updates on mount and if profile ID changes (indicating a new profile is selected)
+  // Clear cache when profile changes to avoid stale data
   useEffect(() => {
-    if (profile && profile.id && profile.mods && profile.mods.length > 0) {
-      // Ensure this runs only when the profile context genuinely changes to a new one,
-      // or on initial load of a profile.
-      checkForModUpdates(profile);
+    if (lastProfileIdRef.current !== profile?.id) {
+      lastProfileIdRef.current = profile?.id || null;
+      iconsLoadedRef.current.clear();
+      localIconsLoadedRef.current.clear();
+      setModrinthIcons({});
+      setLocalArchiveIcons({});
+      setModUpdates({});
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.id]); // Rerun only if profile.id changes
+  }, [profile?.id]);
 
   const handleUpdateMod = async (mod: Mod, updateVersion: ModrinthVersion) => {
     if (

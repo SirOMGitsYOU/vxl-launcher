@@ -15,8 +15,9 @@ interface ProfileState {
   error: string | null;
   selectedProfile: Profile | null;
   lastPlayedProfileId: string | null;
+  profilesLoaded: boolean; // Track if profiles have been loaded at least once
 
-  fetchProfiles: () => Promise<void>;
+  fetchProfiles: (forceRefresh?: boolean) => Promise<void>;
   getProfile: (id: string) => Promise<Profile>;
   createProfile: (params: CreateProfileParams) => Promise<string>;
   updateProfile: (id: string, updates: UpdateProfileParams) => Promise<void>;
@@ -48,8 +49,14 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   error: null,
   selectedProfile: null,
   lastPlayedProfileId: null,
+  profilesLoaded: false,
 
-  fetchProfiles: async () => {
+  fetchProfiles: async (forceRefresh = false) => {
+    // Skip fetching if profiles are already loaded and not forcing a refresh
+    if (get().profilesLoaded && !forceRefresh) {
+      return;
+    }
+
     try {
       set({ error: null });
       const response = await ProfileService.getAllProfilesAndLastPlayed();
@@ -66,6 +73,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         lastPlayedProfileId: last_played_profile_id,
         selectedProfile: newlySelectedProfile,
         loading: false,
+        profilesLoaded: true,
       });
     } catch (error) {
       console.error("Failed to fetch all profiles and last played:", error);

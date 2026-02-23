@@ -14,6 +14,7 @@ import { getLocalContent } from '../services/profile-service';
 import { toggleContentFromProfile, uninstallContentFromProfile, switchContentVersion, toggleModUpdates, bulkToggleModUpdates } from '../services/content-service';
 import { revealItemInDir, openPath } from '@tauri-apps/plugin-opener';
 import { getUpdateIdentifier, getContentPlatform } from '../utils/update-identifier-utils';
+import { ModIconCache } from '../store/mod-icon-cache';
 
 // Base type for content items managed by this hook - maps to ProfileLocalContentItem
 // We'll use ProfileLocalContentItem directly or ensure T extends it.
@@ -538,12 +539,19 @@ export function useLocalContentManager<T extends LocalContentItem>({
         return;
       }
 
-      const projectIdsToFetch = items
+      const modrinthProjectIds = items
         .filter(item => {
           const platform = getItemPlatform(item);
-          return platform === 'modrinth' && item.modrinth_info?.project_id && modrinthIcons[item.modrinth_info.project_id] === undefined;
+          return platform === 'modrinth' && item.modrinth_info?.project_id;
         })
-        .map(item => item.modrinth_info!.project_id!)
+        .map(item => item.modrinth_info!.project_id!);
+
+      // Get cached icons first
+      const cachedIcons = ModIconCache.getModrinthIcons(modrinthProjectIds);
+      setModrinthIcons(prevIcons => ({ ...prevIcons, ...cachedIcons }));
+
+      // Only fetch icons for project IDs we haven't cached yet
+      const projectIdsToFetch = modrinthProjectIds.filter(id => !ModIconCache.hasModrinthIcon(id));
       const uniqueProjectIds = [...new Set(projectIdsToFetch)];
 
       if (uniqueProjectIds.length > 0) {
@@ -553,7 +561,9 @@ export function useLocalContentManager<T extends LocalContentItem>({
           if (Array.isArray(projectDetailsList)) {
             projectDetailsList.forEach(detail => {
               if (detail && typeof detail === 'object' && detail.id) {
-                newIcons[detail.id] = detail.icon_url || null;
+                const iconUrl = detail.icon_url || null;
+                newIcons[detail.id] = iconUrl;
+                ModIconCache.setModrinthIcon(detail.id, iconUrl);
               }
             });
           } else {
@@ -571,7 +581,7 @@ export function useLocalContentManager<T extends LocalContentItem>({
     fetchModrinthIcons();
   }, [items, getItemPlatform]);
 
-  // Fetch CurseForge icons
+  // Fetch CurseForge icons - use global cache
   useEffect(() => {
     const fetchCurseForgeIcons = async () => {
       if (!items || items.length === 0) {
@@ -579,16 +589,22 @@ export function useLocalContentManager<T extends LocalContentItem>({
         return;
       }
 
-      const projectIdsToFetch = items
+      const curseforgeProjectIds = items
         .filter(item => {
           const platform = getItemPlatform(item);
-          return platform === 'curseforge' && item.curseforge_info?.project_id && curseforgeIcons[item.curseforge_info.project_id] === undefined;
+          return platform === 'curseforge' && item.curseforge_info?.project_id;
         })
-        .map(item => item.curseforge_info!.project_id!)
-        .map(id => parseInt(id, 10)) // Convert string to number
-        .filter(id => !isNaN(id)); // Filter out invalid IDs
+        .map(item => item.curseforge_info!.project_id!);
 
-      const uniqueProjectIds = [...new Set(projectIdsToFetch)];
+      // Get cached icons first
+      const cachedIcons = ModIconCache.getCurseforgeIcons(curseforgeProjectIds);
+      setCurseforgeIcons(prevIcons => ({ ...prevIcons, ...cachedIcons }));
+
+      // Only fetch icons for project IDs we haven't cached yet
+      const projectIdsToFetch = curseforgeProjectIds.filter(id => !ModIconCache.hasCurseforgeIcon(id));
+      const uniqueProjectIds = [...new Set(projectIdsToFetch)]
+        .map(id => parseInt(id, 10))
+        .filter(id => !isNaN(id));
 
       if (uniqueProjectIds.length > 0) {
         try {
@@ -598,10 +614,12 @@ export function useLocalContentManager<T extends LocalContentItem>({
           if (modsResponse && modsResponse.data) {
             modsResponse.data.forEach(mod => {
               if (mod && mod.id && mod.logo) {
-                newIcons[mod.id.toString()] = mod.logo.url || null;
+                const iconUrl = mod.logo.url || null;
+                newIcons[mod.id.toString()] = iconUrl;
+                ModIconCache.setCurseforgeIcon(mod.id.toString(), iconUrl);
               } else if (mod && mod.id) {
-                // Mod exists but has no logo
                 newIcons[mod.id.toString()] = null;
+                ModIconCache.setCurseforgeIcon(mod.id.toString(), null);
               }
             });
           } else {
@@ -625,28 +643,18 @@ export function useLocalContentManager<T extends LocalContentItem>({
     console.log(`[${contentType}] Running useEffect for fetchLocalArchiveIcons. Items count: ${items.length}, localArchiveIcons keys: ${Object.keys(localArchiveIcons).length}`);
     const fetchLocalArchiveIcons = async () => {
       if (!items || items.length === 0) {
-        // Only set to empty if it's not already empty, to prevent infinite loop
         if (Object.keys(localArchiveIcons).length > 0) {
           setLocalArchiveIcons({});
           console.log(`[${contentType}] fetchLocalArchiveIcons: No items or items array empty, clearing localArchiveIcons because it wasn't empty.`);
-        } else {
-          // console.log(`[${contentType}] fetchLocalArchiveIcons: No items and localArchiveIcons already empty. Doing nothing to prevent loop.`);
         }
         return;
       }
-
-      // console.log(`[${contentType}] fetchLocalArchiveIcons: Current localArchiveIcons keys:`, Object.keys(localArchiveIcons));
-      items.forEach(item => {
-        // console.log(`[${contentType}] fetchLocalArchiveIcons: Checking item - Path: ${item.path}, Filename: ${item.filename}, Cached: ${localArchiveIcons[item.path!] !== undefined}`);
-      });
 
       const pathsToFetchIconsFor = items
         .filter(item => {
           if (!item.path || localArchiveIcons[item.path] !== undefined) {
             return false;
           }
-          // For NoRiskMod, the item.path points to a .jar file in cache
-          // For other types, item.path usually points to a .zip file
           const lowerPath = item.path.toLowerCase();
           if (contentType === 'NoRiskMod') {
             return lowerPath.endsWith('.jar');

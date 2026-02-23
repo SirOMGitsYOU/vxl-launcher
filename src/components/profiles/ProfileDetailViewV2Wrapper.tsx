@@ -12,17 +12,18 @@ import { useProfileSettingsStore } from "../../store/profile-settings-store";
 export function ProfileDetailViewV2Wrapper() {
   const { profileId } = useParams<{ profileId: string }>();
   const navigate = useNavigate();
-  const { profiles, loading, fetchProfiles } = useProfileStore();
+  const { profiles, loading, fetchProfiles, profilesLoaded } = useProfileStore();
   const [profile, setProfile] = useState<Profile | null>(null);
 
   // Profile settings store for edit modal
   const { openModal } = useProfileSettingsStore();
 
+  // Only fetch profiles once on initial mount if not already loaded
   useEffect(() => {
-    if (!profiles.length && !loading) {
+    if (!profilesLoaded && !loading) {
       fetchProfiles();
     }
-  }, [profiles.length, loading, fetchProfiles]);
+  }, [profilesLoaded, loading, fetchProfiles]);
 
   useEffect(() => {
     if (profileId && profiles.length > 0) {
