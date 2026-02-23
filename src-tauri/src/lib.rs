@@ -6,3 +6,4 @@ pub mod integrations;
 pub mod minecraft;
 pub mod state;
 pub mod utils;
+pub mod games;

@@ -403,40 +403,54 @@ export function InstallationSettingsTab({
               <h3 className="text-3xl font-minecraft text-white mb-3 lowercase">
                 currently installed
               </h3>
-              <div className="flex items-center gap-3 text-sm font-minecraft-ten">
-                {/* Minecraft Version */}
-                <div className="text-white flex items-center gap-2">
-                  <img
-                    src="/icons/minecraft.png"
-                    alt="Minecraft"
-                    className="w-4 h-4 object-contain"
-                  />
-                  <span className="font-bold">{editedProfile.game_version}</span>
+              {editedProfile.game_type === "hytale" ? (
+                <div className="flex items-center gap-3 text-sm font-minecraft-ten">
+                  {/* Hytale Info */}
+                  <div className="text-white flex items-center gap-2">
+                    <img
+                      src="/icons/hytale.png"
+                      alt="Hytale"
+                      className="w-4 h-4 object-contain"
+                    />
+                    <span className="font-bold">Hytale</span>
+                  </div>
                 </div>
+              ) : (
+                <div className="flex items-center gap-3 text-sm font-minecraft-ten">
+                  {/* Minecraft Version */}
+                  <div className="text-white flex items-center gap-2">
+                    <img
+                      src="/icons/minecraft.png"
+                      alt="Minecraft"
+                      className="w-4 h-4 object-contain"
+                    />
+                    <span className="font-bold">{editedProfile.game_version}</span>
+                  </div>
 
-                <div className="w-px h-4 bg-white/30"></div>
+                  <div className="w-px h-4 bg-white/30"></div>
 
-                {/* Loader Version */}
-                <div className="text-white/70 flex items-center gap-2">
-                  <img
-                    src={
-                      editedProfile.loader === "vanilla" ? "/icons/minecraft.png" :
-                      editedProfile.loader === "fabric" ? "/icons/fabric.png" :
-                      editedProfile.loader === "forge" ? "/icons/forge.png" :
-                      editedProfile.loader === "quilt" ? "/icons/quilt.png" :
-                      editedProfile.loader === "neoforge" ? "/icons/neoforge.png" :
-                      "/icons/minecraft.png"
-                    }
-                    alt={editedProfile.loader || "Vanilla"}
-                    className="w-4 h-4 object-contain"
-                  />
-                  <span>
-                    {editedProfile.loader === "vanilla"
-                      ? "Vanilla"
-                      : `${editedProfile.loader} ${editedProfile.loader_version || ""}`.trim()}
-                  </span>
+                  {/* Loader Version */}
+                  <div className="text-white/70 flex items-center gap-2">
+                    <img
+                      src={
+                        editedProfile.loader === "vanilla" ? "/icons/minecraft.png" :
+                        editedProfile.loader === "fabric" ? "/icons/fabric.png" :
+                        editedProfile.loader === "forge" ? "/icons/forge.png" :
+                        editedProfile.loader === "quilt" ? "/icons/quilt.png" :
+                        editedProfile.loader === "neoforge" ? "/icons/neoforge.png" :
+                        "/icons/minecraft.png"
+                      }
+                      alt={editedProfile.loader || "Vanilla"}
+                      className="w-4 h-4 object-contain"
+                    />
+                    <span>
+                      {editedProfile.loader === "vanilla"
+                        ? "Vanilla"
+                        : `${editedProfile.loader} ${editedProfile.loader_version || ""}`.trim()}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
 

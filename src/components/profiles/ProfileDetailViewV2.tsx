@@ -138,7 +138,22 @@ export function ProfileDetailViewV2({
   }, [handleQuickPlayLaunch]);
 
   // Memoized callback for getDisplayFileName
-  const getGenericDisplayFileName = useCallback((item: LocalContentItem) => item.filename, []);
+  const getGenericDisplayFileName = useCallback((item: LocalContentItem) => {
+    // For mods, try to get the proper name from metadata first
+    if (item.content_type === 'Mod') {
+      // Check Modrinth info first
+      if (item.modrinth_info?.name) {
+        return item.modrinth_info.name;
+      }
+      // Then check CurseForge info
+      if (item.curseforge_info?.name) {
+        return item.curseforge_info.name;
+      }
+    }
+    
+    // Fallback to filename for other content types or if no metadata available
+    return item.filename;
+  }, []);
 
   // Handler for refreshing profile data
   const handleRefresh = useCallback(() => {
@@ -372,13 +387,17 @@ export function ProfileDetailViewV2({
     }
   };
 
-  // Main tabs configuration
-  const mainTabs: GroupTab[] = [
-    { id: "content", name: "Content", count: 0, icon: "solar:widget-bold" },
-    { id: "worlds", name: "Worlds", count: 0, icon: "solar:planet-bold" },
-    { id: "screenshots", name: "Screenshots", count: 0, icon: "solar:camera-bold" },
-    { id: "logs", name: "Logs", count: 0, icon: "solar:code-bold" },
-  ];
+  // Main tabs configuration - game-specific
+  const mainTabs: GroupTab[] = currentProfile.game_type === "hytale" 
+    ? [
+        { id: "content", name: "Mods", count: 0, icon: "solar:widget-bold" },
+      ]
+    : [
+        { id: "content", name: "Content", count: 0, icon: "solar:widget-bold" },
+        { id: "worlds", name: "Worlds", count: 0, icon: "solar:planet-bold" },
+        { id: "screenshots", name: "Screenshots", count: 0, icon: "solar:camera-bold" },
+        { id: "logs", name: "Logs", count: 0, icon: "solar:code-bold" },
+      ];
 
 
 
@@ -498,36 +517,50 @@ export function ProfileDetailViewV2({
                 ) : (
                   /* Normal Game Info */
                   <div className="flex items-center gap-3">
-                    {/* Minecraft Version */}
-                    <div className="text-white/70 flex items-center gap-2">
-                      <img
-                        src="/icons/minecraft.png"
-                        alt="Minecraft"
-                        className="w-4 h-4 object-contain"
-                      />
-                      <span>{profile.game_version}</span>
-                    </div>
-
-                    {/* Loader Info (if not vanilla) */}
-                    {profile.loader && profile.loader !== "vanilla" && (
+                    {/* Game Version/Type */}
+                    {profile.game_type === "hytale" ? (
+                      <div className="text-white/70 flex items-center gap-2">
+                        <img
+                          src="/icons/hytale.png"
+                          alt="Hytale"
+                          className="w-4 h-4 object-contain"
+                        />
+                        <span className="text-yellow-400 text-xs">Early Access</span>
+                      </div>
+                    ) : (
                       <>
-                        <div className="w-px h-4 bg-white/30"></div>
-                        <div className="text-white/60 flex items-center gap-2">
+                        {/* Minecraft Version */}
+                        <div className="text-white/70 flex items-center gap-2">
                           <img
-                            src={getModLoaderIcon()}
-                            alt={profile.loader}
+                            src="/icons/minecraft.png"
+                            alt="Minecraft"
                             className="w-4 h-4 object-contain"
-                            onError={(e) => {
-                              e.currentTarget.src = "/icons/minecraft.png";
-                            }}
                           />
-                          <span className="capitalize">{profile.loader}</span>
-                          {profile.loader_version && (
-                            <span className="text-white/50">
-                              {profile.loader_version}
-                            </span>
-                          )}
+                          <span>{profile.game_version}</span>
                         </div>
+
+                        {/* Loader Info (if not vanilla) */}
+                        {profile.loader && profile.loader !== "vanilla" && (
+                          <>
+                            <div className="w-px h-4 bg-white/30"></div>
+                            <div className="text-white/60 flex items-center gap-2">
+                              <img
+                                src={getModLoaderIcon()}
+                                alt={profile.loader}
+                                className="w-4 h-4 object-contain"
+                                onError={(e) => {
+                                  e.currentTarget.src = "/icons/minecraft.png";
+                                }}
+                              />
+                              <span className="capitalize">{profile.loader}</span>
+                              {profile.loader_version && (
+                                <span className="text-white/50">
+                                  {profile.loader_version}
+                                </span>
+                              )}
+                            </div>
+                          </>
+                        )}
                       </>
                     )}
 
@@ -611,7 +644,7 @@ export function ProfileDetailViewV2({
           {activeMainTab === "content" && (
             <div className="flex h-full">
               {/* Content Display Area */}
-              <div className="flex-1 min-w-0 mr-6">
+              <div className={currentProfile.game_type === "hytale" ? "w-full" : "flex-1 min-w-0 mr-6"}>
                 {activeContentTab === "mods" && (
                   <LocalContentTabV2<LocalContentItem>
                     profile={currentProfile}
@@ -694,66 +727,68 @@ export function ProfileDetailViewV2({
                 )}
               </div>
 
-              {/* Content Type Sidebar */}
-              <div className="w-64 flex-shrink-0 border-l border-white/10 pl-4">
-                <div className="space-y-2">
-                  <div className="text-white/70 text-sm font-minecraft-ten uppercase tracking-wide mb-4">
-                    Content Types
+              {/* Content Type Sidebar - Only show for Minecraft profiles */}
+              {currentProfile.game_type !== "hytale" && (
+                <div className="w-64 flex-shrink-0 border-l border-white/10 pl-4">
+                  <div className="space-y-2">
+                    <div className="text-white/70 text-sm font-minecraft-ten uppercase tracking-wide mb-4">
+                      Content Types
+                    </div>
+
+                    <button
+                      onClick={() => setActiveContentTab("mods")}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded transition-colors text-left ${activeContentTab === "mods"
+                          ? "bg-white/10 text-white border border-white/20"
+                          : "text-white/60 hover:text-white hover:bg-white/5"
+                        }`}
+                    >
+                      <Icon icon="solar:widget-bold" className="w-5 h-5 flex-shrink-0" />
+                      <span className="font-minecraft-ten text-sm uppercase tracking-wide">
+                        Mods
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => setActiveContentTab("resourcepacks")}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded transition-colors text-left ${activeContentTab === "resourcepacks"
+                          ? "bg-white/10 text-white border border-white/20"
+                          : "text-white/60 hover:text-white hover:bg-white/5"
+                        }`}
+                    >
+                      <Icon icon="solar:palette-bold" className="w-5 h-5 flex-shrink-0" />
+                      <span className="font-minecraft-ten text-sm uppercase tracking-wide">
+                        Resource Packs
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => setActiveContentTab("datapacks")}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded transition-colors text-left ${activeContentTab === "datapacks"
+                          ? "bg-white/10 text-white border border-white/20"
+                          : "text-white/60 hover:text-white hover:bg-white/5"
+                        }`}
+                    >
+                      <Icon icon="solar:database-bold" className="w-5 h-5 flex-shrink-0" />
+                      <span className="font-minecraft-ten text-sm uppercase tracking-wide">
+                        Data Packs
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => setActiveContentTab("shaderpacks")}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded transition-colors text-left ${activeContentTab === "shaderpacks"
+                          ? "bg-white/10 text-white border border-white/20"
+                          : "text-white/60 hover:text-white hover:bg-white/5"
+                        }`}
+                    >
+                      <Icon icon="solar:sun-bold" className="w-5 h-5 flex-shrink-0" />
+                      <span className="font-minecraft-ten text-sm uppercase tracking-wide">
+                        Shader Packs
+                      </span>
+                    </button>
                   </div>
-
-                  <button
-                    onClick={() => setActiveContentTab("mods")}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded transition-colors text-left ${activeContentTab === "mods"
-                        ? "bg-white/10 text-white border border-white/20"
-                        : "text-white/60 hover:text-white hover:bg-white/5"
-                      }`}
-                  >
-                    <Icon icon="solar:widget-bold" className="w-5 h-5 flex-shrink-0" />
-                    <span className="font-minecraft-ten text-sm uppercase tracking-wide">
-                      Mods
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveContentTab("resourcepacks")}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded transition-colors text-left ${activeContentTab === "resourcepacks"
-                        ? "bg-white/10 text-white border border-white/20"
-                        : "text-white/60 hover:text-white hover:bg-white/5"
-                      }`}
-                  >
-                    <Icon icon="solar:palette-bold" className="w-5 h-5 flex-shrink-0" />
-                    <span className="font-minecraft-ten text-sm uppercase tracking-wide">
-                      Resource Packs
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveContentTab("datapacks")}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded transition-colors text-left ${activeContentTab === "datapacks"
-                        ? "bg-white/10 text-white border border-white/20"
-                        : "text-white/60 hover:text-white hover:bg-white/5"
-                      }`}
-                  >
-                    <Icon icon="solar:database-bold" className="w-5 h-5 flex-shrink-0" />
-                    <span className="font-minecraft-ten text-sm uppercase tracking-wide">
-                      Data Packs
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveContentTab("shaderpacks")}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded transition-colors text-left ${activeContentTab === "shaderpacks"
-                        ? "bg-white/10 text-white border border-white/20"
-                        : "text-white/60 hover:text-white hover:bg-white/5"
-                      }`}
-                  >
-                    <Icon icon="solar:sun-bold" className="w-5 h-5 flex-shrink-0" />
-                    <span className="font-minecraft-ten text-sm uppercase tracking-wide">
-                      Shader Packs
-                    </span>
-                  </button>
                 </div>
-              </div>
+              )}
             </div>
           )}
 

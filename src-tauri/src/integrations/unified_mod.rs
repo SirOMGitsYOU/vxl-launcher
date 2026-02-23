@@ -177,6 +177,7 @@ pub struct UnifiedModSearchParams {
     pub sort: Option<UnifiedSortType>,
     pub client_side_filter: Option<String>,
     pub server_side_filter: Option<String>,
+    pub game_type: Option<String>, // "minecraft" or "hytale" - used for CurseForge game ID selection
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -577,10 +578,34 @@ pub async fn search_mods_unified(
                 None
             };
 
+            // Determine game ID based on game_type
+            let game_id = if let Some(ref game_type) = params.game_type {
+                if game_type == "hytale" {
+                    70216 // Hytale game ID
+                } else {
+                    432 // Minecraft game ID (default)
+                }
+            } else {
+                432 // Minecraft game ID (default)
+            };
+
             match curseforge::search_mods(
-                432, // Minecraft game ID
+                game_id,
                 Some(params.query.clone()),
-                params.project_type.to_curseforge_class_id(), // class_id based on project type
+                if let Some(ref gt) = params.game_type {
+                    if gt == "hytale" {
+                        // Hytale Mods main class
+                        match params.project_type {
+                            UnifiedProjectType::Mod => Some(9137),
+                            UnifiedProjectType::Modpack => None, // Hytale currently no modpack class
+                            _ => None,
+                        }
+                    } else {
+                        params.project_type.to_curseforge_class_id()
+                    }
+                } else {
+                    params.project_type.to_curseforge_class_id()
+                }, // class_id based on project type
                 None, // category_id
                 params.game_version.clone(),
                 sort_field,

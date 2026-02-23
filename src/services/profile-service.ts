@@ -317,6 +317,12 @@ export async function getLocalContent(
   return invoke<LocalContentItem[]>("get_local_content", { params });
 }
 
+export async function refreshProfileMods(
+  profileId: string,
+): Promise<LocalContentItem[]> {
+  return invoke<LocalContentItem[]>("refresh_profile_mods", { profile_id: profileId });
+}
+
 /// Checks if a group migration is needed for a profile
 export async function checkForGroupMigration(profileId: string): Promise<MigrationInfo> {
   return invoke<MigrationInfo>("check_for_group_migration_command", { profileId });

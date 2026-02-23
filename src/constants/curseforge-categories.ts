@@ -79,6 +79,43 @@ export const CURSEFORGE_DATAPACK_CATEGORIES = [
   { id: 8938, name: "ModJam 2025", slug: "modjam-2025" },
 ] as const;
 
+// Hytale CurseForge mod categories
+export const HYTALE_MOD_CATEGORIES = [
+  { id: 9285, name: "Blocks", slug: "blocks" },
+  { id: 9212, name: "Gameplay", slug: "gameplay" },
+  { id: 9288, name: "Food / Farming", slug: "food-farming" },
+  { id: 9211, name: "Furniture", slug: "furniture" },
+  { id: 9213, name: "Quality of Life", slug: "qol" },
+  { id: 9289, name: "Utility", slug: "utility" },
+  { id: 9286, name: "World Gen", slug: "world-gen" },
+  { id: 9283, name: "Mobs / Characters", slug: "mobs-characters" },
+  { id: 9290, name: "Miscellaneous", slug: "miscellaneous" },
+  { id: 9297, name: "Library", slug: "library" },
+] as const;
+
+// Hytale CurseForge prefab categories
+export const HYTALE_PREFAB_CATEGORIES = [
+  { id: 9189, name: "Blue Blocks", slug: "blue-blocks" },
+] as const;
+
+// Hytale CurseForge world categories
+export const HYTALE_WORLD_CATEGORIES = [
+  { id: 9312, name: "Adventure", slug: "adventure" },
+  { id: 9313, name: "Survival", slug: "survival" },
+  { id: 9314, name: "Minigames", slug: "minigames" },
+  { id: 9214, name: "Parkour", slug: "parkour" },
+] as const;
+
+// Hytale CurseForge bootstrap categories
+export const HYTALE_BOOTSTRAP_CATEGORIES = [
+  { id: 9282, name: "Early Plugins", slug: "early-plugins" },
+] as const;
+
+// Hytale CurseForge translation categories
+export const HYTALE_TRANSLATION_CATEGORIES = [
+  { id: 10360, name: "Translations", slug: "translations" },
+] as const;
+
 export interface CurseForgeCategoryFilter {
   id: number;
   name: string;

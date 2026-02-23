@@ -9,7 +9,7 @@ import { useThemeStore } from "../../../../store/useThemeStore";
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { GenericContentTab } from "../../../ui/GenericContentTab";
 import { preloadIcons } from "../../../../lib/icon-utils";
-import type { Profile, Mod, ModSourceModrinth, ModSourceLocal, ModSourceUrl } from "../../../../types/profile"; // Import real types
+import type { Profile, Mod, ModSourceModrinth, ModSourceLocal, ModSourceUrl, ModSourceCurseForge } from "../../../../types/profile"; // Import real types
 import * as ProfileService from "../../../../services/profile-service"; // Import ProfileService
 import { ModrinthService } from "../../../../services/modrinth-service"; // Import ModrinthService
 import { SearchInput } from "../../../ui/SearchInput"; // Import SearchInput for manual placement
@@ -530,6 +530,10 @@ export function ModsTabV2({ profile, onRefreshRequired }: ModsTabV2Props) {
     setIsLoading(true);
     setError(null);
     try {
+      // First, refresh and clean up missing mods from backend
+      await ProfileService.refreshProfileMods(profile.id);
+      
+      // Then fetch the updated profile
       const updatedProfile = await ProfileService.getProfile(profile.id);
       setMods(updatedProfile.mods || []);
       setSelectedModIds(new Set()); 
@@ -547,58 +551,125 @@ export function ModsTabV2({ profile, onRefreshRequired }: ModsTabV2Props) {
   const checkForModUpdates = async (currentProfile = profile) => {
     if (!currentProfile || !currentProfile.mods || currentProfile.mods.length === 0) return;
 
+    // For Hytale profiles, skip update checking since Hytale mods may not be on Modrinth or CurseForge
+    if (currentProfile.game_type === "hytale") {
+      console.log("Skipping mod update check for Hytale profile");
+      setModUpdates({});
+      return;
+    }
+
+    // Collect mods with hashes from both Modrinth and CurseForge
     const modsWithHashes = currentProfile.mods.filter(
-      (mod: Mod) =>
-        mod.source?.type === "modrinth" &&
-        (mod.source as ModSourceModrinth).file_hash_sha1 != null,
+      (mod: Mod) => {
+        if (mod.source?.type === "modrinth") {
+          return (mod.source as ModSourceModrinth).file_hash_sha1 != null;
+        }
+        if (mod.source?.type === "curseforge") {
+          return (mod.source as ModSourceCurseForge).file_fingerprint != null;
+        }
+        return false;
+      },
     );
 
     if (modsWithHashes.length === 0) {
       setModUpdates({});
-      // alert("No Modrinth mods with file hashes found to check for updates.");
       return;
     }
 
-    const hashes = modsWithHashes.map(
-      (mod: Mod) => (mod.source as ModSourceModrinth).file_hash_sha1!,
-    );
-
     setCheckingUpdates(true);
     setUpdateError(null);
-    // alert(`PROTOTYPE: Checking for updates for ${hashes.length} mods...`);
 
     try {
-      const request: ModrinthBulkUpdateRequestBody = {
-        hashes,
-        algorithm: "sha1" as ModrinthHashAlgorithm,
-        loaders: [currentProfile.loader], // Ensure profile.loader is available and correct
-        game_versions: [currentProfile.game_version], // Ensure profile.game_version is available
-      };
-
-      const updates = await invoke<Record<string, ModrinthVersion>>(
-        "check_modrinth_updates",
-        { request },
+      // Separate mods by source type
+      const modrinthMods = modsWithHashes.filter(
+        (mod: Mod) => mod.source?.type === "modrinth",
+      );
+      const curseforgeMods = modsWithHashes.filter(
+        (mod: Mod) => mod.source?.type === "curseforge",
       );
 
       const filteredUpdates: Record<string, ModrinthVersion> = {};
-      const modsByHash = new Map<string, Mod>();
-      for (const mod of modsWithHashes) {
-        const hash = (mod.source as ModSourceModrinth).file_hash_sha1!;
-        modsByHash.set(hash, mod);
+
+      // Check Modrinth mods
+      if (modrinthMods.length > 0) {
+        const modrinthHashes = modrinthMods.map(
+          (mod: Mod) => (mod.source as ModSourceModrinth).file_hash_sha1!,
+        );
+
+        const modrinthRequest: ModrinthBulkUpdateRequestBody = {
+          hashes: modrinthHashes,
+          algorithm: "sha1" as ModrinthHashAlgorithm,
+          loaders: [currentProfile.loader],
+          game_versions: [currentProfile.game_version],
+        };
+
+        try {
+          const modrinthUpdates = await invoke<Record<string, ModrinthVersion>>(
+            "check_modrinth_updates",
+            { request: modrinthRequest },
+          );
+
+          const modsByHash = new Map<string, Mod>();
+          for (const mod of modrinthMods) {
+            const hash = (mod.source as ModSourceModrinth).file_hash_sha1!;
+            modsByHash.set(hash, mod);
+          }
+
+          for (const [hash, version] of Object.entries(modrinthUpdates)) {
+            const mod = modsByHash.get(hash);
+            if (mod && mod.version !== version.version_number) {
+              filteredUpdates[hash] = version;
+            }
+          }
+        } catch (err) {
+          console.warn("Failed to check Modrinth updates:", err);
+        }
       }
 
-      for (const [hash, version] of Object.entries(updates)) {
-        const mod = modsByHash.get(hash);
-        if (mod && mod.version !== version.version_number) {
-          filteredUpdates[hash] = version;
-        } 
+      // Check CurseForge mods using unified command
+      if (curseforgeMods.length > 0) {
+        const curseforgeFingerprints = curseforgeMods
+          .map((mod: Mod) => (mod.source as ModSourceCurseForge).file_fingerprint)
+          .filter((fp): fp is number => fp != null);
+
+        if (curseforgeFingerprints.length > 0) {
+          try {
+            const unifiedRequest = {
+              hashes: curseforgeFingerprints.map(String),
+              algorithm: "fingerprint",
+              loaders: [currentProfile.loader],
+              game_versions: [currentProfile.game_version],
+            };
+
+            const unifiedUpdates = await invoke<Record<string, any>>(
+              "check_mod_updates_unified_command",
+              { request: unifiedRequest },
+            );
+
+            // Process CurseForge updates
+            const modsByFingerprint = new Map<number, Mod>();
+            for (const mod of curseforgeMods) {
+              const fp = (mod.source as ModSourceCurseForge).file_fingerprint;
+              if (fp != null) {
+                modsByFingerprint.set(fp, mod);
+              }
+            }
+
+            for (const [fingerprint, version] of Object.entries(unifiedUpdates)) {
+              const fp = parseInt(fingerprint, 10);
+              const mod = modsByFingerprint.get(fp);
+              if (mod && version && mod.version !== version.version_number) {
+                // Use fingerprint as key for CurseForge updates
+                filteredUpdates[fingerprint] = version;
+              }
+            }
+          } catch (err) {
+            console.warn("Failed to check CurseForge updates:", err);
+          }
+        }
       }
+
       setModUpdates(filteredUpdates);
-      if (Object.keys(filteredUpdates).length > 0) {
-        // alert(`PROTOTYPE: Found updates for ${Object.keys(filteredUpdates).length} mods.`);
-      } else {
-        // alert("PROTOTYPE: No updates available for any mods.");
-      }
     } catch (error) {
       console.error("Error checking for mod updates:", error);
       setUpdateError(

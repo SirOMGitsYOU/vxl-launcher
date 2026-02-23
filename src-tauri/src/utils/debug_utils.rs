@@ -190,6 +190,7 @@ pub async fn debug_unified_mod_search() {
         sort: Some(UnifiedSortType::Relevance),
         client_side_filter: None,
         server_side_filter: None,
+        game_type: None,
     };
 
     // Test Modrinth search
@@ -248,6 +249,7 @@ pub async fn debug_unified_mod_versions() {
         sort: Some(UnifiedSortType::Relevance),
         client_side_filter: None,
         server_side_filter: None,
+        game_type: None,
     };
 
     // Test Modrinth versions

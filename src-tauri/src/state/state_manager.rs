@@ -1,5 +1,6 @@
 use crate::config::{ProjectDirsExt, LAUNCHER_DIRECTORY};
 use crate::error::{AppError, Result};
+use crate::games::GameHandlerRegistry;
 use crate::minecraft::minecraft_auth::MinecraftAuthStore;
 use crate::minecraft::api::vanilla_cape_api::VanillaCape;
 use crate::state::config_state::ConfigManager;
@@ -29,6 +30,7 @@ pub struct State {
     pub io_semaphore: Arc<Semaphore>,
     pub vanilla_capes_cache: Arc<RwLock<Vec<VanillaCape>>>, // Cache for vanilla capes
     pub login_server_handle: Arc<RwLock<Option<JoinHandle<()>>>>, // Handle for login server
+    pub game_handler_registry: Arc<RwLock<GameHandlerRegistry>>, // Game handler registry for multi-game support
 }
 
 impl State {
@@ -59,6 +61,7 @@ impl State {
                     io_semaphore,
                     vanilla_capes_cache: Arc::new(RwLock::new(Vec::new())),
                     login_server_handle: Arc::new(RwLock::new(None)),
+                    game_handler_registry: Arc::new(RwLock::new(GameHandlerRegistry::new())),
                 }))
             })
             .await?;
@@ -108,6 +111,13 @@ impl State {
             .await?;
         log::info!("State::init - SkinManager post-initialization complete.");
 
+        // Phase 2.5: Register game handlers
+        // This MUST happen after State is fully constructed to avoid circular dependencies
+        // (handlers may call State::get() in their methods)
+        log::info!("State::init - Registering game handlers (Phase 2.5)...");
+        Self::register_game_handlers(&initial_state_arc).await?;
+        log::info!("State::init - Game handlers registration complete.");
+
         let final_config = initial_state_arc.config_manager.get_config().await;
         tracing::info!(
             "Launcher Config - Experimental mode: {}",
@@ -122,6 +132,26 @@ impl State {
             "State::init - Full initialization, including all post-init handlers, complete."
         );
 
+        Ok(())
+    }
+
+    // Register game handlers in the registry
+    // This is called during State::init after State is fully constructed
+    // to avoid circular dependencies (handlers may call State::get())
+    async fn register_game_handlers(state: &Arc<Self>) -> Result<()> {
+        use crate::games::{MinecraftHandler, HytaleHandler};
+        use std::sync::Arc;
+        
+        let mut registry = state.game_handler_registry.write().await;
+        
+        // Register Minecraft handler
+        registry.register("minecraft", Arc::new(MinecraftHandler) as Arc<dyn crate::games::GameHandler>);
+        log::info!("Registered MinecraftHandler for game type 'minecraft'");
+        
+        // Register Hytale handler
+        registry.register("hytale", Arc::new(HytaleHandler) as Arc<dyn crate::games::GameHandler>);
+        log::info!("Registered HytaleHandler for game type 'hytale'");
+        
         Ok(())
     }
 

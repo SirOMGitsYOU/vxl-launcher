@@ -118,11 +118,19 @@ export const ModrinthSearchControlsV2: React.FC<
 
   // Create groups array for project types - only show available types
   const typesToShow = availableProjectTypes || allProjectTypes;
-  const groups: GroupTab[] = typesToShow.map(type => ({
-    id: type,
-    name: type.charAt(0).toUpperCase() + type.slice(1) + 's',
-    count: 0, // Could be populated with result counts if needed
-  }));
+  const groups: GroupTab[] = typesToShow
+    .filter(type => {
+      // For Hytale profiles, only show "mods"
+      if (selectedProfile?.game_type === "hytale") {
+        return type === "mod";
+      }
+      return true;
+    })
+    .map(type => ({
+      id: type,
+      name: type.charAt(0).toUpperCase() + type.slice(1) + 's',
+      count: 0, // Could be populated with result counts if needed
+    }));
 
   return (
     <>
@@ -162,11 +170,12 @@ export const ModrinthSearchControlsV2: React.FC<
 
           {/* Platform Selection Buttons - ganz rechts */}
           <div className="flex items-center gap-1 border border-white/10 rounded-lg p-0.5">
-            <button
-              onClick={() => {
-                onModSourceChange(ModPlatform.Modrinth);
-                onClearAllFilters();
-              }}
+            {selectedProfile?.game_type !== "hytale" && (
+              <button
+                onClick={() => {
+                  onModSourceChange(ModPlatform.Modrinth);
+                  onClearAllFilters();
+                }}
               className={cn(
                 "flex items-center gap-1.5 px-2 py-1 rounded-md font-minecraft text-2xl lowercase transition-all duration-200 min-h-[2.5rem]",
                 modSource === ModPlatform.Modrinth
@@ -181,7 +190,7 @@ export const ModrinthSearchControlsV2: React.FC<
                 className="w-5 h-5 object-contain"
               />
               <span className="hidden sm:inline">Modrinth</span>
-            </button>
+            </button>)}
 
             <button
               onClick={() => {
@@ -238,7 +247,7 @@ export const ModrinthSearchControlsV2: React.FC<
               </TagBadge>
             ))}
 
-            {currentSelectedLoaders.map((loader) => (
+            {selectedProfile?.game_type !== "hytale" && currentSelectedLoaders.map((loader) => (
               <TagBadge
                 key={`loader-${loader}`}
                 variant="filter"

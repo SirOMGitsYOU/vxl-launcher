@@ -7,6 +7,7 @@
 mod commands;
 mod config;
 mod error;
+pub mod games;
 pub mod integrations;
 mod logging;
 mod minecraft;
@@ -66,7 +67,7 @@ use commands::profile_command::{
     get_system_ram_mb, get_worlds_for_profile, import_local_mods,
     import_profile, import_profile_from_file, import_world, is_content_installed, is_profile_launching,
     launch_profile, list_profile_screenshots, list_profiles, open_profile_folder,
-    open_profile_latest_log, repair_profile,
+    open_profile_latest_log, repair_profile, refresh_profile_mods,
     resolve_loader_version, search_profiles, set_custom_mod_enabled,
     set_profile_mod_enabled, update_datapack_from_modrinth, update_modrinth_mod_version,
     update_profile, update_resourcepack_from_modrinth, update_shaderpack_from_modrinth,
@@ -539,6 +540,7 @@ async fn main() {
             get_local_content,
             install_local_content_to_profile,
             switch_content_version,
+            refresh_profile_mods,
             commands::minecraft_command::get_starlight_skin_render,
             commands::minecraft_command::get_crafatar_avatar,
             commands::minecraft_command::reorder_skins,
@@ -568,7 +570,8 @@ async fn main() {
             check_profile_file_exists,
             pull_from_hub,
             push_to_hub,
-            get_shared_files
+            get_shared_files,
+            commands::hytale_command::detect_hytale_paths
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

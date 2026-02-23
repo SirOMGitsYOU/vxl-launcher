@@ -1,5 +1,6 @@
 import { ContentType } from "./content";
 import { ModPlatform } from "./unified";
+import type { GameType } from "./game";
 
 export type ModLoader = "vanilla" | "forge" | "fabric" | "quilt" | "neoforge";
 export type ProfileState =
@@ -133,6 +134,7 @@ export interface ModSourceCurseForge extends ModSourceBase {
   file_name: string;
   download_url: string;
   file_hash_sha1: string | null;
+  file_fingerprint: number | null;
 }
 
 export type ModSource =
@@ -190,13 +192,29 @@ export interface CustomModInfo {
   path: string;
 }
 
+export interface MinecraftProfileConfig {
+  game_version: string;
+  loader: ModLoader;
+  loader_version: string | null;
+  use_shared_minecraft_folder: boolean;
+  modpack_info?: ModPackInfo | null;
+  norisk_information?: NoriskInformation | null;
+  disabled_norisk_mods_detailed?: NoriskModIdentifier[];
+  is_standard_version?: boolean;
+}
+
+export interface HytaleProfileConfig {
+  hytale_launcher_path: string;
+  hytale_mods_path?: string;
+}
+
 export interface Profile {
   id: string;
   name: string;
   path: string;
-  game_version: string;
-  loader: ModLoader;
-  loader_version: string | null;
+  game_type: GameType;
+  minecraft_config?: MinecraftProfileConfig;
+  hytale_config?: HytaleProfileConfig;
   created: string;
   last_played: string | null;
   settings: ProfileSettings;
@@ -213,6 +231,9 @@ export interface Profile {
   norisk_information: NoriskInformation | null;
   modpack_info?: ModPackInfo | null;
   preferred_account_id: string | null;
+  game_version?: string;
+  loader?: ModLoader;
+  loader_version?: string | null;
 }
 
 export interface ProfileGroup {
@@ -234,10 +255,13 @@ export type ProfileFilterType = "all" | "custom" | "standard";
 
 export interface CreateProfileParams {
   name: string;
-  game_version: string;
-  loader: string;
+  game_type: GameType;
+  game_version?: string;
+  loader?: string;
   loader_version?: string;
   use_shared_minecraft_folder?: boolean;
+  hytale_launcher_path?: string;
+  hytale_mods_path?: string;
   enable_file_sync?: boolean;
 }
 

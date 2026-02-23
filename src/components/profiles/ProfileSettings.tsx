@@ -6,6 +6,7 @@ import { gsap } from "gsap";
 import type { Profile } from "../../types/profile";
 import GeneralSettingsTab from "./settings/GeneralSettingsTab";
 import { InstallationSettingsTab } from "./settings/InstallationSettingsTab";
+import { HytaleInstallationSettingsTab } from "./settings/HytaleInstallationSettingsTab";
 import { JavaSettingsTab } from "./settings/JavaSettingsTab";
 import { WindowSettingsTab } from "./settings/WindowSettingsTab";
 import { AdvancedTab } from "./settings/AdvancedTab";
@@ -168,7 +169,13 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
     }
   };
 
-  const baseTabConfig = [
+  // Game-specific tab configuration
+  const hytaleTabConfig = [
+    { id: "general", label: "General", icon: "solar:settings-bold" },
+    { id: "installation", label: "Installation", icon: "solar:download-bold" },
+  ];
+
+  const minecraftTabConfig = [
     { id: "general", label: "General", icon: "solar:settings-bold" },
     { id: "installation", label: "Installation", icon: "solar:download-bold" },
     { id: "java", label: "JAVA & Memory", icon: "solar:code-bold" },
@@ -176,6 +183,8 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
     { id: "nrc", label: "Advanced", icon: "solar:shield-check-bold" },
     { id: "symlinks", label: "Symlinks", icon: "solar:link-bold" },
   ];
+
+  const baseTabConfig = profile.game_type === "hytale" ? hytaleTabConfig : minecraftTabConfig;
 
   const tabConfig = showDesignerTab
     ? [
@@ -204,7 +213,13 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
           />
         );
       case "installation":
-        return (
+        return profile.game_type === "hytale" ? (
+          <HytaleInstallationSettingsTab
+            profile={profile}
+            editedProfile={editedProfile}
+            updateProfile={updateProfileData}
+          />
+        ) : (
           <InstallationSettingsTab
             profile={profile}
             editedProfile={editedProfile}

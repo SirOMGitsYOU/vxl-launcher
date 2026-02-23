@@ -715,17 +715,51 @@ pub async fn install_content_to_profile(
                         ModPlatform::CurseForge => "CurseForge",
                     };
 
-                    log::info!(
-                        "Attempting to install mod from {} using ProfileManager::add_mod_from_payload",
-                        platform_name
-                    );
-
-                    // Get profile manager from state
+                    // Get profile to check game type
                     let state = crate::state::state_manager::State::get().await?;
-                    let profile_manager = &state.profile_manager;
+                    let profile = state.profile_manager.get_profile(payload.profile_id).await?;
 
-                    // Use the new unified method for both platforms with dependency installation
-                    profile_manager.add_mod_from_payload(&payload, true).await.map_err(CommandError::from)
+                    // Use game handler for non-Minecraft profiles (like Hytale)
+                    if profile.game_type != "minecraft" {
+                        log::info!(
+                            "Installing {} mod for {} profile using game handler",
+                            platform_name, profile.game_type
+                        );
+
+                        // Get the game handler
+                        let game_handler = state.game_handler_registry.read().await.get(&profile.game_type)?;
+                        
+                        // Convert payload to ModSource
+                        let mod_source = match payload.source {
+                            ModPlatform::Modrinth => crate::state::profile_state::ModSource::Modrinth {
+                                project_id: payload.project_id.clone(),
+                                version_id: payload.version_id.clone(),
+                                file_name: payload.file_name.clone(),
+                                download_url: payload.download_url.clone(),
+                                file_hash_sha1: payload.file_hash_sha1.clone(),
+                            },
+                            ModPlatform::CurseForge => crate::state::profile_state::ModSource::CurseForge {
+                                project_id: payload.project_id.clone(),
+                                file_id: payload.version_id.clone(), // For CurseForge, version_id is actually file_id
+                                file_name: payload.file_name.clone(),
+                                download_url: payload.download_url.clone(),
+                                file_hash_sha1: payload.file_hash_sha1.clone(),
+                                file_fingerprint: payload.file_fingerprint,
+                            },
+                        };
+
+                        // Use game handler to install the mod
+                        game_handler.install_mod(payload.profile_id, mod_source).await.map_err(CommandError::from)
+                    } else {
+                        // Use existing Minecraft logic
+                        log::info!(
+                            "Attempting to install {} mod using ProfileManager::add_mod_from_payload",
+                            platform_name
+                        );
+
+                        let profile_manager = &state.profile_manager;
+                        profile_manager.add_mod_from_payload(&payload, true).await.map_err(CommandError::from)
+                    }
                 }
             }
         }

@@ -195,6 +195,15 @@ pub enum AppError {
         available_mb: u64,
         shortfall_mb: u64,
     },
+
+    #[error("Unsupported game type: {0}")]
+    UnsupportedGame(String),
+
+    #[error("Invalid game configuration: {0}")]
+    InvalidGameConfig(String),
+
+    #[error("Invalid path")]
+    InvalidPath,
 }
 
 #[derive(Serialize, Debug)]

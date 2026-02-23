@@ -205,6 +205,7 @@ export function ModrinthSearchV2({
 
   // Add state for currently selected profile
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
+  const [initialProfileCheck, setInitialProfileCheck] = useState(true);
 
   // Get mod source from theme store (persistent)
   const { modSource, setModSource } = useThemeStore();
@@ -230,13 +231,52 @@ export function ModrinthSearchV2({
     }
   }, [initialProfiles, selectedProfileId]);
 
+  // Clear loader selections when Hytale profile becomes active
+  useEffect(() => {
+    if (selectedProfile?.game_type === "hytale") {
+      setSelectedLoadersByProjectType(prev => ({
+        ...Object.keys(prev).reduce((acc, key) => ({ ...acc, [key]: [] }), {} as Record<ModrinthProjectType, string[]>)
+      }));
+    }
+  }, [selectedProfile]);
+
+  // Compute effective allowed project types based on selected profile
+  const effectiveAllowedProjectTypes = useMemo(() => {
+    if (selectedProfile && selectedProfile.game_type === "hytale") {
+      // For Hytale profiles, only allow "mod" project type
+      return ["mod"] as ModrinthProjectType[];
+    }
+    return allowedProjectTypes || ALL_MODRINTH_PROJECT_TYPES;
+  }, [selectedProfile, allowedProjectTypes]);
+
+  // Update projectType if it's not in the effective allowed types
+  useEffect(() => {
+    if (!effectiveAllowedProjectTypes.includes(projectType)) {
+      setProjectType(effectiveAllowedProjectTypes[0] || 'mod');
+    }
+  }, [effectiveAllowedProjectTypes, projectType]);
+
+  // Switch to CurseForge if Modrinth is selected but not available for Hytale profile
+  useEffect(() => {
+    if (selectedProfile?.game_type === "hytale" && modSource === ModPlatform.Modrinth) {
+      setModSource(ModPlatform.CurseForge);
+      // Trigger a new search immediately after switching to CurseForge
+      setTimeout(() => {
+        performSearch(true);
+      }, 0);
+    }
+  }, [selectedProfile, modSource]);
+
   const currentSelectedCategories = useMemo(() => {
     return selectedCategoriesByProjectType[projectType] || [];
   }, [selectedCategoriesByProjectType, projectType]);
 
   const currentSelectedLoaders = useMemo(() => {
+    if (selectedProfile?.game_type === "hytale") {
+      return [];
+    }
     return selectedLoadersByProjectType[projectType] || [];
-  }, [selectedLoadersByProjectType, projectType]);
+  }, [selectedLoadersByProjectType, projectType, selectedProfile]);
 
   // Fetch filter data on mount
   useEffect(() => {
@@ -578,20 +618,33 @@ export function ModrinthSearchV2({
     categories: string[],
     gameVersion: string | undefined,
     loaders: string[],
-    sortBy: UnifiedSortType
+    sortBy: UnifiedSortType,
+    gameType: string | undefined,
   ): string => {
-    return `${source}:${type}:${query}:${categories.join(',')}:${gameVersion || 'any'}:${loaders.join(',')}:${sortBy}`;
+    return `${gameType || 'unknown'}:${source}:${type}:${query}:${categories.join(',')}:${gameVersion || 'any'}:${loaders.join(',')}:${sortBy}`;
   }, []);
 
   const performSearch = useCallback(async (newSearch = false) => {
+    // Skip Modrinth search entirely for Hytale profiles
+    if (selectedProfile?.game_type === "hytale" && modSource === ModPlatform.Modrinth) {
+      console.log('[ModrinthSearchV2] Skipping Modrinth search for Hytale profile');
+      setLoading(false);
+      setError(null);
+      setSearchResults([]);
+      setTotalHits(0);
+      setOffset(0);
+      return;
+    }
+
     console.log('[ModrinthSearchV2] performSearch ENTRY:', {
       newSearch,
       projectType,
       searchTerm,
       categories: currentSelectedCategories,
-      gameVersions: selectedGameVersions,
+      gameVersions: selectedGameVersions.length > 0 ? selectedGameVersions[0] : undefined,
       loaders: currentSelectedLoaders,
-      offset: newSearch ? 0 : offset // Log the offset that will be used
+      offset: newSearch ? 0 : offset, // Log the offset that will be used
+      gameType: selectedProfile?.game_type
     });
 
     // Clear any existing timeout for the "No results found" message
@@ -620,7 +673,8 @@ export function ModrinthSearchV2({
         currentSelectedCategories,
         selectedGameVersions.length > 0 ? selectedGameVersions[0] : undefined,
         currentSelectedLoaders,
-        sortOrder
+        sortOrder,
+        selectedProfile?.game_type
       );
 
       // Check cache for first page (offset 0)
@@ -629,8 +683,7 @@ export function ModrinthSearchV2({
         const cachedResponse = searchCache[cacheKey];
         setSearchResults(cachedResponse.results);
         setTotalHits(cachedResponse.pagination.total_count);
-        setOffset(cachedResponse.results.length);
-        setLoading(false);
+        console.log('[ModrinthSearchV2] Cached search results for key:', cacheKey);
         return;
       }
 
@@ -639,13 +692,14 @@ export function ModrinthSearchV2({
         source: modSource,
         project_type: convertToUnifiedProjectType(projectType),
         game_version: selectedGameVersions.length > 0 ? selectedGameVersions[0] : undefined,
-        mod_loaders: currentSelectedLoaders.length > 0 ? currentSelectedLoaders : undefined,
+        mod_loaders: selectedProfile?.game_type === "hytale" ? undefined : (currentSelectedLoaders.length > 0 ? currentSelectedLoaders : undefined),
         limit,
         offset: newSearch ? 0 : offset,
         sort: sortOrder as UnifiedSortType,
         categories: currentSelectedCategories.length > 0 ? currentSelectedCategories : undefined,
         client_side_filter: filterClientRequired ? "required" : undefined,
-        server_side_filter: filterServerRequired ? "required" : undefined
+        server_side_filter: filterServerRequired ? "required" : undefined,
+        game_type: selectedProfile?.game_type || 'minecraft'
       });
 
       // Cache the first page results
@@ -690,6 +744,9 @@ export function ModrinthSearchV2({
   useEffect(() => {
     // Skip regular search if using VXL Studios data
     if (useVXLStudiosData) return;
+    
+    // Wait for initial profile check if a profileId is provided
+    if (selectedProfileId && initialProfileCheck) return;
 
     console.log('[ModrinthSearchV2] useEffect for search triggered. Calling performSearch(true). Params:', {
       searchTerm,
@@ -697,7 +754,8 @@ export function ModrinthSearchV2({
       modSource,
       categories: currentSelectedCategories,
       gameVersions: selectedGameVersions,
-      loaders: currentSelectedLoaders
+      loaders: currentSelectedLoaders,
+      gameType: selectedProfile?.game_type || 'minecraft' // Default to minecraft if no profile
     });
 
     // Scroll to top when filters/search term changes
@@ -715,8 +773,23 @@ export function ModrinthSearchV2({
     searchTerm, projectType, sortOrder, modSource,
     currentSelectedCategories, selectedGameVersions, currentSelectedLoaders,
     filterClientRequired, filterServerRequired,
-    useVXLStudiosData
+    useVXLStudiosData,
+    selectedProfile,
+    initialProfileCheck
   ]);
+
+  useEffect(() => {
+    if (useVXLStudiosData) return;
+    
+    // If we have a selectedProfileId and this is the initial check, mark it as complete and trigger search
+    if (selectedProfileId && initialProfileCheck) {
+      setInitialProfileCheck(false);
+      return;
+    }
+    
+    // Otherwise, perform search normally
+    performSearch(true);
+  }, [selectedProfile, initialProfileCheck, selectedProfileId]);
 
   const handleProjectTypeChange = (newProjectType: ModrinthProjectType) => {
     setProjectType(newProjectType);
@@ -1638,7 +1711,7 @@ export function ModrinthSearchV2({
   // New state for quick install modal
   const [quickInstallModalOpen, setQuickInstallModalOpen] = useState(false);
   const [quickInstallProject, setQuickInstallProject] = useState<UnifiedModSearchResult | any | null>(null);
-  const [quickInstallVersions, setQuickInstallVersions] = useState<any[] | null>(null); // Changed to any[] to handle UnifiedVersion
+  const [quickInstallVersions, setQuickInstallVersions] = useState<UnifiedVersion[] | null>(null); 
   const [quickInstallLoading, setQuickInstallLoading] = useState(false); // Loading for fetching versions for modal
   const [quickInstallError, setQuickInstallError] = useState<string | null>(null);
   const [quickInstallingProjects, setQuickInstallingProjects] = useState<Record<string, boolean>>({}); // New state for card button loading
@@ -1665,38 +1738,42 @@ export function ModrinthSearchV2({
       case UnifiedProjectType.Modpack: // Modpacks are handled by creating a new profile
         toast.error("Modpacks should be installed as new profiles, not as content via this method.");
         return null;
+      case null:
+      case undefined:
+        // Handle null/undefined project type (can happen with some API responses)
+        console.warn(`Null/undefined project type received, defaulting to Mod`);
+        return NrContentType.Mod;
       default:
         // Log unhandled project types if any, but avoid throwing error that breaks UI
-        console.warn(`Unsupported project type for direct installation: ${projectType}`);
-        toast.error(`Cannot directly install project type: ${projectType}`);
-        return null;
+        console.warn(`Unsupported project type for direct installation: ${projectType}, defaulting to Mod`);
+        return NrContentType.Mod; // Default to Mod instead of returning null
     }
   }
 
   // Find the best version for a profile
   const findBestVersionForProfile = (profile: Profile, versions: UnifiedVersion[]): UnifiedVersion | null => {
     if (!profile || !versions || versions.length === 0) return null;
-    
-    // First try: find a version matching both game version and loader
-    if (profile.game_version && profile.loader) {
-      const exactMatch = versions.find(v => 
-        v.game_versions.includes(profile.game_version) && 
-        v.loaders.includes(profile.loader)
-      );
-      if (exactMatch) return exactMatch;
-    }
-    
-    // Second try: match just game version (for resourcepacks, datapacks, etc.)
-    if (profile.game_version) {
-      const gameVersionMatch = versions.find(v => 
-        v.game_versions.includes(profile.game_version)
-      );
-      if (gameVersionMatch) return gameVersionMatch;
-    }
-    
-    // Last resort: just return the latest version
-    return versions[0];
-  };
+      
+      // First try: find a version matching both game version and loader
+      if (profile.game_version && profile.loader) {
+        const exactMatch = versions.find(v => 
+          v.game_versions.includes(profile.game_version) && 
+          v.loaders.includes(profile.loader)
+        );
+        if (exactMatch) return exactMatch;
+      }
+      
+      // Second try: match just game version (for resourcepacks, datapacks, etc.)
+      if (profile.game_version) {
+        const gameVersionMatch = versions.find(v => 
+          v.game_versions.includes(profile.game_version)
+        );
+        if (gameVersionMatch) return gameVersionMatch;
+      }
+      
+      // Last resort: just return the latest version
+      return versions[0];
+    };
 
   // State to track the currently opened quick install project
   const [currentQuickInstallProject, setCurrentQuickInstallProject] = useState<UnifiedModSearchResult | any | null>(null);
@@ -2867,6 +2944,7 @@ export function ModrinthSearchV2({
         // Create new profile using the service directly
         console.log('🔄 Creating new profile:', { name: profileName, game_version: gameVersion, loader });
         newProfileId = await ProfileService.createProfile({
+          game_type: "minecraft",
           name: profileName,
           game_version: gameVersion,
           loader: loader,

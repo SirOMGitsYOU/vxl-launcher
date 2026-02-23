@@ -36,16 +36,34 @@ use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
 use tokio::fs as TokioFs;
 use uuid::Uuid;
+use crate::state::profile_state::{MinecraftProfileConfig, HytaleProfileConfig};
+use crate::games::GameHandler;
+use std::sync::Arc;
+
+// Helper to fetch game handler from global state
+async fn get_game_handler(game_type: &str) -> crate::error::Result<Arc<dyn GameHandler>> {
+    let state = crate::state::state_manager::State::get().await?;
+    let registry = state.game_handler_registry.read().await;
+    registry.get(game_type)
+}
 
 // DTOs für Command-Parameter
 #[derive(Deserialize)]
 pub struct CreateProfileParams {
+    // Common
+    game_type: String, // "minecraft" | "hytale"
     name: String,
-    game_version: String,
-    loader: String,
+    enable_file_sync: Option<bool>,
+
+    // Minecraft-specific
+    game_version: Option<String>,
+    loader: Option<String>,
     loader_version: Option<String>,
     use_shared_minecraft_folder: Option<bool>,
-    enable_file_sync: Option<bool>,
+
+    // Hytale-specific
+    hytale_launcher_path: Option<String>,
+    hytale_mods_path: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -60,6 +78,7 @@ pub struct UpdateProfileParams {
     use_shared_minecraft_folder: Option<bool>,
     preferred_account_id: Option<String>,
     clear_preferred_account: Option<bool>,
+    hytale_config: Option<serde_json::Value>,
 }
 
 // Neue DTO für den copy_profile Command
@@ -104,6 +123,16 @@ pub struct ImportWorldParams {
 pub async fn create_profile(params: CreateProfileParams) -> Result<Uuid, CommandError> {
     let state = State::get().await?;
 
+    // Validate game type against registry
+    let game_type_normalised = params.game_type.to_lowercase();
+    {
+        let registry = state.game_handler_registry.read().await;
+        if registry.get(&game_type_normalised).is_err() {
+            return Err(AppError::UnsupportedGame(params.game_type.clone()).into());
+        }
+    }
+    let state = State::get().await?;
+
     // 1. Basis-Pfad für Profile bestimmen
     let base_profiles_dir = default_profile_path();
     // Stelle sicher, dass das Basisverzeichnis existiert (optional, aber gut)
@@ -134,13 +163,53 @@ pub async fn create_profile(params: CreateProfileParams) -> Result<Uuid, Command
         .await
         .map_err(|e| CommandError::from(AppError::Io(e)))?;
 
+    // --- Build game-specific configuration ---
+    let (minecraft_config, hytale_config, deprecated_game_version, deprecated_loader, deprecated_loader_version) = match game_type_normalised.as_str() {
+        "minecraft" => {
+            // Ensure required params present
+            let game_version = params.game_version.clone().ok_or_else(|| AppError::InvalidGameConfig("Missing game_version for Minecraft".into()))?;
+            let loader_str = params.loader.clone().ok_or_else(|| AppError::InvalidGameConfig("Missing loader for Minecraft".into()))?;
+            let loader = ModLoader::from_str(&loader_str)?;
+            (
+                Some(MinecraftProfileConfig {
+                    game_version: game_version.clone(),
+                    loader: loader.clone(),
+                    loader_version: params.loader_version.clone(),
+                    use_shared_minecraft_folder: params.use_shared_minecraft_folder.unwrap_or(false),
+                }),
+                None,
+                game_version,
+                loader,
+                params.loader_version.clone(),
+            )
+        }
+        "hytale" => {
+            let launcher_path = params.hytale_launcher_path.clone().ok_or_else(|| AppError::InvalidGameConfig("Missing hytale_launcher_path".into()))?;
+            let mods_path = params.hytale_mods_path.clone().ok_or_else(|| AppError::InvalidGameConfig("Missing hytale_mods_path".into()))?;
+            (
+                None,
+                Some(HytaleProfileConfig { 
+                    hytale_launcher_path: launcher_path,
+                    hytale_mods_path: mods_path,
+                }),
+                "".to_string(),
+                ModLoader::Vanilla,
+                None,
+            )
+        }
+        _ => unreachable!(),
+    };
+
     let profile = Profile {
         id: Uuid::new_v4(),
         name: params.name.clone(), // Der Anzeigename bleibt original
         path: profile_path,        // Verwende den eindeutigen Pfad/Segment
-        game_version: params.game_version.clone(),
-        loader: ModLoader::from_str(&params.loader)?,
-        loader_version: params.loader_version.clone(),
+        game_type: game_type_normalised.clone(),
+        minecraft_config,
+        hytale_config,
+        game_version: deprecated_game_version,
+        loader: deprecated_loader,
+        loader_version: deprecated_loader_version,
         created: Utc::now(),
         last_played: None,
         settings: ProfileSettings::default(),
@@ -216,6 +285,22 @@ pub async fn launch_profile(
         }
     };
 
+    // Obtain game handler
+    let handler = {
+        let registry = state.game_handler_registry.read().await;
+        registry.get(&profile.game_type)?
+    };
+
+    // Validate profile with handler
+    handler.validate_profile(&profile).await?;
+
+    // Branch for non-Minecraft games (currently only Hytale)
+    if profile.game_type != "minecraft" {
+        handler.launch(&profile).await?;
+        return Ok(());
+    }
+
+    // --- Minecraft launch path (existing logic) ---
     let version = profile.game_version.clone();
     let modloader = profile.loader.clone();
     
@@ -487,6 +572,9 @@ pub async fn get_profile(id: Uuid) -> Result<Profile, CommandError> {
 
 #[tauri::command]
 pub async fn update_profile(id: Uuid, params: UpdateProfileParams) -> Result<(), CommandError> {
+    let state = State::get().await?;
+    let _existing = state.profile_manager.get_profile(id).await?;
+    drop(_existing);
     info!(
         "[CMD] update_profile called for ID: {} with params: {:?}",
         id, params
@@ -676,6 +764,18 @@ async fn try_update_profile(id: Uuid, params: UpdateProfileParams) -> Result<(),
         );
     }
 
+    // Handle Hytale config updates
+    if let Some(hytale_config_json) = &params.hytale_config {
+        info!("Updating hytale_config for profile {}", id);
+        if let Ok(hytale_config) = serde_json::from_value(hytale_config_json.clone()) {
+            profile.hytale_config = Some(hytale_config);
+        } else {
+            return Err(CommandError::from(AppError::Other(
+                "Invalid hytale_config format".to_string(),
+            )));
+        }
+    }
+
     // Check if mods directory location needs to change (using the params copy from above)
     let mods_migration_needed = needs_mods_migration(&original_profile, &profile, &params_for_migration)?;
     
@@ -730,6 +830,11 @@ pub async fn delete_profile(id: Uuid) -> Result<(), CommandError> {
 
 #[tauri::command]
 pub async fn repair_profile(id: Uuid) -> Result<(), CommandError> {
+    let state = State::get().await?;
+    let profile = state.profile_manager.get_profile(id).await?;
+    if profile.game_type != "minecraft" {
+        return Err(AppError::UnsupportedGame(profile.game_type).into());
+    }
     info!("Executing repair_profile command for profile {}", id);
     
     // Call the actual repair function from repair_utils
@@ -743,13 +848,16 @@ pub async fn resolve_loader_version(
     profile_id: Uuid,
     minecraft_version: String,
 ) -> Result<ResolvedLoaderVersion, CommandError> {
+    let state = State::get().await?;
+    let profile = state.profile_manager.get_profile(profile_id).await?;
+    if profile.game_type != "minecraft" {
+        return Err(AppError::UnsupportedGame(profile.game_type).into());
+    }
+    
     info!(
         "Executing resolve_loader_version command for profile {} with MC version {}",
         profile_id, minecraft_version
     );
-    
-    let state = State::get().await?;
-    let profile = state.profile_manager.get_profile(profile_id).await?;
     
     let resolved = ModloaderFactory::resolve_loader_version(
         &profile,
@@ -1333,6 +1441,11 @@ pub async fn get_profile_directory_structure(
 /// aber kopiert nur die angegebenen Dateien wenn include_files angegeben ist.
 #[tauri::command]
 pub async fn copy_profile(params: CopyProfileParams) -> Result<Uuid, CommandError> {
+    let state = State::get().await?;
+    let source_profile = state.profile_manager.get_profile(params.source_profile_id).await?;
+    if source_profile.game_type != "minecraft" {
+        return Err(AppError::UnsupportedGame(source_profile.game_type).into());
+    }
     info!(
         "Executing copy_profile command from profile {}",
         params.source_profile_id
@@ -1370,6 +1483,9 @@ pub async fn copy_profile(params: CopyProfileParams) -> Result<Uuid, CommandErro
         id: Uuid::new_v4(),
         name: params.new_profile_name.clone(),
         path: unique_segment.clone(), // Verwende den eindeutigen Pfad
+        game_type: source_profile.game_type.clone(), // Copy game type from source
+        minecraft_config: source_profile.minecraft_config.clone(), // Copy Minecraft config if present
+        hytale_config: source_profile.hytale_config.clone(), // Copy Hytale config if present
         game_version: source_profile.game_version.clone(),
         loader: source_profile.loader.clone(),
         loader_version: source_profile.loader_version.clone(),
@@ -2264,6 +2380,16 @@ pub async fn get_profile_folders(profile_id: Uuid) -> Result<Vec<String>, Comman
 async fn perform_profile_sync_pull(profile_id: Uuid) -> Result<(), String> {
     use crate::commands::file_sync_command::{load_sync_configs, pull_from_hub};
 
+    // Get the state to check profile type
+    let state = State::get().await.map_err(|e| e.to_string())?;
+    let profile = state.profile_manager.get_profile(profile_id).await.map_err(|e| e.to_string())?;
+    
+    // Skip file sync for Hytale profiles
+    if profile.game_type == "hytale" {
+        info!("Skipping file sync for Hytale profile {}", profile_id);
+        return Ok(());
+    }
+
     // Load all sync configs
     let configs = load_sync_configs()
         .map_err(|e| format!("Failed to load sync configs: {}", e))?;
@@ -2330,6 +2456,36 @@ async fn add_profile_to_sync_config(profile_id: Uuid) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+/// Refresh and clean up missing mods from a profile
+#[tauri::command]
+pub async fn refresh_profile_mods(
+    profile_id: String,
+) -> Result<Vec<LocalContentItem>, CommandError> {
+    let profile_uuid = Uuid::parse_str(&profile_id)
+        .map_err(|e| CommandError::from(AppError::Other(format!("Invalid profile ID: {}", e))))?;
+
+    info!("Refreshing mods for profile {}", profile_uuid);
+
+    // Load mods which will automatically clean up missing ones
+    let params = ProfileUtilLoadItemsParams {
+        profile_id: profile_uuid,
+        content_type: ProfileUtilContentType::Mod,
+        calculate_hashes: false,
+        fetch_modrinth_data: false,
+    };
+
+    match ProfileUtilLocalContentLoader::load_items(params).await {
+        Ok(items) => {
+            info!("Successfully refreshed mods for profile {}", profile_uuid);
+            Ok(items)
+        }
+        Err(e) => {
+            error!("Failed to refresh mods for profile {}: {}", profile_uuid, e);
+            Err(CommandError::from(e))
+        }
+    }
 }
 
 /// Helper function to remove a deleted profile from the sync config

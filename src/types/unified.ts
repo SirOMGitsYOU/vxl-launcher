@@ -75,6 +75,7 @@ export interface UnifiedModSearchParams {
   sort?: UnifiedSortType;
   client_side_filter?: string;
   server_side_filter?: string;
+  game_type?: string; // "minecraft" or "hytale" - used for CurseForge game ID selection
 }
 
 export interface UnifiedVersion {

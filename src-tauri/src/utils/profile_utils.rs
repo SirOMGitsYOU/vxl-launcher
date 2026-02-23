@@ -2076,12 +2076,23 @@ impl LocalContentLoader {
         let state = State::get().await?;
         // Fetch profile using profile_id from params
         let profile = state.profile_manager.get_profile(params.profile_id).await?;
-        let profile_mods_path = state.profile_manager.get_profile_mods_path(&profile)?;
+        
+        // Use game handler for Hytale profiles to get the correct mods path
+        let profile_mods_path = if profile.game_type == "hytale" {
+            let game_handler = state.game_handler_registry.read().await.get(&profile.game_type)?;
+            game_handler.get_mods_path(&profile).await?
+        } else {
+            state.profile_manager.get_profile_mods_path(&profile)?
+        };
 
         debug!(
             "Loading items for profile: {} ({}), content_type: {:?}, calculate_hashes: {}, fetch_modrinth_data: {}",
             profile.name, params.profile_id, params.content_type, params.calculate_hashes, params.fetch_modrinth_data
         );
+        
+        if profile.game_type == "hytale" {
+            debug!("Hytale profile detected, using mods path: {:?}", profile_mods_path);
+        }
 
         let content_dirs = match params.content_type {
             ContentType::ResourcePack => {
@@ -2090,14 +2101,19 @@ impl LocalContentLoader {
             ContentType::ShaderPack => vec![shaderpack_utils::get_shaderpacks_dir(&profile).await?],
             ContentType::DataPack => vec![datapack_utils::get_datapacks_dir(&profile).await?],
             ContentType::Mod => {
-                // Prefer standard mods directory first, then custom_mods
-                let instance_path = state
-                    .profile_manager
-                    .calculate_instance_path_for_profile(&profile)?;
-                vec![
-                    profile_mods_path.clone(),
-                    instance_path.join("custom_mods"),
-                ]
+                // For Hytale profiles, only scan the actual mods folder
+                if profile.game_type == "hytale" {
+                    vec![profile_mods_path.clone()]
+                } else {
+                    // For Minecraft, prefer standard mods directory first, then custom_mods
+                    let instance_path = state
+                        .profile_manager
+                        .calculate_instance_path_for_profile(&profile)?;
+                    vec![
+                        profile_mods_path.clone(),
+                        instance_path.join("custom_mods"),
+                    ]
+                }
             }
             ContentType::NoRiskMod => {
                 // For NoRisk mods, handled differently (no physical directory scan)
@@ -2106,6 +2122,8 @@ impl LocalContentLoader {
         };
 
         let mut preliminary_items: Vec<LocalContentItem> = Vec::new();
+        let mut processed_filenames: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut mods_to_remove: Vec<uuid::Uuid> = Vec::new(); // Track mods with missing files
 
         if params.content_type == ContentType::Mod {
             // First process profile.mods entries (for tracking enabled status)
@@ -2156,32 +2174,52 @@ impl LocalContentLoader {
 
                 // Try to find the mod in any of the content directories
                 let mut found_path = None;
+                let mut file_exists = false;
                 for dir in &content_dirs {
                     let path_buf = dir.join(&actual_filename);
                     if path_buf.exists() {
                         found_path = Some(path_buf);
+                        file_exists = true;
                         break;
                     }
                 }
 
-                // Use the first directory as fallback if file not found
-                let path_buf = if let Some(found) = found_path { found } else {
-                    // Smarter fallback: if this profile mod comes from Modrinth/Url/Maven/CurseForge, point to mod_cache
+                // Check cache for launcher-installed mods if not found in content dirs
+                if !file_exists {
                     match &mod_item.source {
                         crate::state::profile_state::ModSource::Modrinth { .. }
-                        | crate::state::profile_state::ModSource::Url { .. }
-                        | crate::state::profile_state::ModSource::Maven { .. }
                         | crate::state::profile_state::ModSource::CurseForge { .. } => {
-                            crate::config::ProjectDirsExt::meta_dir(&*crate::config::LAUNCHER_DIRECTORY)
+                            let cache_path = crate::config::ProjectDirsExt::meta_dir(&*crate::config::LAUNCHER_DIRECTORY)
                                 .join("mod_cache")
-                                .join(&actual_filename)
+                                .join(&actual_filename);
+                            if cache_path.exists() {
+                                found_path = Some(cache_path);
+                                file_exists = true;
+                            }
                         }
-                        _ => content_dirs[0].join(&actual_filename),
+                        _ => {}
                     }
-                };
+                }
+
+                // If file still doesn't exist anywhere, mark mod for removal
+                if !file_exists {
+                    log::warn!("Mod file not found, marking for removal: {} (ID: {})", actual_filename, mod_item.id);
+                    mods_to_remove.push(mod_item.id);
+                    continue; // Skip creating LocalContentItem for missing mod
+                }
+
+                let path_buf = found_path.unwrap(); // Safe to unwrap since we checked file_exists
                 let path_str = path_buf.to_string_lossy().into_owned();
 
-                let file_size = 0; // Placeholder due to cache logic - will revisit
+                // Get actual file size
+                let file_size = if path_buf.exists() {
+                    match fs::metadata(&path_buf).await {
+                        Ok(metadata) => metadata.len(),
+                        Err(_) => 0, // Fallback if file doesn't exist
+                    }
+                } else {
+                    0 // Fallback for cache files that might not exist
+                };
 
                 let sha1_hash = match mod_item.source {
                     crate::state::profile_state::ModSource::Modrinth {
@@ -2238,6 +2276,9 @@ impl LocalContentLoader {
                     _ => None,
                 };
 
+                // Add filename to processed set to prevent duplicates
+                processed_filenames.insert(actual_filename.clone());
+                
                 preliminary_items.push(LocalContentItem {
                     filename: actual_filename,
                     path_str,
@@ -2309,9 +2350,19 @@ impl LocalContentLoader {
                             && !is_directory
                     }
                     ContentType::Mod => {
-                        (file_name_str.ends_with(".jar")
-                            || file_name_str.ends_with(".jar.disabled"))
-                            && !is_directory
+                        // For Hytale profiles, accept both .jar and .zip files
+                        // For Minecraft profiles, only accept .jar files
+                        let is_hytale = profile.game_type == "hytale";
+                        let valid_extension = if is_hytale {
+                            file_name_str.ends_with(".jar")
+                                || file_name_str.ends_with(".jar.disabled")
+                                || file_name_str.ends_with(".zip")
+                                || file_name_str.ends_with(".zip.disabled")
+                        } else {
+                            file_name_str.ends_with(".jar")
+                                || file_name_str.ends_with(".jar.disabled")
+                        };
+                        valid_extension && !is_directory
                     }
                     ContentType::NoRiskMod => false, // We handle NoRisk mods differently, not by scanning directories
                 };
@@ -2341,6 +2392,12 @@ impl LocalContentLoader {
                 } else {
                     file_name_str
                 };
+
+                // Skip if this filename was already processed from profile mods
+                if processed_filenames.contains(&base_filename) {
+                    debug!("Skipping duplicate file: {} (already processed from profile mods)", base_filename);
+                    continue;
+                }
 
                 // Determine source_type based on location (only mark custom if under custom_mods)
                 let source_type = if params.content_type == ContentType::Mod {
@@ -2601,6 +2658,18 @@ impl LocalContentLoader {
                 item.modrinth_info
             );
         }
+        // Remove mods with missing files from the profile
+        if !mods_to_remove.is_empty() {
+            log::info!("Removing {} missing mods from profile {}", mods_to_remove.len(), params.profile_id);
+            for mod_id in mods_to_remove {
+                if let Err(e) = state.profile_manager.delete_mod(params.profile_id, mod_id).await {
+                    log::error!("Failed to remove mod {} from profile {}: {}", mod_id, params.profile_id, e);
+                } else {
+                    log::info!("Successfully removed missing mod {} from profile {}", mod_id, params.profile_id);
+                }
+            }
+        }
+
         info!(
             "Successfully loaded {} items of type {:?} for profile {}",
             final_items.len(),

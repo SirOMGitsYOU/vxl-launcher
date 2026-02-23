@@ -87,11 +87,15 @@ export function BrowseTab({
     }
   };
 
-
-
   // Get mod loader icon
   const getModLoaderIcon = () => {
     if (!currentProfile) return "/icons/minecraft.png";
+    
+    // For Hytale profiles, show Hytale icon
+    if (currentProfile.game_type === "hytale") {
+      return "/icons/hytale.png";
+    }
+    
     switch (currentProfile.loader) {
       case "fabric":
         return "/icons/fabric.png";

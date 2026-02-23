@@ -248,10 +248,11 @@ export function ProfileCardV2({
 
 
 
-  // Fetch resolved loader version
+  // Fetch resolved loader version (Minecraft only)
   useEffect(() => {
     async function fetchResolvedLoaderVersion() {
-      if (!profile.game_version || profile.loader === "vanilla") {
+      // Skip for non-Minecraft profiles
+      if (profile.game_type !== "minecraft" || !profile.game_version || profile.loader === "vanilla") {
         setResolvedLoaderVersion(null);
         return;
       }
@@ -645,14 +646,18 @@ export function ProfileCardV2({
               isCompact ? (
                  // Compact mode: Only MC version + last played
                  <div className="flex items-center gap-1.5 text-xs font-minecraft-ten" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-                   {/* Minecraft Version */}
+                   {/* Game Info */}
                    <div className="text-white/70 flex items-center gap-0.5">
                      <img
-                       src="/icons/minecraft.png"
-                       alt="Minecraft"
+                       src={profile.game_type === "hytale" ? "/icons/hytale.png" : "/icons/minecraft.png"}
+                       alt={profile.game_type === "hytale" ? "Hytale" : "Minecraft"}
                        className="w-2.5 h-2.5 object-contain"
                      />
-                     <span>{profile.game_version}</span>
+                     {profile.game_type === "hytale" ? (
+                       <span className="text-yellow-400">Early Access</span>
+                     ) : (
+                       <span>{profile.game_version}</span>
+                     )}
                    </div>
 
                    <div className="w-px h-2.5 bg-white/30"></div>
@@ -665,34 +670,50 @@ export function ProfileCardV2({
                ) : (
                  // Grid mode: Full info display
                  <div className="flex items-center gap-2 text-xs font-minecraft-ten" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-                   {/* Minecraft Version */}
-                   <div className="text-white/70 flex items-center gap-1">
-                     <img
-                       src="/icons/minecraft.png"
-                       alt="Minecraft"
-                       className="w-3 h-3 object-contain"
-                     />
-                     <span>{profile.game_version}</span>
-                   </div>
+                   {/* Game Info */}
+                   {profile.game_type === "hytale" ? (
+                     <div className="text-white/70 flex items-center gap-1">
+                       <img
+                         src="/icons/hytale.png"
+                         alt="Hytale"
+                         className="w-3 h-3 object-contain"
+                       />
+                       <span className="text-yellow-400">Early Access</span>
+                     </div>
+                   ) : (
+                     <>
+                       {/* Minecraft Version */}
+                       <div className="text-white/70 flex items-center gap-1">
+                         <img
+                           src="/icons/minecraft.png"
+                           alt="Minecraft"
+                           className="w-3 h-3 object-contain"
+                         />
+                         <span>{profile.game_version}</span>
+                       </div>
+                       
+                       <div className="w-px h-3 bg-white/30"></div>
+                       
+                       {/* Loader Version */}
+                       <div className="text-white/60 flex items-center gap-1">
+                         <img
+                           src={getModLoaderIcon()}
+                           alt={profile.loader || "Vanilla"}
+                           className="w-3 h-3 object-contain"
+                         />
+                         <span>
+                           {profile.loader === "vanilla" 
+                             ? "Vanilla" 
+                             : `${resolvedLoaderVersion?.version || profile.loader_version || "Unknown"}`
+                           }
+                         </span>
+                       </div>
+                     </>
+                   )}
                    
-                   <div className="w-px h-3 bg-white/30"></div>
-                   
-                   {/* Loader Version */}
-                   <div className="text-white/60 flex items-center gap-1">
-                     <img
-                       src={getModLoaderIcon()}
-                       alt={profile.loader || "Vanilla"}
-                       className="w-3 h-3 object-contain"
-                     />
-                     <span>
-                       {profile.loader === "vanilla" 
-                         ? "Vanilla" 
-                         : `${resolvedLoaderVersion?.version || profile.loader_version || "Unknown"}`
-                       }
-                     </span>
-                   </div>
-                   
-                   <div className="w-px h-3 bg-white/30"></div>
+                   {profile.game_type === "minecraft" && (
+                     <div className="w-px h-3 bg-white/30"></div>
+                   )}
                    
                    {/* Last Played */}
                    <div className="text-white/50">
@@ -821,34 +842,52 @@ export function ProfileCardV2({
           </div>
         ) : (
           <div className="flex items-center gap-2 text-xs font-minecraft-ten" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-          {/* Minecraft Version */}
-          <div className="text-white/70 flex items-center gap-1">
-            <img
-              src="/icons/minecraft.png"
-              alt="Minecraft"
-              className="w-3 h-3 object-contain"
-            />
-            <span>{profile.game_version}</span>
-          </div>
+          {profile.game_type === "hytale" ? (
+            <>
+              {/* Hytale Game Info */}
+              <div className="text-white/70 flex items-center gap-1">
+                <img
+                  src="/icons/hytale.png"
+                  alt="Hytale"
+                  className="w-3 h-3 object-contain"
+                />
+                <span>Hytale</span>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Minecraft Version */}
+              <div className="text-white/70 flex items-center gap-1">
+                <img
+                  src="/icons/minecraft.png"
+                  alt="Minecraft"
+                  className="w-3 h-3 object-contain"
+                />
+                <span>{profile.game_version}</span>
+              </div>
+              
+              <div className="w-px h-3 bg-white/30"></div>
+              
+              {/* Loader Version */}
+              <div className="text-white/60 flex items-center gap-1">
+                <img
+                  src={getModLoaderIcon()}
+                  alt={profile.loader || "Vanilla"}
+                  className="w-3 h-3 object-contain"
+                />
+                <span>
+                  {profile.loader === "vanilla" 
+                    ? "Vanilla" 
+                    : `${resolvedLoaderVersion?.version || profile.loader_version || "Unknown"}`
+                  }
+                </span>
+              </div>
+            </>
+          )}
           
-          <div className="w-px h-3 bg-white/30"></div>
-          
-          {/* Loader Version */}
-          <div className="text-white/60 flex items-center gap-1">
-            <img
-              src={getModLoaderIcon()}
-              alt={profile.loader || "Vanilla"}
-              className="w-3 h-3 object-contain"
-            />
-            <span>
-              {profile.loader === "vanilla" 
-                ? "Vanilla" 
-                : `${resolvedLoaderVersion?.version || profile.loader_version || "Unknown"}`
-              }
-            </span>
-          </div>
-          
-          <div className="w-px h-3 bg-white/30"></div>
+          {profile.game_type === "minecraft" && (
+            <div className="w-px h-3 bg-white/30"></div>
+          )}
           
           {/* Last Played */}
           <div className="text-white/50">

@@ -22,6 +22,20 @@ use tokio::sync::Mutex;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct MinecraftProfileConfig {
+    pub game_version: String,
+    pub loader: ModLoader,
+    pub loader_version: Option<String>,
+    pub use_shared_minecraft_folder: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct HytaleProfileConfig {
+    pub hytale_launcher_path: String,
+    pub hytale_mods_path: String,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "snake_case", tag = "type")]
 pub enum ModSource {
@@ -117,9 +131,17 @@ pub struct Profile {
     pub id: Uuid, // Eindeutige ID
     pub name: String,                   // Anzeigename
     pub path: String,                   // Dateipfad
-    pub game_version: String,           // Minecraft Version
-    pub loader: ModLoader,              // Modloader Typ
-    pub loader_version: Option<String>, // Modloader Version
+    #[serde(default = "default_game_type")]
+    pub game_type: String,              // Game type: "minecraft" or "hytale"
+    #[serde(default)]
+    pub minecraft_config: Option<MinecraftProfileConfig>, // Minecraft-specific config
+    #[serde(default)]
+    pub hytale_config: Option<HytaleProfileConfig>, // Hytale-specific config
+    // Deprecated fields - kept for backward compatibility
+    #[serde(default)]
+    pub game_version: String,           // Minecraft Version (deprecated, use minecraft_config.game_version)
+    pub loader: ModLoader,              // Modloader Typ (deprecated, use minecraft_config.loader)
+    pub loader_version: Option<String>, // Modloader Version (deprecated, use minecraft_config.loader_version)
     #[serde(default)]
     pub created: DateTime<Utc>, // Erstellungsdatum
     pub last_played: Option<DateTime<Utc>>, // Letzter Start
@@ -153,6 +175,87 @@ pub struct Profile {
     /// If set, this account will be used instead of the global active account
     #[serde(default)]
     pub preferred_account_id: Option<Uuid>,
+}
+
+fn default_game_type() -> String {
+    "minecraft".to_string()
+}
+
+/// Validates a profile after deserialization to detect corruption
+/// Returns true if the profile appears to be corrupted
+pub fn validate_profile_consistency(profile: &Profile) -> bool {
+    // Check for inconsistency: game_type says minecraft but has hytale_config
+    if profile.game_type == "minecraft" && profile.hytale_config.is_some() {
+        warn!("Profile '{}' has inconsistent state: game_type=minecraft but has hytale_config", profile.name);
+        return true;
+    }
+    
+    // Check for inconsistency: game_type says hytale but has minecraft_config
+    if profile.game_type == "hytale" && profile.minecraft_config.is_some() {
+        warn!("Profile '{}' has inconsistent state: game_type=hytale but has minecraft_config", profile.name);
+        return true;
+    }
+    
+    // Check for suspicious minecraft profile with empty game_version and null minecraft_config
+    // This suggests it was defaulted from a corrupted hytale profile
+    if profile.game_type == "minecraft" 
+        && profile.minecraft_config.is_none() 
+        && profile.game_version.is_empty() 
+        && profile.loader == crate::state::profile_state::ModLoader::Vanilla
+        && profile.mods.is_empty() {
+        warn!("Profile '{}' appears to be a corrupted Hytale profile defaulted to minecraft", profile.name);
+        return true;
+    }
+    
+    false
+}
+
+/// Attempts to recover a corrupted profile by detecting its original intended type
+/// Returns Some(recovered_profile) if recovery is possible, None otherwise
+pub fn attempt_profile_recovery(corrupted_profile: &Profile) -> Option<Profile> {
+    // Case 1: Profile has hytale_config but game_type is minecraft
+    if corrupted_profile.game_type == "minecraft" && corrupted_profile.hytale_config.is_some() {
+        info!("Recovering profile: Converting minecraft->hytale profile");
+        let mut recovered = corrupted_profile.clone();
+        recovered.game_type = "hytale".to_string();
+        recovered.minecraft_config = None;
+        recovered.game_version = "".to_string(); // Hytale doesn't use game_version
+        recovered.loader = crate::state::profile_state::ModLoader::Vanilla; // Hytale is always vanilla
+        recovered.loader_version = None;
+        return Some(recovered);
+    }
+    
+    // Case 2: Profile has minecraft_config but game_type is hytale
+    if corrupted_profile.game_type == "hytale" && corrupted_profile.minecraft_config.is_some() {
+        info!("Recovering profile: Converting hytale->minecraft profile");
+        let mut recovered = corrupted_profile.clone();
+        recovered.game_type = "minecraft".to_string();
+        recovered.hytale_config = None;
+        // Restore minecraft config from the existing one
+        if let Some(mc_config) = &corrupted_profile.minecraft_config {
+            recovered.game_version = mc_config.game_version.clone();
+            recovered.loader = mc_config.loader.clone();
+            recovered.loader_version = mc_config.loader_version.clone();
+        }
+        return Some(recovered);
+    }
+    
+    // Case 3: Profile appears to be a defaulted Hytale profile (empty minecraft config)
+    if corrupted_profile.game_type == "minecraft" 
+        && corrupted_profile.minecraft_config.is_none() 
+        && corrupted_profile.game_version.is_empty() 
+        && corrupted_profile.loader == crate::state::profile_state::ModLoader::Vanilla
+        && corrupted_profile.mods.is_empty() {
+        info!("Recovering profile: Restoring defaulted Hytale profile");
+        let mut recovered = corrupted_profile.clone();
+        recovered.game_type = "hytale".to_string();
+        // We can't recover the original hytale_config, so we'll need to ask the user to reconfigure
+        recovered.hytale_config = None; // User will need to reconfigure
+        return Some(recovered);
+    }
+    
+    warn!("Unable to recover profile '{}': corruption pattern not recognized", corrupted_profile.name);
+    None
 }
 
 fn default_true() -> bool {
@@ -373,7 +476,33 @@ impl ProfileManager {
                     match serde_json::from_str::<Vec<Profile>>(&data) {
                         Ok(profiles) => {
                             info!("ProfileManager: Successfully loaded {} profiles from file", profiles.len());
-                            return Ok(profiles.into_iter().map(|p| (p.id, p)).collect());
+                            
+                            // Validate profiles for corruption after loading
+                            let mut corrupted_profiles = Vec::new();
+                            let mut valid_profiles = Vec::new();
+                            
+                            for profile in profiles {
+                                if validate_profile_consistency(&profile) {
+                                    error!("Profile '{}' (ID: {}) appears to be corrupted, attempting recovery", profile.name, profile.id);
+                                    
+                                    // Attempt to recover corrupted profiles
+                                    if let Some(recovered_profile) = attempt_profile_recovery(&profile) {
+                                        info!("Successfully recovered profile '{}' as {}", profile.name, recovered_profile.game_type);
+                                        valid_profiles.push(recovered_profile);
+                                    } else {
+                                        error!("Failed to recover profile '{}', marking for removal", profile.name);
+                                        corrupted_profiles.push(profile);
+                                    }
+                                } else {
+                                    valid_profiles.push(profile);
+                                }
+                            }
+                            
+                            if !corrupted_profiles.is_empty() {
+                                error!("ProfileManager: Found {} corrupted profiles that could not be recovered", corrupted_profiles.len());
+                            }
+                            
+                            return Ok(valid_profiles.into_iter().map(|p| (p.id, p)).collect());
                         }
                         Err(e) => {
                             if attempt_count < max_attempts {

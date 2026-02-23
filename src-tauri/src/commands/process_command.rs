@@ -371,6 +371,17 @@ pub async fn focus_main_window<R: tauri::Runtime>(
 /// Helper function to perform file sync push for a profile when it closes
 pub async fn perform_profile_sync_push(profile_id: uuid::Uuid) -> Result<(), String> {
     use crate::commands::file_sync_command::{load_sync_configs, push_to_hub};
+    use crate::state::State;
+
+    // Get the state to check profile type
+    let state = State::get().await.map_err(|e| e.to_string())?;
+    let profile = state.profile_manager.get_profile(profile_id).await.map_err(|e| e.to_string())?;
+    
+    // Skip file sync for Hytale profiles
+    if profile.game_type == "hytale" {
+        log::info!("Skipping file sync for Hytale profile {}", profile_id);
+        return Ok(());
+    }
 
     // Load all sync configs
     let configs = load_sync_configs()

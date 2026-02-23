@@ -33,6 +33,9 @@ export function DataSyncModal({ isOpen, onClose }: DataSyncModalProps) {
 
   if (!isOpen) return null;
 
+  // Filter out Hytale profiles - only show Minecraft profiles
+  const minecraftProfiles = profiles.filter((p) => p.game_type !== "hytale");
+
   const handleFileToggle = (file: string) => {
     setSelectedFiles((prev) =>
       prev.includes(file) ? prev.filter((f) => f !== file) : [...prev, file]
@@ -76,7 +79,7 @@ export function DataSyncModal({ isOpen, onClose }: DataSyncModalProps) {
       }
 
       const targetProfileIds = syncAllProfiles
-        ? profiles.filter((p) => p.id !== selectedSourceProfile).map((p) => p.id)
+        ? minecraftProfiles.filter((p) => p.id !== selectedSourceProfile).map((p) => p.id)
         : Array.from(selectedTargetProfiles);
 
       const config: Omit<
@@ -132,12 +135,12 @@ export function DataSyncModal({ isOpen, onClose }: DataSyncModalProps) {
               Select an initial source profile to sync files from:
             </p>
             <div className="space-y-2 max-h-48 overflow-y-auto">
-              {profiles.length === 0 ? (
+              {minecraftProfiles.length === 0 ? (
                 <p className="text-xs font-minecraft-ten text-white/60">
-                  No profiles available
+                  No Minecraft profiles available
                 </p>
               ) : (
-                profiles.map((profile) => (
+                minecraftProfiles.map((profile) => (
                   <button
                     key={profile.id}
                     onClick={() => setSelectedSourceProfile(profile.id)}
@@ -241,12 +244,12 @@ export function DataSyncModal({ isOpen, onClose }: DataSyncModalProps) {
             {/* Profile List */}
             {!syncAllProfiles && (
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {profiles.filter((p) => p.id !== selectedSourceProfile).length === 0 ? (
+                {minecraftProfiles.filter((p) => p.id !== selectedSourceProfile).length === 0 ? (
                   <p className="text-xs font-minecraft-ten text-white/60">
-                    No other profiles available
+                    No other Minecraft profiles available
                   </p>
                 ) : (
-                  profiles
+                  minecraftProfiles
                     .filter((p) => p.id !== selectedSourceProfile)
                     .map((profile) => (
                       <label

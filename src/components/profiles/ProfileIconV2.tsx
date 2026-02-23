@@ -31,6 +31,30 @@ export function ProfileIconV2({
     lg: "w-10 h-10",
   };
 
+  // Use Hytale icon for Hytale profiles
+  const placeholderIcon = profile.game_type === "hytale" 
+    ? "game-icons:hytale"
+    : "ph:package-duotone";
+
+  // For Hytale profiles, show the PNG icon directly
+  if (profile.game_type === "hytale") {
+    return (
+      <div
+        className={`${sizeClasses[size]} rounded-lg border-2 flex items-center justify-center overflow-hidden ${className}`}
+        style={{
+          backgroundColor: `${accentColor.value}20`,
+          borderColor: `${accentColor.value}60`,
+        }}
+      >
+        <img
+          src="/icons/hytale.png"
+          alt="Hytale"
+          className="w-full h-full object-contain p-1"
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className={`${sizeClasses[size]} rounded-lg border-2 flex items-center justify-center overflow-hidden ${className}`}
@@ -48,7 +72,7 @@ export function ProfileIconV2({
         isEditable={false}
         variant="bare"
         className="w-full h-full"
-        placeholderIcon="ph:package-duotone"
+        placeholderIcon={placeholderIcon}
         iconClassName={iconSizes[size]}
       />
     </div>

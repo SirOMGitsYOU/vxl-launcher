@@ -13,6 +13,7 @@ import { useCrafatarAvatar } from "../../../hooks/useCrafatarAvatar";
 import type { MinecraftAccount } from "../../../types/minecraft";
 import { cn } from "../../../lib/utils";
 import { getFallbackAvatarUrl } from "../../../lib/avatar-utils";
+import { toast } from "react-hot-toast";
 
 interface GeneralSettingsTabProps {
   profile: Profile;
@@ -22,8 +23,6 @@ interface GeneralSettingsTabProps {
   onDelete?: () => void;
   isDeleting?: boolean;
 }
-
-
 
 const GeneralSettingsTab = memo(function GeneralSettingsTab({
   profile,
@@ -154,49 +153,83 @@ const GeneralSettingsTab = memo(function GeneralSettingsTab({
           </div>
         </div>
 
-        {/* Shared Minecraft Folder Checkbox */}
-        <div className="space-y-1">
-          <Checkbox
-            label="Use shared Minecraft folder"
-            checked={editedProfile.use_shared_minecraft_folder ?? false}
-            onChange={(event) => {
-              const newValue = event.target.checked;
-              updateProfile({
-                use_shared_minecraft_folder: newValue
-              });
-            }}
-            description="When enabled, a shared Minecraft folder will be used based on the group. Your settings, worlds, configs and resource packs will remain the same between profiles."
-            descriptionClassName="font-minecraft-ten text-sm"
-            size="lg"
-          />
-          <p className="text-xs text-white/50 font-minecraft-ten ml-10 -mt-1">
-            (you can change this anytime)
+        {/* Game Type Display (Read-only) */}
+        <div className="space-y-3">
+          <h3 className="text-3xl font-minecraft text-white lowercase">
+            game type
+          </h3>
+          <div className="flex items-center gap-3 px-4 py-3 rounded-lg border-2 border-white/20 bg-black/20">
+            <img
+              src={profile.game_type === "minecraft" ? "/icons/minecraft.png" : "/icons/hytale.png"}
+              alt={profile.game_type === "minecraft" ? "Minecraft" : "Hytale"}
+              className="w-5 h-5 object-contain"
+            />
+            <span className="font-minecraft text-2xl lowercase text-white capitalize">
+              {profile.game_type === "minecraft" ? "Minecraft" : "Hytale"}
+            </span>
+            <div className="ml-auto flex items-center gap-2 text-white/50">
+              <Icon
+                icon="solar:lock-keyhole-bold"
+                className="w-4 h-4"
+              />
+              <span className="text-sm font-minecraft-ten">Locked</span>
+            </div>
+          </div>
+          <p className="text-xs text-white/50 font-minecraft-ten ml-2">
+            Game type cannot be changed after profile creation
           </p>
         </div>
 
-        <div>
-          <label className="block text-3xl font-minecraft text-white mb-2 lowercase">
-            quick play path
-          </label>
-          <SearchStyleInput
-            value={editedProfile.settings.quick_play_path || ""}
-            onChange={(e) =>
-              updateProfile({
-                settings: {
-                  ...editedProfile.settings,
-                  quick_play_path: e.target.value || null
+        {/* Minecraft-specific settings - hidden for Hytale */}
+        {profile.game_type === "minecraft" && (
+          <>
+            {/* Shared Minecraft Folder Checkbox */}
+            <div className="space-y-1">
+              <Checkbox
+                label="Use shared Minecraft folder"
+                checked={editedProfile.use_shared_minecraft_folder ?? false}
+                onChange={(event) => {
+                  const newValue = event.target.checked;
+                  updateProfile({
+                    use_shared_minecraft_folder: newValue
+                  });
+                }}
+                description="When enabled, a shared Minecraft folder will be used based on the group. Your settings, worlds, configs and resource packs will remain the same between profiles."
+                descriptionClassName="font-minecraft-ten text-sm"
+                size="lg"
+              />
+              <p className="text-xs text-white/50 font-minecraft-ten ml-10 -mt-1">
+                (you can change this anytime)
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-3xl font-minecraft text-white mb-2 lowercase">
+                quick play path
+              </label>
+              <SearchStyleInput
+                value={editedProfile.settings.quick_play_path || ""}
+                onChange={(e) =>
+                  updateProfile({
+                    settings: {
+                      ...editedProfile.settings,
+                      quick_play_path: e.target.value || null
+                    }
+                  })
                 }
-              })
-            }
-            placeholder="World name or server address (e.g. MyWorld or hypixel.net)"
-            className="text-xl"
-          />
-          <p className="text-xs text-white/70 mt-2 font-minecraft-ten tracking-wide select-none">
-            Enter a world name for singleplayer or server address for multiplayer.
-            Server addresses are detected by containing a dot (e.g. hypixel.net).
-          </p>
-        </div>
+                placeholder="World name or server address (e.g. MyWorld or hypixel.net)"
+                className="text-xl"
+              />
+              <p className="text-xs text-white/70 mt-2 font-minecraft-ten tracking-wide select-none">
+                Enter a world name for singleplayer or server address for multiplayer.
+                Server addresses are detected by containing a dot (e.g. hypixel.net).
+              </p>
+            </div>
+          </>
+        )}
 
+        {/* Preferred launch account - Minecraft only */}
+        {profile.game_type === "minecraft" && (
         <div ref={accountRef} className="space-y-3">
           <h3 className="text-3xl font-minecraft text-white lowercase">
             preferred launch account
@@ -264,6 +297,7 @@ const GeneralSettingsTab = memo(function GeneralSettingsTab({
             </div>
           )}
         </div>
+        )}
 
       </div>
 

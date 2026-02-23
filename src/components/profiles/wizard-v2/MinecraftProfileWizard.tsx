@@ -9,28 +9,21 @@ import { Modal } from "../../ui/Modal";
 import { Button } from "../../ui/buttons/Button";
 import { StatusMessage } from "../../ui/StatusMessage";
 import { useThemeStore } from "../../../store/useThemeStore";
-import { Card } from "../../ui/Card";
 import { SearchWithFilters } from "../../ui/SearchWithFilters";
 import { ProfileWizardV2Step2 } from "./ProfileWizardV2Step2";
 import { ProfileWizardV2Step3 } from "./ProfileWizardV2Step3";
-import { ProfileWizardV2Step0 } from "./ProfileWizardV2Step0";
-import { MinecraftProfileWizard } from "./MinecraftProfileWizard";
-import { HytaleProfileWizard } from "./HytaleProfileWizard";
 import { useProfileStore } from "../../../store/profile-store";
 import type { CreateProfileParams } from "../../../types/profile";
 import { toast } from "react-hot-toast";
 
-interface ProfileWizardV2Props {
+interface MinecraftProfileWizardProps {
   onClose: () => void;
   onSave: (profile: any) => void;
   defaultGroup?: string | null;
 }
 
-export function ProfileWizardV2({ onClose, onSave, defaultGroup }: ProfileWizardV2Props) {
+export function MinecraftProfileWizard({ onClose, onSave, defaultGroup }: MinecraftProfileWizardProps) {
   const accentColor = useThemeStore((state) => state.accentColor);
-  const [showGameSelection, setShowGameSelection] = useState(false);
-  const [selectedGame, setSelectedGame] = useState<"minecraft" | "hytale" | null>(null);
-  const [checkingHytale, setCheckingHytale] = useState(true);
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [showLoadingIndicator, setShowLoadingIndicator] = useState(false);
@@ -46,39 +39,11 @@ export function ProfileWizardV2({ onClose, onSave, defaultGroup }: ProfileWizard
   const [selectedLoader, setSelectedLoader] = useState<ModLoader>("fabric");
   const [selectedLoaderVersion, setSelectedLoaderVersion] = useState<string | null>(null);
 
-  // Check if Hytale profile exists on component mount
-  useEffect(() => {
-    const checkForHytaleProfile = async () => {
-      try {
-        const profiles = await useProfileStore.getState().profiles;
-        const hasHytaleProfile = profiles.some((p: any) => p.game_type === "hytale");
-        
-        // If Hytale profile exists, skip game selection and go straight to Minecraft wizard
-        if (hasHytaleProfile) {
-          setSelectedGame("minecraft");
-          setShowGameSelection(false);
-        } else {
-          // No Hytale profile, show game selection
-          setShowGameSelection(true);
-        }
-      } catch (err) {
-        console.error("Failed to check for Hytale profile:", err);
-        // Default to showing game selection on error
-        setShowGameSelection(true);
-      } finally {
-        setCheckingHytale(false);
-      }
-    };
-
-    checkForHytaleProfile();
-  }, []);
-
   useEffect(() => {
     const loadMinecraftVersions = async () => {
       setLoading(true);
       setShowLoadingIndicator(false);
       
-      // Show loading indicator only after 800ms delay
       const loadingTimeout = setTimeout(() => {
         if (loading) {
           setShowLoadingIndicator(true);
@@ -89,7 +54,6 @@ export function ProfileWizardV2({ onClose, onSave, defaultGroup }: ProfileWizard
         const manifest = await invoke<VersionManifest>("get_minecraft_versions");
         setMinecraftVersions(manifest.versions);
         
-        // Auto-select latest release
         const latestRelease = manifest.versions.find(v => v.type === "release");
         if (latestRelease) {
           setSelectedVersion(latestRelease.id);
@@ -109,8 +73,6 @@ export function ProfileWizardV2({ onClose, onSave, defaultGroup }: ProfileWizard
 
   const filteredVersions = minecraftVersions
     .filter(version => {
-      // Release shows all non-snapshot versions (release, alpha, etc.)
-      // Snapshot shows only snapshot versions
       if (selectedVersionType === "release" && version.type === "snapshot") {
         return false;
       }
@@ -160,17 +122,15 @@ export function ProfileWizardV2({ onClose, onSave, defaultGroup }: ProfileWizard
     const creationPromise = async () => {
       const profileId = await createProfile(createParams);
 
-      // Update profile with additional settings
       const updateData: any = {};
       
       if (profileData.group) {
         updateData.group = profileData.group;
       }
 
-      // Set memory settings
       updateData.settings = {
         memory: {
-          min: 1024, // Default minimum
+          min: 1024,
           max: profileData.memoryMaxMb
         }
       };
@@ -215,7 +175,6 @@ export function ProfileWizardV2({ onClose, onSave, defaultGroup }: ProfileWizard
 
     return (
       <div className="space-y-6">
-        {/* Search and Filters */}
         <div className="flex gap-4 items-center">
           <SearchWithFilters
             searchValue={searchQuery}
@@ -244,7 +203,6 @@ export function ProfileWizardV2({ onClose, onSave, defaultGroup }: ProfileWizard
           </div>
         </div>
 
-        {/* Version List */}
         <div className="max-h-96 overflow-y-auto overflow-x-hidden scrollbar-hide grid grid-cols-3 gap-3">
           {filteredVersions.map(version => (
             <div
@@ -298,57 +256,6 @@ export function ProfileWizardV2({ onClose, onSave, defaultGroup }: ProfileWizard
     </div>
   );
 
-  // Show game selection if no Hytale profile exists
-  if (showGameSelection && !selectedGame) {
-    return (
-      <ProfileWizardV2Step0
-        onClose={onClose}
-        onSelectGame={(game) => {
-          setSelectedGame(game);
-        }}
-      />
-    );
-  }
-
-  // Show Minecraft wizard if Minecraft is selected
-  if (selectedGame === "minecraft") {
-    return (
-      <MinecraftProfileWizard
-        onClose={onClose}
-        onSave={onSave}
-        defaultGroup={defaultGroup}
-      />
-    );
-  }
-
-  // Show Hytale wizard if Hytale is selected
-  if (selectedGame === "hytale") {
-    return (
-      <HytaleProfileWizard
-        onClose={onClose}
-        onSave={onSave}
-        defaultGroup={defaultGroup}
-      />
-    );
-  }
-
-  // Loading state while checking for Hytale profile
-  if (checkingHytale) {
-    return (
-      <Modal
-        title="create profile"
-        onClose={onClose}
-        width="md"
-      >
-        <div className="flex flex-col items-center justify-center h-64">
-          <Icon icon="solar:refresh-bold" className="w-12 h-12 text-white animate-spin mb-4" />
-          <p className="text-xl font-minecraft text-white lowercase">loading...</p>
-        </div>
-      </Modal>
-    );
-  }
-
-  // Show Step 2 if we're on step 2
   if (currentStep === 2) {
     return (
       <ProfileWizardV2Step2
@@ -360,7 +267,6 @@ export function ProfileWizardV2({ onClose, onSave, defaultGroup }: ProfileWizard
     );
   }
 
-  // Show Step 3 if we're on step 3
   if (currentStep === 3) {
     return (
       <ProfileWizardV2Step3
@@ -375,7 +281,6 @@ export function ProfileWizardV2({ onClose, onSave, defaultGroup }: ProfileWizard
     );
   }
 
-  // Default: Show Step 1
   return (
     <Modal
       title="create profile - select minecraft version"
