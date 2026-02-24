@@ -38,7 +38,7 @@ pub struct Credentials {
     pub active: bool,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum MinecraftAuthStep {
     GetDeviceToken,
     SisuAuthenticate,
@@ -89,6 +89,10 @@ pub enum MinecraftAuthenticationError {
     NoSessionId,
     #[error("Error reading user hash")]
     NoUserHash,
+    #[error("This Microsoft account does not have a Minecraft Java Edition license. You may only have Bedrock Edition.")]
+    NoMinecraftLicense,
+    #[error("{0}")]
+    XboxError(String),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -1054,8 +1058,8 @@ const REQUESTED_SCOPE: &str = "service::user.auth.xboxlive.com::MBI_SSL";
 
 // Alternative Client-ID for direct OAuth2 flow (supports localhost redirect)
 const DIRECT_OAUTH_CLIENT_ID: &str = "e16699bb-2aa8-46da-b5e3-45cbcce29091";
-const DIRECT_OAUTH_AUTHORIZE_URL: &str = "https://login.live.com/oauth20_authorize.srf";
-const DIRECT_OAUTH_TOKEN_URL: &str = "https://login.live.com/oauth20_token.srf";
+const DIRECT_OAUTH_AUTHORIZE_URL: &str = "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize";
+const DIRECT_OAUTH_TOKEN_URL: &str = "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";
 
 pub struct RequestWithDate<T> {
     pub date: DateTime<Utc>,
@@ -1372,6 +1376,31 @@ async fn xbox_authenticate_rps(access_token: &str) -> Result<String> {
     Ok(body.token)
 }
 
+/// Xbox error response structure for XSTS authorization failures
+#[derive(Deserialize, Debug)]
+#[allow(non_snake_case)]
+struct XboxErrorResponse {
+    XErr: Option<u64>,
+    Message: Option<String>,
+    Redirect: Option<String>,
+}
+
+/// Converts Xbox error codes to user-friendly messages
+fn xbox_error_to_message(xerr: u64, redirect: Option<&str>) -> String {
+    match xerr {
+        2148916233 => "This Microsoft account doesn't have an Xbox account. Please create one at xbox.com or sign in to the Xbox app first.".to_string(),
+        2148916235 => "This is a child account that needs parental approval. Please have a parent approve Xbox Live access.".to_string(),
+        2148916236 | 2148916237 => "Xbox Live is not available in your country/region or adult verification is required.".to_string(),
+        2148916238 => "This is a child account. Child accounts cannot access Minecraft without parental setup.".to_string(),
+        2148916222 => "Xbox authentication failed. Please ensure your Microsoft account is properly set up with Xbox Live and try again. If the problem persists, try signing in to the Xbox app first.".to_string(),
+        _ => format!(
+            "Xbox authentication failed (Error code: {}). {}",
+            xerr,
+            redirect.map(|r| format!("Please visit: {}", r)).unwrap_or_default()
+        ),
+    }
+}
+
 /// XSTS authorization for direct OAuth flow
 async fn xsts_authorize_direct(xbox_token: String) -> Result<DeviceToken> {
     let res = auth_retry(|| {
@@ -1403,6 +1432,17 @@ async fn xsts_authorize_direct(xbox_token: String) -> Result<DeviceToken> {
             source,
             step: MinecraftAuthStep::XstsAuthorize,
         })?;
+
+    // Check for Xbox error response (401 Unauthorized with XErr code)
+    if status == reqwest::StatusCode::UNAUTHORIZED {
+        if let Ok(xbox_error) = serde_json::from_str::<XboxErrorResponse>(&text) {
+            if let Some(xerr) = xbox_error.XErr {
+                let message = xbox_error_to_message(xerr, xbox_error.Redirect.as_deref());
+                info!("Xbox authentication error: XErr={}, Message={:?}", xerr, xbox_error.Message);
+                return Err(MinecraftAuthenticationError::XboxError(message).into());
+            }
+        }
+    }
 
     let body: DeviceToken = serde_json::from_str(&text).map_err(|source| {
         MinecraftAuthenticationError::DeserializeResponse {
@@ -1786,6 +1826,17 @@ async fn send_signed_request<T: DeserializeOwned>(
             step,
             status_code: status,
         }));
+    }
+
+    // Check for Xbox error response (401 Unauthorized with XErr code) in XSTS authorization
+    if status == reqwest::StatusCode::UNAUTHORIZED && step == MinecraftAuthStep::XstsAuthorize {
+        if let Ok(xbox_error) = serde_json::from_str::<XboxErrorResponse>(&text) {
+            if let Some(xerr) = xbox_error.XErr {
+                let message = xbox_error_to_message(xerr, xbox_error.Redirect.as_deref());
+                info!("Xbox authentication error: XErr={}, Message={:?}", xerr, xbox_error.Message);
+                return Err(MinecraftAuthenticationError::XboxError(message).into());
+            }
+        }
     }
 
     let body = serde_json::from_str(&text).map_err(|source| {
