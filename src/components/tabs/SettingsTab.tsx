@@ -317,6 +317,16 @@ export function SettingsTab() {
               setTempConfig({ ...tempConfig, auto_check_updates: checked }),
           },
           {
+            id: "browser-based-login",
+            label: "Browser-Based Login",
+            tooltip: "Use external browser for Microsoft login instead of embedded window. Recommended for Flatpak or if you experience issues with the login window.",
+            type: "toggle",
+            value: tempConfig?.use_browser_based_login || false,
+            onChange: (checked) =>
+              tempConfig &&
+              setTempConfig({ ...tempConfig, use_browser_based_login: checked }),
+          },
+          {
             id: "discord-presence",
             label: "Discord Presence",
             tooltip: "Show your current game and launcher status in Discord. Displays what you're playing to friends.",
@@ -515,25 +525,6 @@ export function SettingsTab() {
 
   const renderAdvancedTab = () => (
     <div className="space-y-6">
-      {/* Browser-Based Login Section */}
-      <div>
-        <CompactSettingsGrid
-          settings={[
-            {
-              id: "browser-based-login",
-              label: "Browser-Based Login",
-              tooltip: "Use external browser for Microsoft login instead of embedded window. Recommended for Flatpak or if you experience issues with the login window.",
-              type: "toggle",
-              value: tempConfig?.use_browser_based_login || false,
-              onChange: (checked) =>
-                tempConfig &&
-                setTempConfig({ ...tempConfig, use_browser_based_login: checked }),
-            },
-          ]}
-          disabled={saving}
-        />
-      </div>
-
       <div>
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-2">
