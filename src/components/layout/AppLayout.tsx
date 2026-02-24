@@ -268,7 +268,7 @@ export function AppLayout({
         />
 
         <div className="flex-1 relative overflow-hidden">
-          {renderBackgroundEffect()}
+          {activeTab === "play" && renderBackgroundEffect()}
 
           <div className="relative z-10 h-full overflow-hidden custom-scrollbar">
             {children}
