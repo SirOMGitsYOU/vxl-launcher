@@ -1,6 +1,6 @@
 [package]
 name = "vxl-launcher"
-version = "0.1.7"
+version = "0.1.8"
 description = "VXL Laucher"
 authors = ["Voxel Studios"]
 edition = "2021"
