@@ -568,7 +568,9 @@ async fn main() {
             check_profile_file_exists,
             pull_from_hub,
             push_to_hub,
-            get_shared_files
+            get_shared_files,
+            commands::changelog_command::fetch_changelog_command,
+            commands::changelog_command::fetch_version_changelog_command
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

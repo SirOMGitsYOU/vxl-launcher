@@ -7,7 +7,7 @@ import { cn } from "../../lib/utils";
 import { Logo } from "../ui/Logo";
 import { NavButton } from "../ui/nav/NavButton";
 import { NavTooltip } from "../ui/nav/NavTooltip";
-import { CreditsModal } from "../modals/CreditsModal";
+import { ChangelogModal } from "../modals/ChangelogModal";
 import * as ConfigService from "../../services/launcher-config-service";
 import { useThemeStore } from "../../store/useThemeStore";
 import { createPortal } from "react-dom";
@@ -43,7 +43,7 @@ export function VerticalNavbar({
   const accentColor = useThemeStore((state) => state.accentColor);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const [isMounted, setIsMounted] = useState(false);
-  const [showCreditsModal, setShowCreditsModal] = useState(false);
+  const [showChangelogModal, setShowChangelogModal] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -135,7 +135,7 @@ export function VerticalNavbar({
           boxShadow: `0 0 10px ${accentColor.value}30 inset`,
         }}
       >        <div className="mb-12">
-          <Logo size="sm" onClick={() => setShowCreditsModal(true)} />
+          <Logo size="sm" onClick={() => setShowChangelogModal(true)} />
         </div>
 
         <div className="flex-1 flex flex-col items-center space-y-4 min-h-[400px]">
@@ -178,9 +178,9 @@ export function VerticalNavbar({
           document.body,
         )}
 
-      <CreditsModal
-        isOpen={showCreditsModal}
-        onClose={() => setShowCreditsModal(false)}
+      <ChangelogModal
+        isOpen={showChangelogModal}
+        onClose={() => setShowChangelogModal(false)}
       />
     </>
   );
