@@ -94,7 +94,7 @@ export function ChangelogModal({ isOpen, onClose }: ChangelogModalProps) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center"
+            className="w-8 h-8 rounded-full flex items-center justify-center mt-2"
             style={{ backgroundColor: `${accentColor.value}40` }}
           >
             <Icon
@@ -104,17 +104,17 @@ export function ChangelogModal({ isOpen, onClose }: ChangelogModalProps) {
             />
           </div>
           <div>
-            <h3 className="text-xl font-minecraft text-white">
+            <h3 className="text-2xl font-minecraft text-white">
               {entry.version}
             </h3>
-            <p className="text-white/50 font-minecraft-ten text-sm">
+            <p className="text-white/50 font-minecraft-ten text-xs -mt-2">
               {formatDate(entry.date)}
             </p>
           </div>
         </div>
         {entry.version === changelogData?.current_version && (
           <div
-            className="px-2 py-1 rounded-full text-xs font-minecraft-ten"
+            className="px-3 py-1.5 rounded-full text-sm font-minecraft-ten"
             style={{
               backgroundColor: `${accentColor.value}20`,
               color: accentColor.value,
