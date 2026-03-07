@@ -30,6 +30,7 @@ export function Logo({ size = "md", className, onClick, forceAnimate = false }: 
   const animationFrameIdRef = useRef<number>();
   const rotationRef = useRef({ x: 0, y: 0, z: 0 });
   const shouldAnimate = forceAnimate || (isWindowFocused && isBackgroundAnimationEnabled);
+  const resizeTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -37,6 +38,11 @@ export function Logo({ size = "md", className, onClick, forceAnimate = false }: 
 
     const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
+
+    // Reset rotation when animations are disabled
+    if (!shouldAnimate) {
+      rotationRef.current = { x: 0, y: 0, z: 0 };
+    }
 
     const hexToRgb = (hex: string) => {
       const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -53,11 +59,23 @@ export function Logo({ size = "md", className, onClick, forceAnimate = false }: 
     const rgb = { r: 255, g: 255, b: 255 };
 
     const resize = () => {
-      const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      ctx.scale(dpr, dpr);
+      // Clear any pending resize timeout
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+      
+      // Debounce resize to prevent performance issues
+      resizeTimeoutRef.current = setTimeout(() => {
+        const rect = canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
+        
+        // Redraw immediately after resize
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawVoxel(shouldAnimate);
+      }, 100); // 100ms debounce
     };
 
     const drawVoxel = (animate: boolean = false) => {
@@ -173,7 +191,10 @@ export function Logo({ size = "md", className, onClick, forceAnimate = false }: 
     };
 
     const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Clear the entire canvas with device pixel ratio considered
+      const width = canvas.width;
+      const height = canvas.height;
+      ctx.clearRect(0, 0, width, height);
       drawVoxel(shouldAnimate);
       
       if (shouldAnimate) {
@@ -197,6 +218,9 @@ export function Logo({ size = "md", className, onClick, forceAnimate = false }: 
       window.removeEventListener("resize", resize);
       if (animationFrameIdRef.current) {
         cancelAnimationFrame(animationFrameIdRef.current);
+      }
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
       }
     };
   }, [accentColor.value, shouldAnimate, forceAnimate]);
