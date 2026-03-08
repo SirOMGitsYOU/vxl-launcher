@@ -43,4 +43,4 @@ Do the above and share your source code with everyone; just like we do.
    ```
 
 ## Contributing
-We appreciate contributions. So if you want to support us, feel free to make changes to NoRisk source code and submit a pull request.
+We appreciate contributions. So if you want to support us, feel free to make changes to VXL Launcher Source code and submit a pull request.
