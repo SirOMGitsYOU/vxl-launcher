@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { Icon } from "@iconify/react";
 import { Button } from "../ui/buttons/Button";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
@@ -13,6 +14,7 @@ import { SkinView3DWrapper } from "../common/SkinView3DWrapper";
 import { CapePreview2D } from "./CapePreview2D";
 import { getSkinUrl } from "../../lib/avatar-utils";
 import { MinecraftSkinService } from "../../services/minecraft-skin-service";
+import { getCachedCapeTexturePath } from "../../services/vanilla-cape-service";
 import { ToggleSwitch } from "../ui/ToggleSwitch";
 
 
@@ -25,6 +27,7 @@ export function CapeBrowser(): JSX.Element {
   const [selectedCape, setSelectedCape] = useState<VanillaCape | null>(null);
   const [playerSkin, setPlayerSkin] = useState<string | undefined>(undefined);
   const [playerSkinVariant, setPlayerSkinVariant] = useState<'classic' | 'slim'>('classic');
+  const [cachedSelectedCapeUrl, setCachedSelectedCapeUrl] = useState<string | undefined>(undefined);
   const accentColor = useThemeStore((state) => state.accentColor);
   const hasInitializedRef = useRef(false);
 
@@ -107,6 +110,35 @@ export function CapeBrowser(): JSX.Element {
     }
   }, [activeAccount]);
 
+  useEffect(() => {
+    if (!selectedCape || selectedCape.id === "no-cape" || !selectedCape.url.trim()) {
+      setCachedSelectedCapeUrl(undefined);
+      return;
+    }
+
+    let cancelled = false;
+
+    const resolveCachedCapeUrl = async () => {
+      try {
+        const localPath = await getCachedCapeTexturePath(selectedCape.id, selectedCape.url);
+        if (!cancelled) {
+          setCachedSelectedCapeUrl(convertFileSrc(localPath));
+        }
+      } catch (error) {
+        console.warn("[CapeBrowser] Failed to resolve cached cape texture, using remote URL:", error);
+        if (!cancelled) {
+          setCachedSelectedCapeUrl(selectedCape.url);
+        }
+      }
+    };
+
+    resolveCachedCapeUrl();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCape]);
+
   const handleSelectCape = useCallback((cape: VanillaCape) => {
     setSelectedCape(cape);
   }, []);
@@ -171,7 +203,7 @@ export function CapeBrowser(): JSX.Element {
                 <SkinView3DWrapper
                   skinUrl={showPlayer ? playerSkin : null}
                   skinVariant={playerSkinVariant}
-                  capeUrl={selectedCape.id === "no-cape" ? undefined : selectedCape.url}
+                  capeUrl={selectedCape.id === "no-cape" ? undefined : cachedSelectedCapeUrl ?? selectedCape.url}
                   enableAutoRotate={true}
                   autoRotateSpeed={0.3}
                   displayAsElytra={showElytra}
@@ -280,6 +312,7 @@ export function CapeBrowser(): JSX.Element {
                   >
                     <div className="aspect-square rounded mb-2 overflow-hidden flex items-center justify-center">
                       <CapePreview2D
+                        capeId={cape.id}
                         capeUrl={cape.url}
                         playerUuid={activeAccount?.id}
                         className="w-full h-full"

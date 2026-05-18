@@ -84,13 +84,12 @@ function CapeItemDisplay({
             borderColor: isEquipped ? accentColor.value : (isHovered ? `${accentColor.value}60` : 'transparent'),
           }}
         >
-          (
-            <CapePreview2D
-              capeUrl={imageUrl}
-              playerUuid={activeAccount?.id}
-              className="rounded-sm block w-full h-full"
-            />
-          )
+          <CapePreview2D
+            capeId={cape.id}
+            capeUrl={imageUrl}
+            playerUuid={activeAccount?.id}
+            className="rounded-sm block w-full h-full"
+          />
 
           {/* Equipped badge */}
           {isEquipped && !isCurrentlyEquipping && (

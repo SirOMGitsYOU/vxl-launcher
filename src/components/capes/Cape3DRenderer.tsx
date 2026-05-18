@@ -12,6 +12,9 @@ interface Cape3DRendererProps {
   autoRotate?: boolean;
   backgroundColor?: string;
   isVisible?: boolean;
+  onLoad?: () => void;
+  onError?: () => void;
+  enableControls?: boolean;
 }
 
 // Cape dimensions (scaled for Minecraft proportions)
@@ -32,6 +35,10 @@ const T_BACK = [12, 1, 10, 16];
 const T_TOP = [1, 0, 10, 1];
 const T_BOTTOM = [11, 0, 10, 1];
 
+function shouldUseCrossOrigin(url: string): boolean {
+  return /^https?:\/\//i.test(url) && !url.includes('asset.localhost') && !url.startsWith('asset://');
+}
+
 export function Cape3DRenderer({
   imageUrl,
   width = 220, // Default width based on CapeCard context
@@ -39,6 +46,9 @@ export function Cape3DRenderer({
   autoRotate = false,
   backgroundColor = 'transparent', // Default to transparent for better card integration
   isVisible = true,
+  onLoad,
+  onError,
+  enableControls = true,
 }: Cape3DRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -143,7 +153,9 @@ export function Cape3DRenderer({
     currentImageUrlRef.current = imageUrl;
 
     const textureLoader = new THREE.TextureLoader();
-    textureLoader.crossOrigin = 'anonymous';
+    if (shouldUseCrossOrigin(imageUrl)) {
+      textureLoader.crossOrigin = 'anonymous';
+    }
 
     textureLoader.load(
       imageUrl,
@@ -163,15 +175,17 @@ export function Cape3DRenderer({
         }
         createCapeModel(texture);
         setIsLoading(false);
+        onLoad?.();
       },
       undefined,
       (errorEvent: unknown) => {
         if (!isActuallyVisible) return;
         setErrorMessage(`Failed to load texture: ${imageUrl?.split('/').pop()}`);
         setIsLoading(false);
+        onError?.();
       }
     );
-  }, [imageUrl, createCapeModel, isActuallyVisible]);
+  }, [imageUrl, createCapeModel, isActuallyVisible, onLoad, onError]);
   
   const animate = useCallback(() => {
     if (!isActuallyVisible || !sceneRef.current || !cameraRef.current || !rendererRef.current || !controlsRef.current) {
@@ -210,6 +224,7 @@ export function Cape3DRenderer({
     controlsRef.current.autoRotate = autoRotate;
     controlsRef.current.autoRotateSpeed = 1.5;
     controlsRef.current.enableZoom = false;
+    controlsRef.current.enabled = enableControls;
     controlsRef.current.minDistance = 8;
     controlsRef.current.maxDistance = 40;
     controlsRef.current.minPolarAngle = Math.PI / 4;
@@ -231,7 +246,7 @@ export function Cape3DRenderer({
     loadCapeTexture();
     animate();
 
-  }, [width, height, backgroundColor, autoRotate, animate, loadCapeTexture, isActuallyVisible, imageUrl]);
+  }, [width, height, backgroundColor, autoRotate, animate, loadCapeTexture, isActuallyVisible, imageUrl, enableControls]);
 
   useEffect(() => {
     if (isActuallyVisible) {

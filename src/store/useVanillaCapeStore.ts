@@ -23,6 +23,20 @@ interface VanillaCapeState {
 
 const STORAGE_KEY = "vxl-vanilla-capes";
 
+function syncCapeTexturesInBackground(capes: VanillaCape[]): void {
+  const refs = capes
+    .filter((cape) => cape.url.trim() !== "")
+    .map((cape) => ({ id: cape.id, url: cape.url }));
+
+  if (refs.length === 0) {
+    return;
+  }
+
+  VanillaCapeService.syncCapeTextureCache(refs).catch((error) => {
+    console.warn("Failed to sync cape texture cache:", error);
+  });
+}
+
 export const useVanillaCapeStore = create<VanillaCapeState>()(
   persist(
     (set, get) => ({
@@ -58,6 +72,7 @@ export const useVanillaCapeStore = create<VanillaCapeState>()(
             equippedCape,
             isLoading: false 
           });
+          syncCapeTexturesInBackground(ownedCapes);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : "Failed to fetch owned capes";
           set({ error: errorMessage, isLoading: false });
@@ -121,6 +136,7 @@ export const useVanillaCapeStore = create<VanillaCapeState>()(
             isLoading: false,
             lastFetchTime: Date.now()
           });
+          syncCapeTexturesInBackground(ownedCapes);
           toast.success("Cape data refreshed!");
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : "Failed to refresh cape data";

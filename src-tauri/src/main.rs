@@ -108,8 +108,9 @@ use commands::path_commands::{get_launcher_directory, resolve_image_path};
 
 // Import vanilla cape commands
 use commands::vanilla_cape_command::{
-    get_owned_vanilla_capes, get_currently_equipped_vanilla_cape, equip_vanilla_cape,
-    get_vanilla_cape_info, refresh_vanilla_cape_data,
+    get_cached_cape_texture_path, get_cape_preview_path, get_currently_equipped_vanilla_cape,
+    get_owned_vanilla_capes, get_vanilla_cape_info, equip_vanilla_cape, refresh_vanilla_cape_data,
+    save_cape_preview, sync_cape_texture_cache,
 };
 
 // Import NRC commands
@@ -496,6 +497,10 @@ async fn main() {
             equip_vanilla_cape,
             get_vanilla_cape_info,
             refresh_vanilla_cape_data,
+            sync_cape_texture_cache,
+            get_cached_cape_texture_path,
+            get_cape_preview_path,
+            save_cape_preview,
             is_content_installed,
             batch_check_content_installed,
             check_for_group_migration_command,
@@ -546,6 +551,10 @@ async fn main() {
             equip_vanilla_cape,
             get_vanilla_cape_info,
             refresh_vanilla_cape_data,
+            sync_cape_texture_cache,
+            get_cached_cape_texture_path,
+            get_cape_preview_path,
+            save_cape_preview,
             commands::profile_command::add_profile_symlink,
             commands::profile_command::remove_profile_symlink,
             commands::profile_command::get_profile_symlinks,

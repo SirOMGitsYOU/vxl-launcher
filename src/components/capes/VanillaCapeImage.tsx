@@ -7,6 +7,8 @@ interface VanillaCapeImageProps {
   imageUrl: string | undefined;
   width?: number;
   className?: string;
+  onLoad?: () => void;
+  onError?: () => void;
 }
 
 const CAPE_PART_SRC_WIDTH = 10; 
@@ -18,6 +20,8 @@ export const VanillaCapeImage = React.memo(function VanillaCapeImage({
   imageUrl,
   width = 140, 
   className,
+  onLoad,
+  onError,
 }: VanillaCapeImageProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -53,14 +57,18 @@ export const VanillaCapeImage = React.memo(function VanillaCapeImage({
         ctx.strokeRect(0, 0, canvas.width, canvas.height);
       }
       setIsLoading(false);
+      onLoad?.();
       return;
     }
 
     const img = new Image();
-    img.crossOrigin = 'anonymous'; 
+    const isRemoteUrl = /^https?:\/\//i.test(imageUrl);
+    if (isRemoteUrl) {
+      img.crossOrigin = 'anonymous';
+    }
     img.src = imageUrl;
 
-    const onLoad = () => {
+    const handleImageLoad = () => {
       if (!canvasRef.current) {
         setErrorMessage("Canvas lost before drawing.");
         setIsLoading(false);
@@ -95,28 +103,31 @@ export const VanillaCapeImage = React.memo(function VanillaCapeImage({
         );
         
         setErrorMessage(null);
+        onLoad?.();
       } catch (drawError) {
         console.error("[VanillaCapeImage] Error drawing cape:", drawError);
         setErrorMessage("Error rendering cape.");
+        onError?.();
       } finally {
         setIsLoading(false);
       }
     };
 
-    const onError = (error: string | Event) => {
+    const onImageError = (error: string | Event) => {
       console.error("[VanillaCapeImage] Failed to load cape image:", imageUrl, error);
       setErrorMessage("Failed to load cape image.");
       setIsLoading(false);
+      onError?.();
     };
     
-    img.addEventListener('load', onLoad);
-    img.addEventListener('error', onError);
+    img.addEventListener('load', handleImageLoad);
+    img.addEventListener('error', onImageError);
 
     return () => {
-      img.removeEventListener('load', onLoad);
-      img.removeEventListener('error', onError);
+      img.removeEventListener('load', handleImageLoad);
+      img.removeEventListener('error', onImageError);
     };
-  }, [imageUrl, width, height]);
+  }, [imageUrl, width, height, onLoad, onError]);
 
   return (
     <div 

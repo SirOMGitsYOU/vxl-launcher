@@ -1,3 +1,4 @@
+pub mod cape_texture_cache;
 pub mod crafatar_api;
 pub mod fabric_api;
 pub mod forge_api;
