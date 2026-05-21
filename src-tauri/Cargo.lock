@@ -6837,7 +6837,7 @@ dependencies = [
 
 [[package]]
 name = "vxl-launcher"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "async-compression",
  "async-trait",
