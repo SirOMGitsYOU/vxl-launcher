@@ -6837,7 +6837,7 @@ dependencies = [
 
 [[package]]
 name = "vxl-launcher"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "async-compression",
  "async-trait",
@@ -7223,7 +7223,7 @@ dependencies = [
 
 [[package]]
 name = "weezl"
-version = "0.1.8"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "53a85b86a771b1c87058196170769dd264f66c0782acf1ae6cc51bfd64b39082"
 
