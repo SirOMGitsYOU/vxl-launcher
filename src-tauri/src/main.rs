@@ -72,6 +72,8 @@ use commands::profile_command::{
     update_profile, update_resourcepack_from_modrinth, update_shaderpack_from_modrinth,
 };
 
+use commands::skin_preview_command::{get_skin_preview_path, save_skin_preview};
+
 // Use statements for registered commands only
 use commands::curseforge_commands::{get_curseforge_mods_by_ids, import_curseforge_pack, download_and_install_curseforge_modpack_command, get_curseforge_file_changelog_command, get_curseforge_mod_description_command};
 
@@ -491,6 +493,8 @@ async fn main() {
             get_base64_from_skin_source_command,
             get_base64_with_metadata_from_skin_source_command,
             fetch_crafty_gg_skin_texture,
+            get_skin_preview_path,
+            save_skin_preview,
             set_discord_state,
             get_owned_vanilla_capes,
             get_currently_equipped_vanilla_cape,
@@ -545,6 +549,8 @@ async fn main() {
             install_local_content_to_profile,
             switch_content_version,
             commands::minecraft_command::get_starlight_skin_render,
+            get_skin_preview_path,
+            save_skin_preview,
             commands::minecraft_command::get_crafatar_avatar,
             commands::minecraft_command::reorder_skins,
             commands::nrc_commands::log_message_command,

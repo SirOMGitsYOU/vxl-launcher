@@ -15,4 +15,5 @@ pub mod oauth_success_html;
 pub mod path_commands;
 pub mod process_command;
 pub mod profile_command;
+pub mod skin_preview_command;
 pub mod vanilla_cape_command;

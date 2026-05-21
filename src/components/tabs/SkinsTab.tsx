@@ -1,10 +1,9 @@
 "use client";
 
 import type React from "react";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { MinecraftProfile, TexturesData } from "../../types/minecraft";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { MinecraftProfile } from "../../types/minecraft";
 import type {
-  GetStarlightSkinRenderPayload,
   MinecraftSkin,
   SkinVariant,
 } from "../../types/localSkin";
@@ -14,131 +13,19 @@ import { Button } from "../ui/buttons/Button";
 import { IconButton } from "../ui/buttons/IconButton";
 import { Icon } from "@iconify/react";
 import { StatusMessage } from "../ui/StatusMessage";
-import { SkinViewer } from "../launcher/SkinViewer";
+import { useLivePlayerSkin, parseLiveSkinFromProfile } from "../../hooks/useLivePlayerSkin";
+import { SkinPreview } from "../skins/SkinPreview";
 import { useDebounce } from "../../hooks/useDebounce";
 import { useThemeStore } from "../../store/useThemeStore";
 import { useSkinStore } from "../../store/useSkinStore";
 import { toast } from "react-hot-toast";
-import { convertFileSrc } from "@tauri-apps/api/core";
 import { SearchWithFilters } from "../ui/SearchWithFilters";
 import { useGlobalModal } from "../../hooks/useGlobalModal";
 import { AddSkinModal } from "../modals/AddSkinModal";
 import { SkinView3DWrapper } from "../common/SkinView3DWrapper";
-import { cn } from "../../lib/utils";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragOverlay } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-
-// SkinPreview component for grid items
-const SkinPreview = memo(({ 
-  skin, 
-  renderType = 'dungeons',
-  width = 140, 
-  height = 140,
-  className 
-}: { 
-  skin: MinecraftSkin;
-  renderType?: string;
-  width?: number; 
-  height?: number; 
-  className?: string;
-}) => {
-  const [renderUrl, setRenderUrl] = useState<string>("");
-  const [isRenderLoading, setIsRenderLoading] = useState<boolean>(true);
-  const [canShowSpinner, setCanShowSpinner] = useState<boolean>(false);
-  const spinnerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-    setIsRenderLoading(true);
-    setRenderUrl("");
-    setCanShowSpinner(false);
-
-    if (spinnerTimeoutRef.current) {
-      clearTimeout(spinnerTimeoutRef.current);
-    }
-
-    spinnerTimeoutRef.current = setTimeout(() => {
-      if (isMounted && isRenderLoading) {
-        setCanShowSpinner(true);
-      }
-    }, 500);
-
-    const fetchRender = async () => {
-      if (skin && skin.name) {
-        try {
-          const payload: GetStarlightSkinRenderPayload = {
-            player_name: skin.name.replace(/[^a-zA-Z0-9_]/g, '_') || 'skin',
-            render_type: renderType as any,
-            render_view: 'full',
-            base64_skin_data: skin.base64_data,
-          };
-          
-          const localPath = await MinecraftSkinService.getStarlightSkinRender(payload);
-          
-          if (isMounted) {
-            if (localPath) {
-              setRenderUrl(convertFileSrc(localPath));
-            } else {
-              console.warn(`[SkinPreview] Starlight render returned empty path for ${skin.name}.`);
-              setRenderUrl("");
-            }
-            setIsRenderLoading(false);
-            setCanShowSpinner(false);
-            if (spinnerTimeoutRef.current)
-              clearTimeout(spinnerTimeoutRef.current);
-          }
-        } catch (error) {
-          console.error(`[SkinPreview] Failed to fetch skin render for ${skin.name}:`, error);
-          
-          if (isMounted) {
-            setRenderUrl("");
-            setIsRenderLoading(false);
-            setCanShowSpinner(false);
-            if (spinnerTimeoutRef.current)
-              clearTimeout(spinnerTimeoutRef.current);
-          }
-        }
-      } else {
-        if (isMounted) {
-          console.warn(`[SkinPreview] No skin.name provided, cannot fetch skin render.`);
-          setRenderUrl("");
-          setIsRenderLoading(false);
-          setCanShowSpinner(false);
-          if (spinnerTimeoutRef.current)
-            clearTimeout(spinnerTimeoutRef.current);
-        }
-      }
-    };
-
-    fetchRender();
-
-    return () => {
-      isMounted = false;
-      if (spinnerTimeoutRef.current) {
-        clearTimeout(spinnerTimeoutRef.current);
-      }
-    };
-  }, [skin?.name, skin?.base64_data, renderType]);
-
-  return (
-    <div className={`relative ${className}`}>
-      {isRenderLoading && canShowSpinner ? (
-        <div className="flex flex-col items-center justify-center space-y-2 w-full h-full">
-          <div className="w-6 h-6 border-4 border-t-transparent border-[var(--accent)] rounded-full animate-spin"></div>
-          <p className="font-minecraft text-xs text-white/70 lowercase">Loading...</p>
-        </div>
-      ) : !isRenderLoading ? (
-        <SkinViewer
-          skinUrl={renderUrl || ""}
-          width={width}
-          height={height}
-          className="w-full h-full"
-        />
-      ) : null}
-    </div>
-  );
-});
 
 // SortableSkinCard component for drag and drop
 const SortableSkinCard = ({ skin, selectedLocalSkin, accentColor, loading, onSelectSkin, onEditSkin, onDeleteSkin }: {
@@ -259,8 +146,11 @@ export function SkinsTab() {
   const [selectedLocalSkin, setSelectedLocalSkin] = useState<MinecraftSkin | null>(null);
   const [search, setSearch] = useState<string>("");
   const [currentSkinId, setCurrentSkinId] = useState<string | null>(null);
-  const [playerCurrentSkin, setPlayerCurrentSkin] = useState<string | null>(null);
-  const [playerCurrentSkinVariant, setPlayerCurrentSkinVariant] = useState<'classic' | 'slim'>('classic');
+  const {
+    skinUrl: playerCurrentSkin,
+    variant: playerCurrentSkinVariant,
+    refresh: refreshLivePlayerSkin,
+  } = useLivePlayerSkin(activeAccount);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [delayedActiveId, setDelayedActiveId] = useState<string | null>(null);
   const [draggedItem, setDraggedItem] = useState<{oldIndex: number, newIndex: number, skin: MinecraftSkin} | null>(null);
@@ -353,37 +243,9 @@ export function SkinsTab() {
       );
       setSkinData(data);
 
-      if (data?.properties) {
-        const texturesProp = data.properties.find(
-          (prop: { name: string; value: string }) => prop.name === "textures",
-        );
-
-        if (texturesProp) {
-          try {
-            const decodedValue = atob(texturesProp.value);
-            const texturesJson = JSON.parse(decodedValue) as TexturesData;
-            const skinInfo = texturesJson.textures?.SKIN;
-
-            if (skinInfo?.url) {
-              // Extract the actual skin texture URL from Mojang
-              setPlayerCurrentSkin(skinInfo.url);
-              
-              // Detect skin variant from metadata
-              if (skinInfo.metadata?.model === 'slim') {
-                setPlayerCurrentSkinVariant('slim');
-              } else {
-                setPlayerCurrentSkinVariant('classic');
-              }
-              
-              const urlParts = skinInfo.url.split("/");
-              const skinIdFromUrl = urlParts[urlParts.length - 1].split(".")[0];
-              setCurrentSkinId(skinIdFromUrl);
-            }
-          } catch (e) {
-            console.error("Error parsing skin textures:", e);
-            toast.error("Failed to parse skin details.");
-          }
-        }
+      const parsed = parseLiveSkinFromProfile(data?.properties);
+      if (parsed.skinId) {
+        setCurrentSkinId(parsed.skinId);
       }
     } catch (err) {
       console.error("Error loading skin data:", err);
@@ -565,6 +427,7 @@ export function SkinsTab() {
         `Successfully applied skin: ${skin.name} (${skin.variant} model)`,
       );
       await loadSkinData();
+      await refreshLivePlayerSkin();
     } catch (err) {
       console.error("Error applying local skin:", err);
       toast.error(err instanceof Error ? err.message : String(err.message));

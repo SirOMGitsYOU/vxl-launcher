@@ -6,6 +6,7 @@ pub mod mc_api;
 pub mod mclogs_api;
 pub mod neo_forge_api;
 pub mod quilt_api;
+pub mod skin_preview_cache;
 pub mod starlight_api;
 pub mod vanilla_cape_api;
 

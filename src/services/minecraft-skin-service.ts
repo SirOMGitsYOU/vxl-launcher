@@ -181,6 +181,14 @@ export class MinecraftSkinService {
         return await invoke<string>("get_starlight_skin_render", { payload });
     }
 
+    static async getSkinPreviewPath(cacheKey: string): Promise<string | null> {
+        return await invoke<string | null>("get_skin_preview_path", { cacheKey });
+    }
+
+    static async saveSkinPreview(cacheKey: string, pngBase64: string): Promise<string> {
+        return await invoke<string>("save_skin_preview", { cacheKey, pngBase64 });
+    }
+
     /**
      * Fetches a cached avatar from the Crafatar API via the backend.
      * The backend handles caching and potential background updates.
