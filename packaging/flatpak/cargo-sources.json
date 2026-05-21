@@ -8673,14 +8673,14 @@
     {
         "type": "archive",
         "archive-type": "tar-gzip",
-        "url": "https://static.crates.io/crates/weezl/weezl-0.1.9.crate",
+        "url": "https://static.crates.io/crates/weezl/weezl-0.1.8.crate",
         "sha256": "53a85b86a771b1c87058196170769dd264f66c0782acf1ae6cc51bfd64b39082",
-        "dest": "cargo/vendor/weezl-0.1.9"
+        "dest": "cargo/vendor/weezl-0.1.8"
     },
     {
         "type": "inline",
         "contents": "{\"package\": \"53a85b86a771b1c87058196170769dd264f66c0782acf1ae6cc51bfd64b39082\", \"files\": {}}",
-        "dest": "cargo/vendor/weezl-0.1.9",
+        "dest": "cargo/vendor/weezl-0.1.8",
         "dest-filename": ".cargo-checksum.json"
     },
     {
