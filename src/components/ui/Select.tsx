@@ -187,7 +187,7 @@ export function Select({
           className={cn(
             "w-full h-full flex items-center justify-between",
             disabled ? "cursor-not-allowed" : "cursor-pointer",
-            "font-minecraft lowercase text-white",
+            " text-white",
             sizeStyles[size].container,
             sizeStyles[size].padding,
             sizeStyles[size].text,
@@ -235,7 +235,7 @@ export function Select({
         onMouseUp={handleMouseUp}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}        className={cn(
-          "font-minecraft relative overflow-hidden backdrop-blur-md",
+          " relative overflow-hidden backdrop-blur-md",
           "text-white tracking-wider lowercase",
           "flex items-center justify-between w-full",
           "text-shadow-sm",

@@ -150,7 +150,7 @@ export const ModrinthInstallModalV2: React.FC<ModrinthInstallModalV2Props> = ({
         <h3 className="text-xl font-semibold text-gray-100">
           {isActuallyCopying ? 'Profile Copied' : 'Profile Created'} & Content Installed!
         </h3>
-        <p className="text-sm text-gray-300 font-minecraft-ten">
+        <p className="text-sm text-gray-300 ">
           {project.title} (v{version.version_number}) has been successfully installed into the new profile '{quickProfileName.trim()}'.
           {isActuallyCopying && sourceProfileToCopyId && ` (Copied from ${profiles.find(p=>p.id === sourceProfileToCopyId)?.name || 'source'})`}
         </p>
@@ -189,7 +189,7 @@ export const ModrinthInstallModalV2: React.FC<ModrinthInstallModalV2Props> = ({
     modalContentLayout = (
       <>
         <div className="mb-1 mt-1">
-          <p className="text-gray-300 mb-2 text-base font-minecraft-ten">Select Profile(s) to install to:</p>
+          <p className="text-gray-300 mb-2 text-base ">Select Profile(s) to install to:</p>
           {isLoadingStatus ? (
             <div className="flex justify-center items-center py-6">
               <svg
@@ -238,7 +238,7 @@ export const ModrinthInstallModalV2: React.FC<ModrinthInstallModalV2Props> = ({
                       }}
                     >
                       <div className="flex-grow mr-3 min-w-0">
-                        <span className="font-medium text-base font-minecraft-ten block mb-0.5 truncate">{profile.name}</span>
+                        <span className="font-medium text-base  block mb-0.5 truncate">{profile.name}</span>
                         <div className="flex flex-wrap gap-1 mt-0.5">
                           <TagBadge variant="info" className="text-xs">
                             {profile.game_version}
@@ -250,7 +250,7 @@ export const ModrinthInstallModalV2: React.FC<ModrinthInstallModalV2Props> = ({
                           )}
                         </div>
                         {profile.id === selectedProfileId && (
-                          <span className="block mt-1 text-xs text-green-400 font-minecraft-ten">
+                          <span className="block mt-1 text-xs text-green-400 ">
                             (Current Profile)
                           </span>
                         )}
@@ -334,7 +334,7 @@ export const ModrinthInstallModalV2: React.FC<ModrinthInstallModalV2Props> = ({
             </div>
           )}
         </div>
-        <p className="text-gray-400 text-xs text-center font-minecraft-ten mt-2">
+        <p className="text-gray-400 text-xs text-center  mt-2">
           This will install version {version.version_number} of {project.title}.
         </p>
       </>

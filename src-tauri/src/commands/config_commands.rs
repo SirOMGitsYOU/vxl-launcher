@@ -35,3 +35,8 @@ pub async fn set_launcher_config(config: LauncherConfig) -> Result<LauncherConfi
 pub fn get_app_version(app_handle: AppHandle) -> Result<String> {
     Ok(app_handle.package_info().version.to_string())
 }
+
+#[command]
+pub fn is_launcher_ready() -> bool {
+    crate::utils::splash_utils::is_app_ready()
+}

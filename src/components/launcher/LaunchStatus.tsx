@@ -81,7 +81,7 @@ export function LaunchStatus({
       <div className="flex items-center justify-between">
         <div className="flex items-center flex-1 min-w-0 px-3 py-2">
           {getStatusIcon()}
-          <span className="text-sm font-minecraft text-white truncate">
+          <span className="text-sm  text-white truncate">
             {getStatusText()}
           </span>
         </div>

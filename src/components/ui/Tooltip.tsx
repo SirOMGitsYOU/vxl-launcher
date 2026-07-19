@@ -93,7 +93,7 @@ export function Tooltip({
   }, []);
 
   const getTooltipClasses = () => {
-    const baseClasses = "fixed z-50 px-3 py-2 text-xs font-minecraft-ten text-white border-2 pointer-events-none transition-opacity duration-200 rounded-lg backdrop-blur-md";
+    const baseClasses = "fixed z-50 px-3 py-2 text-xs  text-white border-2 pointer-events-none transition-opacity duration-200 rounded-lg backdrop-blur-md";
 
     return `${baseClasses} ${className}`;
   };

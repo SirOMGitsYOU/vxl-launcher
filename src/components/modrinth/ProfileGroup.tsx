@@ -48,7 +48,7 @@ export function ProfileGroup({
         >
           <Icon icon={getLoaderIcon(loader)} className="w-4 h-4 text-white" />
         </div>
-        <h4 className="text-white font-minecraft text-sm tracking-wide lowercase select-none">
+        <h4 className="text-white  text-sm tracking-wide lowercase select-none">
           {loader}
         </h4>
       </div>

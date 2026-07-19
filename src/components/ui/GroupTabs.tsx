@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon } from "@iconify/react";
-import { useThemeStore } from "../../store/useThemeStore";
+import { cn } from "../../lib/utils";
 
 export interface GroupTab {
   /** Unique identifier for the group */
@@ -43,8 +43,6 @@ export function GroupTabs({
   addButtonText = "ADD GROUP",
   addButtonIcon = "solar:add-circle-bold",
 }: GroupTabsProps) {
-  const accentColor = useThemeStore((state) => state.accentColor);
-
   const handleGroupClick = (groupId: string) => {
     onGroupChange(groupId);
   };
@@ -60,20 +58,17 @@ export function GroupTabs({
           <button
             key={group.id}
             onClick={() => handleGroupClick(group.id)}
-                         className={`px-3 py-1 rounded-lg font-minecraft text-2xl transition-all duration-200 flex items-center gap-2 border-2 ${
+            className={cn(
+              "vxl-select-tab px-3 py-1.5 text-sm flex items-center gap-2",
               activeGroup === group.id
-                ? 'text-white'
-                : 'text-white/70 bg-black/30 hover:bg-black/40 border-white/10 hover:border-white/20'
-            }`}
-            style={{
-              backgroundColor: activeGroup === group.id ? `${accentColor.value}20` : undefined,
-              borderColor: activeGroup === group.id ? accentColor.value : undefined,
-            }}
+                ? "vxl-select-tab-active"
+                : "text-[var(--text-secondary)] hover:text-white hover:bg-[var(--surface-overlay)]/60",
+            )}
           >
             {group.icon && (
               <Icon icon={group.icon} className="w-4 h-4" />
             )}
-            <span className="lowercase">{group.name}</span>
+            <span>{group.name}</span>
           </button>
         ))}
         
@@ -81,10 +76,10 @@ export function GroupTabs({
         {showAddButton && (
           <button
             onClick={handleAddGroupClick}
-            className="px-3 py-1 rounded-lg border border-dashed border-white/30 hover:border-white/50 text-white/50 hover:text-white/70 transition-all duration-200 flex items-center gap-2"
+            className="vxl-select-tab px-3 py-1.5 text-sm flex items-center gap-2 border-dashed text-[var(--text-muted)] hover:text-white hover:border-[var(--surface-border-strong)]"
           >
             <Icon icon={addButtonIcon} className="w-4 h-4" />
-            <span className="font-minecraft lowercase text-2xl transform -translate-y-0.5">{addButtonText}</span>
+            <span>{addButtonText}</span>
           </button>
         )}
       </div>

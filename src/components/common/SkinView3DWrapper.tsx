@@ -24,8 +24,8 @@ interface SkinView3DWrapperProps {
   horizontalRotationOnly?: boolean;
 }
 
-const DEFAULT_STEVE_SKIN_URL = 'https://avatar.vxl.to/skins/8667ba71b358a38efd67f79b3cc33b1f'; // Steve UUID
-const FALLBACK_STEVE_SKIN_URL = 'https://avatars.cloudhaven.gg/skins/8667ba71b358a38efd67f79b3cc33b1f';
+const DEFAULT_STEVE_SKIN_URL = 'https://nmsr.nickac.dev/skin/8667ba71b358a38efd67f79b3cc33b1f';
+const FALLBACK_STEVE_SKIN_URL = 'https://nmsr.nickac.dev/skin/8667ba71b358a38efd67f79b3cc33b1f';
 
 // Helper function to convert skin variant to skinview3d model
 const getModelType = (variant: 'classic' | 'slim' = 'classic') => {
@@ -72,7 +72,7 @@ export const SkinView3DWrapper: React.FC<SkinView3DWrapperProps> = ({
       console.warn(`[SkinView3D] Failed to load skin from ${url}, trying fallback...`, error);
       try {
         // Extract UUID from the URL if it's a Crafatar URL
-        const uuidMatch = url.match(/skins\/([a-f0-9]{32})/);
+        const uuidMatch = url.match(/\/skin(?:s)?\/([a-f0-9]{32})/);
         if (uuidMatch) {
           const uuid = uuidMatch[1];
           const fallbackUrl = getFallbackSkinUrl(uuid);
@@ -80,10 +80,8 @@ export const SkinView3DWrapper: React.FC<SkinView3DWrapperProps> = ({
           await viewer.loadSkin(fallbackUrl);
           skinLoadedSuccessfullyRef.current = true;
         } else {
-          // If we can't extract UUID, try CloudHaven fallback directly
-          const cloudhavenUrl = url.replace('avatar.vxl.to', 'avatars.cloudhaven.gg');
-          console.log(`[SkinView3D] Attempting CloudHaven fallback: ${cloudhavenUrl}`);
-          await viewer.loadSkin(cloudhavenUrl);
+          console.log(`[SkinView3D] Attempting default Steve skin: ${DEFAULT_STEVE_SKIN_URL}`);
+          await viewer.loadSkin(DEFAULT_STEVE_SKIN_URL);
           skinLoadedSuccessfullyRef.current = true;
         }
       } catch (fallbackError) {

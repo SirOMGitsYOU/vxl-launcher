@@ -6,11 +6,9 @@ import { Icon } from "@iconify/react";
 import { cn } from "../../lib/utils";
 import { Logo } from "../ui/Logo";
 import { NavButton } from "../ui/nav/NavButton";
-import { NavTooltip } from "../ui/nav/NavTooltip";
 import { ChangelogModal } from "../modals/ChangelogModal";
+import { AccountSelector } from "../account/AccountSelector";
 import * as ConfigService from "../../services/launcher-config-service";
-import { useThemeStore } from "../../store/useThemeStore";
-import { createPortal } from "react-dom";
 
 interface NavItem {
   id: string;
@@ -33,22 +31,11 @@ export function VerticalNavbar({
   items,
   activeItem,
   onItemClick,
-  version = "v0.5.22",
-}: VerticalNavbarProps) {  const [active, setActive] = useState(activeItem || items[0]?.id);
+}: VerticalNavbarProps) {
+  const [active, setActive] = useState(activeItem || items[0]?.id);
   const navRef = useRef<HTMLDivElement>(null);
-  const [showTooltip, setShowTooltip] = useState<string | null>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
-  const buttonRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [appVersion, setAppVersion] = useState<string | null>(null);
-  const accentColor = useThemeStore((state) => state.accentColor);
-  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
-  const [isMounted, setIsMounted] = useState(false);
   const [showChangelogModal, setShowChangelogModal] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-    return () => setIsMounted(false);
-  }, []);
 
   useEffect(() => {
     if (activeItem) {
@@ -71,17 +58,12 @@ export function VerticalNavbar({
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.set(".nav-item", { opacity: 0, x: -20 });
-
-      gsap.to(".nav-item", {
-        opacity: 1,
-        x: 0,
-        stagger: 0.05,
-        duration: 0.4,
+      gsap.from(".nav-item", {
+        opacity: 0,
+        x: -12,
+        stagger: 0.04,
+        duration: 0.35,
         ease: "power2.out",
-        onComplete: () => {
-          gsap.set(".nav-item", { clearProps: "all" });
-        },
       });
     }, navRef);
 
@@ -91,33 +73,7 @@ export function VerticalNavbar({
   const handleItemClick = (id: string, disabled?: boolean) => {
     if (disabled) return;
     setActive(id);
-    if (onItemClick) {
-      onItemClick(id);
-    }
-  };
-
-  const handleMouseEnter = (id: string) => {
-    const buttonElement = buttonRefs.current[id];
-    if (buttonElement) {
-      const rect = buttonElement.getBoundingClientRect();
-      setTooltipPosition({
-        top: rect.top + rect.height / 2,
-        left: rect.right + 12,
-      });
-    }
-
-    setShowTooltip(id);
-    if (tooltipRef.current) {
-      gsap.fromTo(
-        tooltipRef.current,
-        { opacity: 0, x: -10 },
-        { opacity: 1, x: 0, duration: 0.3, ease: "power2.out" },
-      );
-    }
-  };
-
-  const handleMouseLeave = () => {
-    setShowTooltip(null);
+    onItemClick?.(id);
   };
 
   return (
@@ -125,58 +81,50 @@ export function VerticalNavbar({
       <div
         ref={navRef}
         className={cn(
-          "flex flex-col items-center py-6 w-24 backdrop-blur-lg",
+          "flex flex-col w-56 h-full overflow-visible vxl-border border-y-0 border-l-0 bg-[var(--surface-raised)]",
           className,
         )}
-        style={{
-          backgroundColor: `rgba(${parseInt(accentColor.value.slice(1, 3), 16)}, ${parseInt(accentColor.value.slice(3, 5), 16)}, ${parseInt(accentColor.value.slice(5, 7), 16)}, 0.4)`,
-          borderRight: `2px solid ${accentColor.value}60`,
-          borderLeft: `2px solid ${accentColor.value}60`,
-          boxShadow: `0 0 10px ${accentColor.value}30 inset`,
-        }}
-      >        <div className="mb-12">
-          <Logo size="sm" onClick={() => setShowChangelogModal(true)} />
-        </div>
+      >
+        <button
+          type="button"
+          className="w-full px-4 py-4 border-b border-[var(--surface-border)] hover:bg-white/5 transition-colors"
+          onClick={() => setShowChangelogModal(true)}
+        >
+          <div className="flex items-center justify-center gap-3">
+            <Logo size="sm" />
+            <div className="vxl-brand-title text-center leading-tight">VXL Launcher</div>
+          </div>
+        </button>
 
-        <div className="flex-1 flex flex-col items-center space-y-4 min-h-[400px]">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
           {items.map((item) => (
-            <div
-              key={item.id}
-              className="relative group nav-item"
-              ref={(el) => (buttonRefs.current[item.id] = el)}
-            >
+            <div key={item.id} className="nav-item">
               <NavButton
-                icon={<Icon icon={item.icon} className="w-8 h-8" />}
+                icon={<Icon icon={item.icon} className="w-5 h-5" />}
+                label={item.label}
                 isActive={active === item.id}
                 isDisabled={item.disabled}
                 onClick={() => handleItemClick(item.id, item.disabled)}
-                onMouseEnter={() => handleMouseEnter(item.id)}
-                onMouseLeave={handleMouseLeave}
-                aria-label={item.label}
                 title={item.disabled ? `${item.label} (requires an account)` : item.label}
+                aria-label={item.label}
               />
             </div>
           ))}
+        </nav>
+
+        <div className="overflow-visible px-4 py-4 border-t border-[var(--surface-border)] space-y-3">
+          <div className="flex items-center justify-between text-[10px] uppercase tracking-wide text-[var(--text-muted)]">
+            <span>Dev environment</span>
+            <span className="flex items-center gap-1.5 text-[var(--accent)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
+              Enabled
+            </span>
+          </div>
+          <div className="text-[11px] text-[var(--text-muted)]">{appVersion || "v?.?.?"}</div>
+
+          <AccountSelector />
         </div>
-      </div>      {isMounted &&
-        showTooltip &&
-        document.body &&
-        createPortal(
-          <div
-            className="fixed pointer-events-none"
-            style={{
-              top: `${tooltipPosition.top}px`,
-              left: `${tooltipPosition.left}px`,
-              zIndex: 9999,
-              transform: "translateY(-50%)",
-            }}
-          >
-            <NavTooltip ref={tooltipRef}>
-              {items.find((item) => item.id === showTooltip)?.label}
-            </NavTooltip>
-          </div>,
-          document.body,
-        )}
+      </div>
 
       <ChangelogModal
         isOpen={showChangelogModal}

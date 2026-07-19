@@ -6,13 +6,12 @@ import type { MinecraftVersion, VersionManifest } from "../../../types/minecraft
 import type { ModLoader } from "../../../types/profile";
 import { invoke } from "@tauri-apps/api/core";
 import { Modal } from "../../ui/Modal";
-import { Button } from "../../ui/buttons/Button";
+import { Button, SelectTab, LoadingState } from "../../ui-v2";
 import { StatusMessage } from "../../ui/StatusMessage";
-import { useThemeStore } from "../../../store/useThemeStore";
-import { Card } from "../../ui/Card";
 import { SearchWithFilters } from "../../ui/SearchWithFilters";
 import { ProfileWizardV2Step2 } from "./ProfileWizardV2Step2";
 import { ProfileWizardV2Step3 } from "./ProfileWizardV2Step3";
+import { useThemeStore } from "../../../store/useThemeStore";
 import { useProfileStore } from "../../../store/profile-store";
 import type { CreateProfileParams } from "../../../types/profile";
 import { toast } from "react-hot-toast";
@@ -167,12 +166,7 @@ export function ProfileWizardV2({ onClose, onSave, defaultGroup }: ProfileWizard
 
   const renderContent = () => {
     if (showLoadingIndicator) {
-      return (
-        <div className="flex flex-col items-center justify-center h-64">
-          <Icon icon="solar:refresh-bold" className="w-12 h-12 text-white animate-spin mb-4" />
-          <p className="text-xl font-minecraft text-white lowercase">loading versions...</p>
-        </div>
-      );
+      return <LoadingState message="Loading versions..." />;
     }
 
     if (error) {
@@ -195,17 +189,16 @@ export function ProfileWizardV2({ onClose, onSave, defaultGroup }: ProfileWizard
           <div className="flex gap-2">
             {[
               { key: "release", label: "Release", icon: "solar:star-bold" },
-              { key: "snapshot", label: "Snapshot", icon: "solar:test-tube-bold" }
-            ].map(type => (
-              <Button
+              { key: "snapshot", label: "Snapshot", icon: "solar:test-tube-bold" },
+            ].map((type) => (
+              <SelectTab
                 key={type.key}
-                variant={selectedVersionType === type.key ? "flat" : "ghost"}
-                size="sm"
-                onClick={() => setSelectedVersionType(type.key as any)}
+                active={selectedVersionType === type.key}
+                onClick={() => setSelectedVersionType(type.key as "release" | "snapshot")}
                 icon={<Icon icon={type.icon} className="w-4 h-4" />}
               >
                 {type.label}
-              </Button>
+              </SelectTab>
             ))}
           </div>
         </div>
@@ -215,22 +208,18 @@ export function ProfileWizardV2({ onClose, onSave, defaultGroup }: ProfileWizard
           {filteredVersions.map(version => (
             <div
               key={version.id}
-              className={`p-4 cursor-pointer transition-all duration-200 border-2 rounded-lg ${
+              className={`p-4 cursor-pointer transition-all duration-200 border rounded-xl ${
                 selectedVersion === version.id
-                  ? "border-current bg-current/10 hover:bg-current/15"
-                  : "border-transparent bg-black/20 hover:bg-black/30"
+                  ? "border-[var(--accent)] bg-[rgba(var(--accent-rgb),0.06)] vxl-accent-glow"
+                  : "border-[var(--surface-border)] bg-[var(--surface-overlay)] hover:border-[var(--surface-border-strong)]"
               }`}
-              style={selectedVersion === version.id ? {
-                borderColor: accentColor.value,
-                color: accentColor.value
-              } : {}}
               onClick={() => setSelectedVersion(version.id)}
             >
               <div className="flex flex-col items-center text-center">
-                <h4 className="font-minecraft text-3xl text-white lowercase">
+                <h4 className="text-lg font-semibold text-white">
                   {version.id}
                 </h4>
-                <p className="text-xs text-white/60 font-minecraft-ten capitalize mt-1">
+                <p className="text-xs text-[var(--text-secondary)] capitalize mt-1">
                   {version.type}
                 </p>
               </div>
@@ -241,7 +230,7 @@ export function ProfileWizardV2({ onClose, onSave, defaultGroup }: ProfileWizard
         {filteredVersions.length === 0 && !loading && (
           <div className="col-span-3 text-center py-8">
             <Icon icon="solar:magnifer-bold" className="w-12 h-12 text-white/50 mx-auto mb-2" />
-            <p className="text-lg font-minecraft text-white/70 lowercase">no versions found</p>
+            <p className="text-sm text-[var(--text-secondary)]">No versions found</p>
           </div>
         )}
       </div>
@@ -251,15 +240,13 @@ export function ProfileWizardV2({ onClose, onSave, defaultGroup }: ProfileWizard
   const renderFooter = () => (
     <div className="flex justify-end items-center">
       <Button
-        variant="default"
+        variant="primary"
         onClick={handleStep1Next}
         disabled={loading || !selectedVersion}
         size="md"
-        className="min-w-[120px] text-xl"
-        icon={<Icon icon="solar:arrow-right-bold" className="w-5 h-5" />}
-        iconPosition="right"
+        icon={<Icon icon="solar:arrow-right-bold" className="w-4 h-4" />}
       >
-        next
+        Next
       </Button>
     </div>
   );
@@ -294,7 +281,7 @@ export function ProfileWizardV2({ onClose, onSave, defaultGroup }: ProfileWizard
   // Default: Show Step 1
   return (
     <Modal
-      title="create profile - select minecraft version"
+      title="Create profile — select Minecraft version"
       onClose={onClose}
       width="lg"
       footer={renderFooter()}

@@ -140,7 +140,7 @@ function VersionItem({
       onClick={handleClick}
     >
       {/* Stats - oben rechts */}
-      <div className="absolute top-2 right-2 flex items-center space-x-1 text-xs text-white/50 font-minecraft-ten">
+      <div className="absolute top-2 right-2 flex items-center space-x-1 text-xs text-white/50 ">
         <span>{formatDownloads(version.downloads)}</span>
         <span>{formatDate(version.date_published)}</span>
       </div>
@@ -150,18 +150,18 @@ function VersionItem({
         <div className="flex-1 min-w-0">
           {/* Name und Version in einer Zeile */}
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-white font-minecraft-ten text-sm font-medium truncate">
+            <span className="text-white  text-sm font-medium truncate">
               {version.version_number}
             </span>
             {isInstalled && (
-              <span className="text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded font-minecraft-ten uppercase">
+              <span className="text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded  uppercase">
                 Current
               </span>
             )}
           </div>
 
           {/* MC Versionen */}
-          <div className="text-xs text-white/60 font-minecraft-ten">
+          <div className="text-xs text-white/60 ">
             MC: {version.game_versions.slice(0, 2).join(', ')}
             {version.game_versions.length > 2 && ` +${version.game_versions.length - 2}`}
           </div>
@@ -170,7 +170,7 @@ function VersionItem({
           {(version.changelog || version.source === "CurseForge") && (
             <button
               onClick={toggleExpanded}
-              className="mt-1 flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-white/10 transition-colors font-minecraft-ten border border-white/20"
+              className="mt-1 flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-white/10 transition-colors  border border-white/20"
               title={isExpanded ? "Hide changelog" : "Show changelog"}
               disabled={isLoadingChangelog}
             >
@@ -193,25 +193,25 @@ function VersionItem({
       {/* Changelog Bereich */}
       {isExpanded && displayChangelog && (
         <div className="mt-3 pt-3 border-t border-white/10">
-          <div className="text-xs font-minecraft-ten text-white/70 mb-2 uppercase">
+          <div className="text-xs  text-white/70 mb-2 uppercase">
             Changelog
           </div>
           <div className="max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
             {isLoadingChangelog ? (
               <div className="flex items-center justify-center py-4">
                 <Icon icon="solar:refresh-circle-bold" className="w-5 h-5 animate-spin text-white/50" />
-                <span className="ml-2 text-sm text-white/50 font-minecraft-ten">Loading changelog...</span>
+                <span className="ml-2 text-sm text-white/50 ">Loading changelog...</span>
               </div>
             ) : displayChangelog ? (
               version.source === "CurseForge" ? (
                 // Render HTML for CurseForge (sanitized)
                 <div
-                  className="prose prose-invert prose-sm max-w-none font-minecraft-ten [&_*]:text-white [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mb-2 [&_h1]:mt-4 [&_h1]:first:mt-0 [&_h2]:text-base [&_h2]:font-bold [&_h2]:mb-2 [&_h2]:mt-3 [&_h3]:text-sm [&_h3]:font-bold [&_h3]:mb-1 [&_h3]:mt-2 [&_p]:text-sm [&_p]:text-white/90 [&_p]:mb-2 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:list-inside [&_ul]:text-sm [&_ul]:text-white/90 [&_ul]:mb-2 [&_ul]:space-y-1 [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:text-sm [&_ol]:text-white/90 [&_ol]:mb-2 [&_ol]:space-y-1 [&_ol]:ml-4 [&_li]:leading-relaxed [&_strong]:font-bold [&_strong]:text-white [&_em]:italic [&_em]:text-white/80 [&_code]:bg-black/30 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono [&_code]:text-white/90 [&_pre]:bg-black/30 [&_pre]:p-2 [&_pre]:rounded [&_pre]:text-xs [&_pre]:font-mono [&_pre]:text-white/90 [&_pre]:overflow-x-auto [&_pre]:mb-2 [&_blockquote]:border-l-2 [&_blockquote]:border-accent [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-white/70 [&_blockquote]:my-2 [&_a]:text-accent [&_a]:hover:text-accent/80 [&_a]:underline"
+                  className="prose prose-invert prose-sm max-w-none  [&_*]:text-white [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mb-2 [&_h1]:mt-4 [&_h1]:first:mt-0 [&_h2]:text-base [&_h2]:font-bold [&_h2]:mb-2 [&_h2]:mt-3 [&_h3]:text-sm [&_h3]:font-bold [&_h3]:mb-1 [&_h3]:mt-2 [&_p]:text-sm [&_p]:text-white/90 [&_p]:mb-2 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:list-inside [&_ul]:text-sm [&_ul]:text-white/90 [&_ul]:mb-2 [&_ul]:space-y-1 [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:text-sm [&_ol]:text-white/90 [&_ol]:mb-2 [&_ol]:space-y-1 [&_ol]:ml-4 [&_li]:leading-relaxed [&_strong]:font-bold [&_strong]:text-white [&_em]:italic [&_em]:text-white/80 [&_code]:bg-black/30 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono [&_code]:text-white/90 [&_pre]:bg-black/30 [&_pre]:p-2 [&_pre]:rounded [&_pre]:text-xs [&_pre]:font-mono [&_pre]:text-white/90 [&_pre]:overflow-x-auto [&_pre]:mb-2 [&_blockquote]:border-l-2 [&_blockquote]:border-accent [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-white/70 [&_blockquote]:my-2 [&_a]:text-accent [&_a]:hover:text-accent/80 [&_a]:underline"
                   dangerouslySetInnerHTML={{ __html: sanitizeHtml(displayChangelog) }}
                 />
               ) : (
                 // Render Markdown for Modrinth
-                <div className="prose prose-invert prose-sm max-w-none font-minecraft-ten">
+                <div className="prose prose-invert prose-sm max-w-none ">
                   <ReactMarkdown
                     components={{
                       h1: ({ children }) => <h1 className="text-lg font-bold text-white mb-2 mt-4 first:mt-0">{children}</h1>,
@@ -234,7 +234,7 @@ function VersionItem({
                 </div>
               )
             ) : (
-              <div className="text-sm text-white/50 font-minecraft-ten text-center py-4">
+              <div className="text-sm text-white/50  text-center py-4">
                 No changelog available for this version.
               </div>
             )}
@@ -508,7 +508,7 @@ This release focuses on stability and performance improvements.
       }
     >
       <div className="p-4">
-        <div className="mb-4 text-sm text-white/70 font-minecraft-ten">
+        <div className="mb-4 text-sm text-white/70 ">
           {isLoadingVersions ? (
             "Loading versions..."
           ) : (
@@ -526,14 +526,14 @@ This release focuses on stability and performance improvements.
         {selectedVersion ? (
           <div className="mb-4">
             <div
-              className="text-xs font-minecraft-ten text-center font-medium mb-1"
+              className="text-xs  text-center font-medium mb-1"
               style={{ color: `var(--accent)` }}
             >
               Selected: {selectedVersion.name} ({selectedVersion.version_number})
             </div>
           </div>
         ) : (
-          <div className="mb-4 text-xs text-white/50 font-minecraft-ten text-center">
+          <div className="mb-4 text-xs text-white/50  text-center">
             Click on a version to select it for switching
           </div>
         )}
@@ -551,7 +551,7 @@ This release focuses on stability and performance improvements.
         </div>
 
         {sortedVersions.length === 0 && (
-          <div className="text-center py-8 text-white/50 font-minecraft-ten">
+          <div className="text-center py-8 text-white/50 ">
             No versions found for this modpack.
           </div>
         )}

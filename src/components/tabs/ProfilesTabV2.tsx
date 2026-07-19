@@ -1,27 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Profile } from "../../types/profile";
 import { useProfileStore } from "../../store/profile-store";
-import { LoadingState } from "../ui/LoadingState";
-import { EmptyState } from "../ui/EmptyState";
-
-import { ProfileCardV2 } from "../profiles/ProfileCardV2";
-import { toast } from "react-hot-toast";
-import { SearchWithFilters } from "../ui/SearchWithFilters";
-import { GroupTabs, type GroupTab } from "../ui/GroupTabs";
-import { ActionButtons, type ActionButton } from "../ui/ActionButtons";
+import { LoadingState, EmptyState, Select, IconButton, ToolbarActions } from "../ui-v2";
+import { LibraryProfileCard } from "../library/LibraryProfileCard";
+import { useShellSearchTab } from "../../hooks/useShellSearchTab";
+import { useShellSearch } from "../../contexts/ShellSearchContext";
+import { BrowseDetailLayout } from "../layout/BrowseDetailLayout";
+import type { ToolbarAction } from "../ui-v2";
 import { useNavigate } from "react-router-dom";
 import { ProfileImport } from "../profiles/ProfileImport";
-import * as ProfileService from "../../services/profile-service";
-import { useConfirmDialog } from "../../hooks/useConfirmDialog";
 import { useProfileWizardStore } from "../../store/profile-wizard-store";
 import { useThemeStore } from "../../store/useThemeStore";
 import { useGlobalModal } from "../../hooks/useGlobalModal";
-import { ExportProfileModal } from "../profiles/ExportProfileModal";
 import { Icon } from "@iconify/react";
- import { DataSyncModal } from "../modals/DataSyncModal";
-
+import { DataSyncModal } from "../modals/DataSyncModal";
 export function ProfilesTabV2() {
   const {
     profiles,
@@ -30,9 +23,7 @@ export function ProfilesTabV2() {
     fetchProfiles,
   } = useProfileStore();
   const navigate = useNavigate();
-  const { confirm, confirmDialog } = useConfirmDialog();
   const { openModal: openWizard } = useProfileWizardStore();
-
   // Global modal system
   const { showModal, hideModal } = useGlobalModal();
   
@@ -44,13 +35,11 @@ export function ProfilesTabV2() {
     profilesTabLayoutMode,
     setProfilesTabActiveGroup,
     setProfilesTabSortBy,
-    setProfilesTabVersionFilter,
     setProfilesTabLayoutMode,
-  } = useThemeStore();
-  
+  } = useThemeStore();  
   // Local non-persistent state
-  const [searchQuery, setSearchQuery] = useState("");
   const [isDataSyncModalOpen, setIsDataSyncModalOpen] = useState(false);
+  const { query: searchQuery } = useShellSearch();
   
   // Use persistent values instead of local state
   const activeGroup = profilesTabActiveGroup;
@@ -58,22 +47,22 @@ export function ProfilesTabV2() {
   const versionFilter = profilesTabVersionFilter;
   const layoutMode = profilesTabLayoutMode;
 
+  useShellSearchTab("Search profiles...");
+
   // Action buttons configuration
-  const actionButtons: ActionButton[] = [
+  const actionButtons: ToolbarAction[] = [
     {
       id: "data-sync",
-      label: "DATA SYNC",
+      label: "Data sync",
       icon: "solar:share-bold",
-      tooltip: "Configure file sync",
       onClick: () => {
         setIsDataSyncModalOpen(true);
       },
     },
     {
       id: "import",
-      label: "IMPORT",
+      label: "Import",
       icon: "solar:upload-bold",
-      tooltip: "Import profile",
       onClick: () => {
         showModal("profile-import", <ProfileImport
           onClose={() => {
@@ -87,12 +76,10 @@ export function ProfilesTabV2() {
     },
     {
       id: "create",
-      label: "CREATE",
+      label: "Create",
       icon: "solar:widget-add-bold",
-      tooltip: "Create new profile",
       onClick: () => {
-        // Pass current group as default, but not if it's "all"
-        const defaultGroup = (activeGroup === "all") ? null : activeGroup;
+        const defaultGroup = activeGroup === "all" ? null : activeGroup;
         openWizard(defaultGroup);
         navigate("/profiles");
       },
@@ -123,22 +110,19 @@ export function ProfilesTabV2() {
   };
 
   // Create groups array with default groups + dynamic groups
-  const createGroups = (): GroupTab[] => {
-    const defaultGroups: GroupTab[] = [
+  const createGroups = (): { id: string; name: string; count: number }[] => {
+    const defaultGroups = [
       { id: "all", name: "All", count: getFilteredCountForGroup("all") },
-      { id: "modpacks", name: "MODPACKS", count: getFilteredCountForGroup("modpacks") },
+      { id: "modpacks", name: "Modpacks", count: getFilteredCountForGroup("modpacks") },
     ];
 
-    // Get unique profile groups and convert to GroupTab format
     const uniqueGroups = getUniqueProfileGroups();
-    const dynamicGroups: GroupTab[] = uniqueGroups
-      .filter(group => 
-        !["modpacks"].includes(group) // Exclude MODPACKS (already normalized)
-      )
-      .map(group => ({
-        id: group, // group is already lowercase from getUniqueProfileGroups
-        name: group, // group is already lowercase from getUniqueProfileGroups
-        count: getFilteredCountForGroup(group), // Use the updated function
+    const dynamicGroups = uniqueGroups
+      .filter((group) => !["modpacks"].includes(group))
+      .map((group) => ({
+        id: group,
+        name: group,
+        count: getFilteredCountForGroup(group),
       }));
 
     return [...defaultGroups, ...dynamicGroups];
@@ -150,254 +134,141 @@ export function ProfilesTabV2() {
     fetchProfiles();
   }, [fetchProfiles]);
 
-  // Handler functions from ProfilesTab.tsx
-  const handleCreateProfile = () => {
-    console.log("[ProfilesTabV2] handleCreateProfile called.");
-    fetchProfiles();
-    navigate("/profiles");
-  };
-
   const handleImportComplete = () => {
-    console.log("[ProfilesTabV2] handleImportComplete called.");
     fetchProfiles();
     hideModal("profile-import");
     navigate("/profiles");
   };
 
-  const handleDeleteProfile = async (
-    profileId: string,
-    profileName: string,
-  ) => {
-    console.log(
-      "[ProfilesTabV2] handleDeleteProfile called for:",
-      profileId,
-      profileName,
-    );
-    
-    // Find the profile to check if it's a standard version
-    const profile = profiles.find(p => p.id === profileId);
-    
-    const confirmed = await confirm({
-      title: "delete profile",
-      message: `Are you sure you want to delete profile "${profileName}"? This action cannot be undone.`,
-      confirmText: "DELETE",
-      cancelText: "CANCEL",
-      type: "danger",
-      fullscreen: true,
-    });
+  // Filter profiles based on search query, active group, and version filter
+  const normalizedSearch = (searchQuery ?? "").toLowerCase();
+  const filteredProfiles = profiles.filter((profile) => {
+    const profileName = (profile.name ?? "").toLowerCase();
+    const profileGroup = (profile.group ?? "").toLowerCase();
 
-    if (confirmed) {
-      const deletePromise = useProfileStore.getState().deleteProfile(profileId);
-      toast.promise(deletePromise, {
-        loading: `Deleting profile '${profileName}'...`,
-        success: () => {
-          fetchProfiles();
-          return `Profile '${profileName}' deleted successfully!`;
-        },
-        error: (err) =>
-          `Failed to delete profile: ${err instanceof Error ? err.message : String(err.message)}`,
-      });
+    const matchesSearch =
+      normalizedSearch === "" ||
+      profileName.includes(normalizedSearch) ||
+      profileGroup.includes(normalizedSearch);
+
+    const matchesGroup =
+      activeGroup === "all" ||
+      (activeGroup === "modpacks" && profile.group === "MODPACKS") ||
+      profileGroup === activeGroup;
+
+    const matchesVersion =
+      versionFilter === "all" ||
+      (profile.game_version ?? "").includes(versionFilter);
+
+    return matchesSearch && matchesGroup && matchesVersion;
+  });
+
+  const sortedProfiles = [...filteredProfiles].sort((a, b) => {
+    switch (sortBy) {
+      case "name":
+        return (a.name ?? "").localeCompare(b.name ?? "");
+      case "last_played": {
+        const aTimestamp = a.last_played ? new Date(a.last_played).getTime() : 0;
+        const bTimestamp = b.last_played ? new Date(b.last_played).getTime() : 0;
+
+        if (bTimestamp !== aTimestamp) {
+          return bTimestamp - aTimestamp;
+        }
+
+        const aCreated = new Date(a.created).getTime();
+        const bCreated = new Date(b.created).getTime();
+        if (bCreated !== aCreated) {
+          return bCreated - aCreated;
+        }
+
+        return (a.name ?? "").localeCompare(b.name ?? "");
+      }
+      case "date_created": {
+        const aCreatedTimestamp = new Date(a.created).getTime();
+        const bCreatedTimestamp = new Date(b.created).getTime();
+        return bCreatedTimestamp - aCreatedTimestamp;
+      }
+      default:
+        return (a.name ?? "").localeCompare(b.name ?? "");
     }
-  };
+  });
 
-  const handleOpenFolder = async (profile: Profile) => {
-    console.log("[ProfilesTabV2] handleOpenFolder called for:", profile.name);
-    const openPromise = ProfileService.openProfileFolder(profile.id);
-    toast.promise(openPromise, {
-      loading: `Opening folder for '${profile.name}'...`,
-      success: `Successfully opened folder for '${profile.name}'!`,
-      error: (err) => {
-        const message = err instanceof Error ? err.message : String(err.message);
-        console.error(`Failed to open folder for ${profile.name}:`, err);
-        return `Failed to open folder: ${message}`;
-      },
-    });
-  };
-
-  // Note: Launch functionality is now handled directly in ProfileCardV2
-
-  const handleSettings = (profile: Profile) => {
-    console.log("Opening settings for profile:", profile.name);
-    // Navigate to the profile detail view V2
-    navigate(`/profilesv2/${profile.id}`);
-  };
-
-  const handleMods = (profile: Profile) => {
-    console.log("Managing mods for profile:", profile.name);
-    // Navigate to the profile detail view V2 with mods tab focus
-    navigate(`/profilesv2/${profile.id}`);
-    // Note: The ProfileDetailViewV2 will show the mods tab by default
-  };
-
-  if (loading) {
-    return <LoadingState message="Loading profiles..." />;
+  if (loading) {    return <LoadingState message="Loading profiles..." />;
   }
 
   if (error) {
     return (
       <EmptyState
         icon="solar:danger-triangle-bold"
-        message={error || ""}
+        title="Failed to load profiles"
+        description={error || undefined}
       />
     );
   }
 
-  // Filter profiles based on search query, active group, and version filter
-  const filteredProfiles = profiles.filter((profile) => {
-    // Search filter
-    const matchesSearch = searchQuery === "" || 
-      profile.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (profile.group && profile.group.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    // Group filter
-    const matchesGroup = activeGroup === "all" || 
-      (activeGroup === "modpacks" && profile.group === "MODPACKS") ||
-      (profile.group && profile.group.toLowerCase() === activeGroup);
-    
-    // Version filter (simplified for now)
-    const matchesVersion = versionFilter === "all" || 
-      profile.game_version?.includes(versionFilter);
-    
-    return matchesSearch && matchesGroup && matchesVersion;
-  });
-
-  // Sort filtered profiles
-  const sortedProfiles = [...filteredProfiles].sort((a, b) => {
-    switch (sortBy) {
-      case "name":
-        return a.name.localeCompare(b.name);
-      case "last_played":
-        // Multi-level sorting: last_played -> date_created -> name
-        const aTimestamp = a.last_played ? new Date(a.last_played).getTime() : 0;
-        const bTimestamp = b.last_played ? new Date(b.last_played).getTime() : 0;
-        
-        // Primary sort: by last_played (descending)
-        if (bTimestamp !== aTimestamp) {
-          return bTimestamp - aTimestamp;
-        }
-        
-        // Secondary sort: by date_created (descending) 
-        const aCreated = new Date(a.created).getTime();
-        const bCreated = new Date(b.created).getTime();
-        if (bCreated !== aCreated) {
-          return bCreated - aCreated;
-        }
-        
-        // Tertiary sort: by name (ascending)
-        return a.name.localeCompare(b.name);
-      case "date_created":
-        // Convert string dates to timestamps for comparison
-        const aCreatedTimestamp = new Date(a.created).getTime();
-        const bCreatedTimestamp = new Date(b.created).getTime();
-        return bCreatedTimestamp - aCreatedTimestamp;
-      default:
-        return a.name.localeCompare(b.name);
-    }
-  });
-
   return (
-    <div className="h-full flex flex-col overflow-hidden p-4 relative">
-      <div className="flex-1 overflow-y-auto no-scrollbar">
-      {/* Group Tabs */}
-      <GroupTabs
-        groups={groups}
-        activeGroup={activeGroup}
-        onGroupChange={setProfilesTabActiveGroup}
-        showAddButton={false}
-      />
-
-      {/* Search & Filter Header */}
-      <div className="mb-6 pb-4 border-b border-white/10">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 flex-1">
-            <SearchWithFilters
-              placeholder="Search profiles..."
-              searchValue={searchQuery}
-              onSearchChange={setSearchQuery}
-              sortOptions={[
-                { value: "name", label: "Name", icon: "solar:text-bold" },
-                { value: "last_played", label: "Last played", icon: "solar:clock-circle-bold" },
-                { value: "date_created", label: "Date created", icon: "solar:calendar-add-bold" },
-              ]}
-              sortValue={sortBy}
-              onSortChange={setProfilesTabSortBy}
-              filterOptions={[
-                { value: "all", label: "All versions", icon: "solar:layers-bold" },
-                { value: "1.21", label: "1.21.x", icon: "solar:gamepad-bold" },
-                { value: "1.20", label: "1.20.x", icon: "solar:gamepad-bold" },
-                { value: "1.19", label: "1.19.x", icon: "solar:gamepad-bold" },
-              ]}
-              filterValue={versionFilter}
-              onFilterChange={setProfilesTabVersionFilter}
-            />
-            
-                         {/* Layout Toggle Button - Right next to SearchWithFilters */}
-                         <button
-              onClick={() => {
-                const nextMode = layoutMode === "list" ? "grid" : layoutMode === "grid" ? "compact" : "list";
-                setProfilesTabLayoutMode(nextMode);
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-black/30 hover:bg-black/40 text-white/70 hover:text-white border border-white/10 hover:border-white/20 rounded-lg font-minecraft text-2xl lowercase transition-all duration-200 min-h-[2.5rem]"
-              title={
-                layoutMode === "list" 
-                  ? "Switch to grid view (2 profiles per row)" 
-                  : layoutMode === "grid"
-                  ? "Switch to compact view (3 profiles per row)"
-                  : "Switch to list view"
-              }
-            >
-              <div className="w-4 h-8 flex items-center justify-center">
-                <Icon 
-                  icon="solar:list-bold"
-                  className="w-8 h-8"
-                />
-              </div>
-            </button>
-          </div>
-          
-          <ActionButtons actions={actionButtons} />
+    <>
+      <BrowseDetailLayout
+      title="Library"
+      subtitle="Browse and manage your profiles"
+      icon="lucide:library"
+      showDetail={false}
+      filters={groups.map((g) => ({ id: g.id, label: g.name }))}      activeFilter={activeGroup}
+      onFilterChange={setProfilesTabActiveGroup}
+      toolbarExtra={<ToolbarActions actions={actionButtons} />}
+      sortControl={
+        <div className="flex items-center gap-2">
+          <Select
+            value={sortBy}
+            onChange={(e) => setProfilesTabSortBy(e.target.value)}
+          >
+            <option value="name">Sort by: Name</option>
+            <option value="last_played">Sort by: Last played</option>
+            <option value="date_created">Sort by: Date created</option>
+          </Select>
+          <IconButton
+            onClick={() => {
+              const nextMode = layoutMode === "list" ? "grid" : layoutMode === "grid" ? "compact" : "list";
+              setProfilesTabLayoutMode(nextMode);
+            }}
+            title="Toggle layout"
+          >
+            <Icon icon="solar:widget-4-bold" className="w-4 h-4" />
+          </IconButton>
         </div>
-      </div>
-
-      {/* Profile list */}
-      {sortedProfiles.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center">
+      }
+      browseContent={
+        sortedProfiles.length === 0 ? (
           <EmptyState
             icon="lucide:library"
-            message="No profiles found"
+            title="No profiles found"
+            description="Try a different filter or create a new profile."
           />
-        </div>
-      ) : (
-        <div className={
-          layoutMode === "list" 
-            ? "space-y-3"
-            : layoutMode === "grid"
-            ? "grid grid-cols-2 gap-3" 
-            : "grid grid-cols-3 gap-3"
-        }>
-          {sortedProfiles.map((profile) => (
-            <ProfileCardV2
-              key={profile.id}
-              profile={profile}
-              onSettings={handleSettings}
-              onMods={handleMods}
-              onDelete={handleDeleteProfile}
-              onOpenFolder={handleOpenFolder}
-              layoutMode={layoutMode}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Bottom tip */}
-      </div>
-
+        ) : (
+          <div
+            className={
+              layoutMode === "list"
+                ? "space-y-2"
+                : layoutMode === "grid"
+                  ? "grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3"
+                  : "grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3"
+            }
+          >
+            {sortedProfiles.map((profile) => (
+              <LibraryProfileCard
+                key={profile.id}
+                profile={profile}
+                onSelect={(p) => navigate(`/profiles/${p.id}`)}
+                layout={layoutMode}
+              />
+            ))}          </div>
+        )
+      }
+      />
       <DataSyncModal
         isOpen={isDataSyncModalOpen}
         onClose={() => setIsDataSyncModalOpen(false)}
       />
-
-      {confirmDialog}
-    </div>
+    </>
   );
 }

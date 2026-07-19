@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import { cn } from "../../lib/utils";
 import { useThemeStore } from "../../store/useThemeStore";
-import { IconButton } from "./buttons/IconButton";
+import { IconButton } from "../ui-v2/IconButton";
 
 interface ModalProps {
   title: string;
@@ -115,23 +115,15 @@ export function Modal({
   return (
     <div
       ref={modalRef}
-      className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md-anyos"
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md-anyos"
       onClick={handleBackdropClick}
     >
       <div
         className={cn(
-          "relative flex flex-col w-full rounded-lg overflow-hidden max-h-[90vh]",
-          getBorderClasses(),
-          variant === "3d" ? "shadow-2xl" : "",
+          "relative flex flex-col w-full rounded-xl overflow-hidden max-h-[90vh] border border-[var(--surface-border)] bg-[var(--surface-raised)] shadow-lg",
           widthClasses[width],
           className,
         )}
-        style={{
-          backgroundColor: `${accentColor.value}20`,
-          borderColor: `${accentColor.value}80`,
-          borderBottomColor: accentColor.value,
-          boxShadow: getBoxShadow(),
-        }}
       >
         {variant === "3d" && (
           <span
@@ -142,11 +134,7 @@ export function Modal({
 
         <div
           ref={headerRef}
-          className="flex items-center justify-between px-6 py-4 border-b-2 flex-shrink-0"
-          style={{
-            borderColor: `${accentColor.value}60`,
-            backgroundColor: `${accentColor.value}30`,
-          }}
+          className="flex items-center justify-between px-6 py-4 border-b border-[var(--surface-border)] flex-shrink-0 bg-[var(--surface-overlay)]"
         >
           <div className="flex items-center space-x-3">
             {titleIcon && (
@@ -155,7 +143,7 @@ export function Modal({
               </span>
             )}
             <div className="flex flex-col">
-              <h2 className="text-3xl font-minecraft text-white">
+              <h2 className="text-lg font-semibold text-white">
                 {title}
               </h2>
               {titleSubtitle && <div className="mt-0.5">{titleSubtitle}</div>}
@@ -164,16 +152,15 @@ export function Modal({
           <div className="flex items-center space-x-2">
             {headerActions}
             <IconButton
-              ref={closeButtonRef}
-              icon={<Icon icon="solar:close-circle-bold" />}
               onClick={(e) => {
                 e.stopPropagation();
                 onClose();
               }}
-              variant="ghost"
               size="sm"
               aria-label="Close modal"
-            />
+            >
+              <Icon icon="solar:close-circle-bold" className="w-5 h-5" />
+            </IconButton>
           </div>
         </div>
 
@@ -186,7 +173,7 @@ export function Modal({
 
         {footer && (
           <div className="flex-shrink-0">
-            <div className="border-t border-white/10 mx-6 mt-4 mb-4"></div>
+            <div className="border-t border-[var(--surface-border)] mx-6 mt-4 mb-4"></div>
             <div className="px-6 pb-4">
               {footer}
             </div>

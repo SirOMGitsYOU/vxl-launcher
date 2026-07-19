@@ -243,7 +243,7 @@ export function LogViewerCore({
             placeholder="Search logs..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-transparent text-sm font-minecraft-ten text-white/90 placeholder:text-white/40 outline-none flex-1 min-w-0"
+            className="bg-transparent text-sm  text-white/90 placeholder:text-white/40 outline-none flex-1 min-w-0"
           />
           {searchTerm && (
             <button
@@ -260,7 +260,7 @@ export function LogViewerCore({
             <button
               key={level}
               onClick={() => toggleLevelFilter(level)}
-              className="px-2.5 py-1 text-xs font-minecraft-ten rounded transition-all"
+              className="px-2.5 py-1 text-xs  rounded transition-all"
               style={{
                 backgroundColor: levelFilters[level]
                   ? `${LEVEL_COLORS[level]}25`
@@ -302,7 +302,7 @@ export function LogViewerCore({
             <div className="flex items-center justify-center h-full text-white/30">
               <div className="text-center">
                 <Icon icon={noLogsIcon} className="w-12 h-12 mx-auto mb-2" />
-                <p className="font-minecraft-ten">{noLogsTitle}</p>
+                <p className="">{noLogsTitle}</p>
                 <p className="text-xs mt-1">{noLogsSubtitle}</p>
               </div>
             </div>
@@ -355,7 +355,7 @@ export function LogViewerCore({
         className="px-4 py-2 flex items-center justify-between rounded-lg bg-black/60 backdrop-blur-sm"
         style={{ boxShadow: `0 4px 20px ${accentColor.value}15` }}
       >
-        <div className="flex items-center gap-4 text-white/50 font-minecraft-ten text-xs">
+        <div className="flex items-center gap-4 text-white/50  text-xs">
           <span className="flex items-center gap-1.5">
             <Icon icon="solar:document-text-bold" className="w-4 h-4" />
             {filteredLogs.length} LINES
@@ -390,7 +390,7 @@ export function LogViewerCore({
           {onToggleSidebar && (
             <button
               onClick={onToggleSidebar}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded hover:bg-white/10 transition-colors text-white/60 hover:text-white/90 font-minecraft-ten text-xs"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded hover:bg-white/10 transition-colors text-white/60 hover:text-white/90  text-xs"
               title={sidebarVisible ? "Hide instances" : "Show instances"}
             >
               <Icon icon="solar:siderbar-bold-duotone" className="w-4 h-4" />
@@ -400,7 +400,7 @@ export function LogViewerCore({
           {onClear && (
             <button
               onClick={onClear}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded hover:bg-white/10 transition-colors text-white/60 hover:text-white/90 font-minecraft-ten text-xs"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded hover:bg-white/10 transition-colors text-white/60 hover:text-white/90  text-xs"
             >
               <Icon icon="solar:trash-bin-trash-bold" className="w-4 h-4" />
               CLEAR
@@ -409,7 +409,7 @@ export function LogViewerCore({
           <button
             onClick={handleUpload}
             disabled={isUploading}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded transition-colors font-minecraft-ten text-xs ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded transition-colors  text-xs ${
               isUploading
                 ? "bg-white/5 text-white/40 cursor-wait"
                 : "hover:bg-white/10 text-white/60 hover:text-white/90"
@@ -438,7 +438,7 @@ export function LogViewerCore({
             zIndex: 9999,
           }}
         >
-          <div className="text-xs font-minecraft-ten text-white/70 mb-3 pb-2 border-b border-white/10">
+          <div className="text-xs  text-white/70 mb-3 pb-2 border-b border-white/10">
             LOG SETTINGS
           </div>
 
@@ -460,7 +460,7 @@ export function LogViewerCore({
               />
             </div>
             <div className="flex-1">
-              <div className="text-sm text-white/90 font-minecraft-ten">
+              <div className="text-sm text-white/90 ">
                 Thread Prefix
               </div>
               <div className="text-xs text-white/50 font-sans">

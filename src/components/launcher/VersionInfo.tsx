@@ -76,7 +76,7 @@ export function VersionInfo({ profileId, className }: VersionInfoProps) {
         size="md"
         disabled
         icon={ <Icon icon="pixel:spinner-solid" className="w-4 h-4 animate-spin" /> }
-        className={cn("font-minecraft", className)}
+        className={cn("", className)}
       >
         Loading initial data...
       </Button>
@@ -90,7 +90,7 @@ export function VersionInfo({ profileId, className }: VersionInfoProps) {
         size="md"
         disabled
         icon={ <Icon icon="pixel:exclamation-triangle-solid" className="w-4 h-4" /> }
-        className={cn("font-minecraft", className)}
+        className={cn("", className)}
       >
         Error loading data
       </Button>
@@ -106,7 +106,7 @@ export function VersionInfo({ profileId, className }: VersionInfoProps) {
         icon={
           <Icon icon="pixel:exclamation-triangle-solid" className="w-4 h-4" />
         }
-        className={cn("font-minecraft", className)}
+        className={cn("", className)}
       >
         No profile selected
       </Button>
@@ -120,7 +120,7 @@ export function VersionInfo({ profileId, className }: VersionInfoProps) {
         size="md"
         disabled
         icon={ <Icon icon="pixel:spinner-solid" className="w-4 h-4 animate-spin" /> }
-        className={cn("font-minecraft", className)}
+        className={cn("", className)}
       >
         Loading profile...
       </Button>
@@ -136,7 +136,7 @@ export function VersionInfo({ profileId, className }: VersionInfoProps) {
         icon={
           <Icon icon="pixel:exclamation-triangle-solid" className="w-4 h-4" />
         }
-        className={cn("font-minecraft", className)}
+        className={cn("", className)}
       >
         {profileError || "Profile details not found"}
       </Button>
@@ -167,7 +167,7 @@ export function VersionInfo({ profileId, className }: VersionInfoProps) {
             }}
           />
         }
-        className={cn("font-minecraft", !isLaunching && "cursor-pointer", className)}
+        className={cn("", !isLaunching && "cursor-pointer", className)}
         title={!isLaunching ? "Go to Profiles Tab" : undefined}
       >
         {profile.name} ({profile.game_version})

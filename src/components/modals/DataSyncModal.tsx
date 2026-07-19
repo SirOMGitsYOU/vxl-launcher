@@ -116,7 +116,7 @@ export function DataSyncModal({ isOpen, onClose }: DataSyncModalProps) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-gray-900 rounded-lg p-6 max-w-md w-full mx-4 border border-white/10">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-minecraft-ten text-white uppercase">Data Sync Setup</h2>
+          <h2 className="text-lg  text-white uppercase">Data Sync Setup</h2>
           <button
             onClick={handleClose}
             className="p-1 hover:bg-white/10 rounded transition-colors"
@@ -128,12 +128,12 @@ export function DataSyncModal({ isOpen, onClose }: DataSyncModalProps) {
         {/* Step 1: Source Profile Selection */}
         {step === "source" && (
           <div className="space-y-4">
-            <p className="text-xs font-minecraft-ten text-white/70">
+            <p className="text-xs  text-white/70">
               Select an initial source profile to sync files from:
             </p>
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {profiles.length === 0 ? (
-                <p className="text-xs font-minecraft-ten text-white/60">
+                <p className="text-xs  text-white/60">
                   No profiles available
                 </p>
               ) : (
@@ -147,7 +147,7 @@ export function DataSyncModal({ isOpen, onClose }: DataSyncModalProps) {
                         : "bg-black/30 border border-white/10 hover:border-white/20"
                     }`}
                   >
-                    <span className="text-xs font-minecraft-ten text-white/80">
+                    <span className="text-xs  text-white/80">
                       {profile.name}
                     </span>
                   </button>
@@ -178,7 +178,7 @@ export function DataSyncModal({ isOpen, onClose }: DataSyncModalProps) {
         {/* Step 2: File Selection */}
         {step === "files" && (
           <div className="space-y-4">
-            <p className="text-xs font-minecraft-ten text-white/70">
+            <p className="text-xs  text-white/70">
               Select files to sync:
             </p>
             <div className="space-y-2">
@@ -188,7 +188,7 @@ export function DataSyncModal({ isOpen, onClose }: DataSyncModalProps) {
                     checked={selectedFiles.includes(file.value)}
                     onChange={() => handleFileToggle(file.value)}
                   />
-                  <span className="text-xs font-minecraft-ten text-white/80">
+                  <span className="text-xs  text-white/80">
                     {file.label}
                   </span>
                 </label>
@@ -218,7 +218,7 @@ export function DataSyncModal({ isOpen, onClose }: DataSyncModalProps) {
         {/* Step 3: Target Profile Selection */}
         {step === "targets" && (
           <div className="space-y-4">
-            <p className="text-xs font-minecraft-ten text-white/70 mb-3">
+            <p className="text-xs  text-white/70 mb-3">
               Select target profiles to sync to:
             </p>
 
@@ -229,10 +229,10 @@ export function DataSyncModal({ isOpen, onClose }: DataSyncModalProps) {
                 onChange={() => setSyncAllProfiles(!syncAllProfiles)}
               />
               <div className="flex-1">
-                <p className="text-xs font-minecraft-ten text-white">
+                <p className="text-xs  text-white">
                   ALL Profiles
                 </p>
-                <p className="text-xs font-minecraft-ten text-white/50">
+                <p className="text-xs  text-white/50">
                   Include all other profiles
                 </p>
               </div>
@@ -242,7 +242,7 @@ export function DataSyncModal({ isOpen, onClose }: DataSyncModalProps) {
             {!syncAllProfiles && (
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {profiles.filter((p) => p.id !== selectedSourceProfile).length === 0 ? (
-                  <p className="text-xs font-minecraft-ten text-white/60">
+                  <p className="text-xs  text-white/60">
                     No other profiles available
                   </p>
                 ) : (
@@ -257,7 +257,7 @@ export function DataSyncModal({ isOpen, onClose }: DataSyncModalProps) {
                           checked={selectedTargetProfiles.has(profile.id)}
                           onChange={() => handleTargetProfileToggle(profile.id)}
                         />
-                        <span className="text-xs font-minecraft-ten text-white/80">
+                        <span className="text-xs  text-white/80">
                           {profile.name}
                         </span>
                       </label>

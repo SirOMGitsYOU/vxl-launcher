@@ -248,10 +248,10 @@ export function ProfileDetailView({
               className="w-10 h-10"
             />
             <div className="flex-1 min-w-0">
-              <div className="font-minecraft-ten text-base text-white truncate">
+              <div className=" text-base text-white truncate">
                 {profile.name || profile.id}
               </div>
-              <div className="text-white/60 text-xs font-minecraft-ten">
+              <div className="text-white/60 text-xs ">
                 {profile.game_version} {profile.loader && `(${profile.loader})`}
               </div>
             </div>

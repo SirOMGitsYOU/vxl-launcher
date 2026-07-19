@@ -808,6 +808,7 @@ pub async fn get_starlight_skin_render(
             &payload.render_type,
             &payload.render_view,
             payload.base64_skin_data,
+            payload.slim,
         )
         .await
     {

@@ -119,7 +119,7 @@ const FileNodeItem: React.FC<FileNodeItemProps> = ({
         
         <span 
             className={cn(
-              "node-name flex-1 truncate text-sm font-minecraft-ten self-center", 
+              "node-name flex-1 truncate text-sm  self-center", 
               {"cursor-pointer": node.is_dir || checkboxesEnabled && !node.is_dir }
             )}
             onClick={(e) => {
@@ -135,11 +135,11 @@ const FileNodeItem: React.FC<FileNodeItemProps> = ({
         </span>
 
         {!node.is_dir && (
-          <span className="node-size text-xs text-white/60 font-minecraft-ten w-[70px] text-right mr-2 tabular-nums flex-shrink-0 self-center">
+          <span className="node-size text-xs text-white/60  w-[70px] text-right mr-2 tabular-nums flex-shrink-0 self-center">
             {formatFileSize(node.size)}
           </span>
         )}
-        <span className="node-date text-xs text-white/60 font-minecraft-ten w-[150px] text-right tabular-nums flex-shrink-0 self-center">
+        <span className="node-date text-xs text-white/60  w-[150px] text-right tabular-nums flex-shrink-0 self-center">
           {formatDate(node.last_modified)}
         </span>
       </div>
@@ -344,15 +344,15 @@ export const FileNodeViewer: React.FC<FileNodeViewerProps> = ({
   };
 
   if (loading) {
-    return <div className="p-4 text-center text-white/70 font-minecraft-ten">Loading file structure...</div>;
+    return <div className="p-4 text-center text-white/70 ">Loading file structure...</div>;
   }
 
   if (error) {
-    return <div className="p-4 text-center text-red-400 font-minecraft-ten">Error: {error}</div>;
+    return <div className="p-4 text-center text-red-400 ">Error: {error}</div>;
   }
 
   if (!rootNode) {
-    return <div className="p-4 text-center text-white/70 font-minecraft-ten">No file structure available.</div>;
+    return <div className="p-4 text-center text-white/70 ">No file structure available.</div>;
   }
 
   const nodesToRender = hideRootNode ? rootNode.children || [] : [rootNode];

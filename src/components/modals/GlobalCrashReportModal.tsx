@@ -301,7 +301,7 @@ export function GlobalCrashReportModal() {
   );
 
   const titleSubtitleNode = (
-    <p className="text-xs font-minecraft-ten text-gray-400">
+    <p className="text-xs  text-gray-400">
       Profile: {crashData.process_metadata?.profile_name || profileName || 'Loading...'}
     </p>
   );
@@ -316,11 +316,11 @@ export function GlobalCrashReportModal() {
       footer={modalFooter}
     >
       <div className="p-6 space-y-4 text-white text-base text-center">
-        <p className="pt-3 text-gray-300 text-lg font-minecraft-ten">
+        <p className="pt-3 text-gray-300 text-lg ">
           An unexpected error occurred and the game crashed. We are sorry for the inconvenience.
         </p>
 
-        <p className="pt-4 text-2xl font-minecraft text-red-400">
+        <p className="pt-4 text-2xl  text-red-400">
           exit code: {crashData.exit_code ?? 'N/A'}
         </p>
       </div>

@@ -115,7 +115,7 @@ const GeneralSettingsTab = memo(function GeneralSettingsTab({
       <div ref={formRef} className="space-y-6">
         <div className="flex gap-6">
           <div className="flex-1 flex flex-col">
-            <label className="block text-3xl font-minecraft text-white mb-2 lowercase">
+            <label className="block text-3xl  text-white mb-2 lowercase">
               profile name
             </label>
             <div className="flex items-center gap-4">
@@ -139,7 +139,7 @@ const GeneralSettingsTab = memo(function GeneralSettingsTab({
           </div>
 
           <div className="flex-1 flex flex-col">
-            <label className="block text-3xl font-minecraft text-white mb-2 lowercase">
+            <label className="block text-3xl  text-white mb-2 lowercase">
               group
             </label>
             <div className="flex items-center">
@@ -166,16 +166,16 @@ const GeneralSettingsTab = memo(function GeneralSettingsTab({
               });
             }}
             description="When enabled, a shared Minecraft folder will be used based on the group. Your settings, worlds, configs and resource packs will remain the same between profiles."
-            descriptionClassName="font-minecraft-ten text-sm"
+            descriptionClassName=" text-sm"
             size="lg"
           />
-          <p className="text-xs text-white/50 font-minecraft-ten ml-10 -mt-1">
+          <p className="text-xs text-white/50  ml-10 -mt-1">
             (you can change this anytime)
           </p>
         </div>
 
         <div>
-          <label className="block text-3xl font-minecraft text-white mb-2 lowercase">
+          <label className="block text-3xl  text-white mb-2 lowercase">
             quick play path
           </label>
           <SearchStyleInput
@@ -191,14 +191,14 @@ const GeneralSettingsTab = memo(function GeneralSettingsTab({
             placeholder="World name or server address (e.g. MyWorld or hypixel.net)"
             className="text-xl"
           />
-          <p className="text-xs text-white/70 mt-2 font-minecraft-ten tracking-wide select-none">
+          <p className="text-xs text-white/70 mt-2  tracking-wide select-none">
             Enter a world name for singleplayer or server address for multiplayer.
             Server addresses are detected by containing a dot (e.g. hypixel.net).
           </p>
         </div>
 
         <div ref={accountRef} className="space-y-3">
-          <h3 className="text-3xl font-minecraft text-white lowercase">
+          <h3 className="text-3xl  text-white lowercase">
             preferred launch account
           </h3>
           
@@ -249,7 +249,7 @@ const GeneralSettingsTab = memo(function GeneralSettingsTab({
                     
                     {/* Username */}
                     <div className={cn(
-                      "mt-2 font-minecraft text-xl lowercase text-center max-w-[100px] truncate",
+                      "mt-2  text-xl lowercase text-center max-w-[100px] truncate",
                       isSelected ? "text-white" : "text-white/70"
                     )}>
                       {account.username}
@@ -259,7 +259,7 @@ const GeneralSettingsTab = memo(function GeneralSettingsTab({
               })}
             </div>
           ) : (
-            <div className="text-center py-4 text-white/50 font-minecraft text-lg lowercase">
+            <div className="text-center py-4 text-white/50  text-lg lowercase">
               No accounts found
             </div>
           )}

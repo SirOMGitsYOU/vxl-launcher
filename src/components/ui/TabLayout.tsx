@@ -74,7 +74,7 @@ export function TabLayout({
               style={{ color: colors.main }}
               aria-hidden="true"
             />
-          )}          <h1 className="font-minecraft text-xl lowercase text-white">
+          )}          <h1 className="text-sm font-medium text-white">
             {title}
           </h1>
         </div>

@@ -8,7 +8,7 @@ interface ErrorMessageProps {
 export function ErrorMessage({ message, className = "" }: ErrorMessageProps) {
   return (
     <div
-      className={`bg-red-900/50 border border-red-700/50 text-white font-minecraft text-sm p-3 ${className}`}
+      className={`rounded-xl border border-red-500/30 bg-red-500/10 text-red-200 text-sm p-3 ${className}`}
     >
       <Icon icon="pixel:warning" className="inline-block mr-2 w-4 h-4" />
       {message}

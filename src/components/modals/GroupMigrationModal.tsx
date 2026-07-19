@@ -37,7 +37,7 @@ export function GroupMigrationModal({
       width="md"
     >
       <div className="p-6">
-        <p className="text-white/80 mb-6 text-center font-minecraft-ten">
+        <p className="text-white/80 mb-6 text-center ">
           oh, it seems like something changed in your group. would you like to copy over your old files?
         </p>
 

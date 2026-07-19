@@ -199,7 +199,7 @@ const calculateColorVariants = (baseColor: string): Partial<AccentColor> => {
   };
 };
 
-export const DEFAULT_BORDER_RADIUS = 0; 
+export const DEFAULT_BORDER_RADIUS = 10; 
 export const MIN_BORDER_RADIUS = 0;
 export const MAX_BORDER_RADIUS = 32;
 
@@ -245,6 +245,8 @@ interface ThemeState {
   // News section width
   newsSectionWidth: number;
   setNewsSectionWidth: (width: number) => void;
+  serverSectionCollapsed: boolean;
+  setServerSectionCollapsed: (collapsed: boolean) => void;
   // Featured profile mode
   featureMode: boolean;
   setFeatureMode: (enabled: boolean) => void;
@@ -253,7 +255,7 @@ interface ThemeState {
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set, get) => ({
-      accentColor: ACCENT_COLORS.blue,
+      accentColor: ACCENT_COLORS.green,
       isBackgroundAnimationEnabled: false,
       isDetailViewSidebarOnLeft: true,
       profileGroupingCriterion: "group",
@@ -273,6 +275,7 @@ export const useThemeStore = create<ThemeState>()(
       modSource: ModPlatform.Modrinth,
       // News section width - defaults
       newsSectionWidth: 375,
+      serverSectionCollapsed: false,
       // Featured profile mode - defaults
       featureMode: false,
 
@@ -440,6 +443,10 @@ export const useThemeStore = create<ThemeState>()(
       // News section width
       setNewsSectionWidth: (width: number) => {
         set({ newsSectionWidth: width });
+      },
+
+      setServerSectionCollapsed: (collapsed: boolean) => {
+        set({ serverSectionCollapsed: collapsed });
       },
 
       // Featured profile mode

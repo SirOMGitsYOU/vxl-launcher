@@ -82,7 +82,7 @@ export function CheckboxV2({
   };
 
   const getCheckboxStyles = () => {
-    const baseClasses = `transition-all duration-200 border font-minecraft rounded flex items-center justify-center cursor-pointer ${getSizeClasses()}`;
+    const baseClasses = `transition-all duration-200 border  rounded flex items-center justify-center cursor-pointer ${getSizeClasses()}`;
     
     if (checked || indeterminate) {
       return {
@@ -147,7 +147,7 @@ export function CheckboxV2({
       {label && (
         <label
           onClick={!disabled ? handleClick : undefined}
-          className={`font-minecraft lowercase text-white cursor-pointer select-none ${getLabelSize()} ${
+          className={` text-white cursor-pointer select-none ${getLabelSize()} ${
             disabled ? 'opacity-50 cursor-not-allowed' : 'hover:text-white/80'
           }`}
         >

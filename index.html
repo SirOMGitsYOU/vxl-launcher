@@ -4,10 +4,205 @@
     <meta charset="UTF-8"/>
     <link rel="icon" type="image/png" href="/assets/logo.png"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>VXL Minecraft Launcher</title>
+    <title>VXL Launcher</title>
+    <style>
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #0a0b10;
+            color: #f4f6f8;
+            font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        #boot-splash {
+            position: fixed;
+            inset: 0;
+            z-index: 2147483647;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            background: #0a0b10;
+            user-select: none;
+        }
+
+        #boot-splash .logo-wrap {
+            width: 96px;
+            height: 96px;
+        }
+
+        #boot-splash canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        #boot-splash .title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        #boot-splash .status {
+            margin: 0;
+            font-size: 12px;
+            color: #9aa3b2;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            animation: boot-pulse 1.6s ease-in-out infinite;
+        }
+
+        @keyframes boot-pulse {
+            0%,
+            100% {
+                opacity: 0.45;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+    </style>
 </head>
 <body>
+<div id="boot-splash" aria-live="polite" aria-busy="true">
+    <div class="logo-wrap">
+        <canvas id="boot-logo-canvas" aria-hidden="true"></canvas>
+    </div>
+    <h1 class="title">VXL Launcher</h1>
+    <p class="status">Starting up...</p>
+</div>
 <div id="root"></div>
+<script>
+    (function () {
+        const canvas = document.getElementById("boot-logo-canvas");
+        if (!canvas) return;
+
+        const ctx = canvas.getContext("2d", { alpha: true });
+        if (!ctx) return;
+
+        const rotation = { x: 0, y: 0, z: 0 };
+        let frameId = 0;
+
+        const resize = () => {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+            canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        };
+
+        const drawVoxel = () => {
+            const width = canvas.clientWidth;
+            const height = canvas.clientHeight;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const voxelSize = Math.min(width, height) * 0.5;
+            const halfSize = voxelSize / 2;
+
+            const vertices = [
+                { x: -halfSize, y: -halfSize, z: halfSize },
+                { x: halfSize, y: -halfSize, z: halfSize },
+                { x: halfSize, y: halfSize, z: halfSize },
+                { x: -halfSize, y: halfSize, z: halfSize },
+                { x: -halfSize, y: -halfSize, z: -halfSize },
+                { x: halfSize, y: -halfSize, z: -halfSize },
+                { x: halfSize, y: halfSize, z: -halfSize },
+                { x: -halfSize, y: halfSize, z: -halfSize },
+            ];
+
+            rotation.x += 0.01;
+            rotation.y += 0.015;
+            rotation.z += 0.008;
+
+            const baseRotX = Math.atan(Math.sqrt(2));
+            const baseRotY = Math.PI / 4;
+            const rotX = baseRotX + rotation.x;
+            const rotY = baseRotY + rotation.y;
+            const rotZ = rotation.z;
+
+            const cosX = Math.cos(rotX);
+            const sinX = Math.sin(rotX);
+            const cosY = Math.cos(rotY);
+            const sinY = Math.sin(rotY);
+            const cosZ = Math.cos(rotZ);
+            const sinZ = Math.sin(rotZ);
+
+            const rotatedVertices = vertices.map((v) => {
+                const y1 = v.y * cosX - v.z * sinX;
+                const z1 = v.y * sinX + v.z * cosX;
+                const x2 = v.x * cosY + z1 * sinY;
+                const z2 = -v.x * sinY + z1 * cosY;
+                const x3 = x2 * cosZ - y1 * sinZ;
+                const y3 = x2 * sinZ + y1 * cosZ;
+                const scale = 500 / (500 + z2);
+                return {
+                    x: centerX + x3 * scale,
+                    y: centerY + y3 * scale,
+                    z: z2,
+                };
+            });
+
+            const faces = [
+                [0, 1, 2, 3],
+                [5, 4, 7, 6],
+                [4, 0, 3, 7],
+                [1, 5, 6, 2],
+                [4, 5, 1, 0],
+                [3, 2, 6, 7],
+            ];
+
+            const faceDepths = faces
+                .map((face) => ({
+                    face,
+                    avgZ: face.reduce((sum, i) => sum + rotatedVertices[i].z, 0) / face.length,
+                }))
+                .sort((a, b) => a.avgZ - b.avgZ);
+
+            ctx.clearRect(0, 0, width, height);
+
+            faceDepths.forEach(({ face }) => {
+                const avgZ = face.reduce((sum, i) => sum + rotatedVertices[i].z, 0) / face.length;
+                const depthFactor = Math.min(1, Math.max(0.3, (avgZ + 250) / 500));
+
+                ctx.beginPath();
+                ctx.moveTo(rotatedVertices[face[0]].x, rotatedVertices[face[0]].y);
+                for (let i = 1; i < face.length; i += 1) {
+                    ctx.lineTo(rotatedVertices[face[i]].x, rotatedVertices[face[i]].y);
+                }
+                ctx.closePath();
+                ctx.fillStyle = "rgba(255, 255, 255, " + (0.8 * depthFactor) + ")";
+                ctx.fill();
+                ctx.strokeStyle = "rgba(255, 255, 255, 1)";
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            });
+        };
+
+        const animate = () => {
+            drawVoxel();
+            frameId = window.requestAnimationFrame(animate);
+        };
+
+        window.__stopBootSplashAnimation = () => {
+            window.cancelAnimationFrame(frameId);
+            window.removeEventListener("resize", resize);
+        };
+
+        window.addEventListener("resize", resize);
+        resize();
+        animate();
+    })();
+</script>
+<script type="module">
+    import { watchBootSplashDismissal } from "/src/startup/boot-splash.ts";
+    void watchBootSplashDismissal();
+</script>
 <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>

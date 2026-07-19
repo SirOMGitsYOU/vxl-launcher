@@ -89,10 +89,10 @@ export function ModrinthVersionItem({
 
       <div className="flex justify-between items-start gap-3">
         <div className="flex-1">
-          <h4 className="text-white font-minecraft text-2xl tracking-wide lowercase select-none">
+          <h4 className="text-white  text-2xl tracking-wide lowercase select-none">
             {version.name || version.version_number}
           </h4>
-          <div className="text-white/70 text-lg font-minecraft-ten tracking-wide lowercase select-none mt-1">
+          <div className="text-white/70 text-lg  tracking-wide lowercase select-none mt-1">
             <span className="mr-3">
               <Icon
                 icon="pixel:calendar-alt-solid"
@@ -117,7 +117,7 @@ export function ModrinthVersionItem({
               </span>
             )}
           </div>
-          <div className="text-white/50 text-lg font-minecraft-ten mt-2 tracking-wide lowercase select-none">
+          <div className="text-white/50 text-lg  mt-2 tracking-wide lowercase select-none">
             <span className="mr-3">
               <Icon
                 icon="pixel:file-alt-solid"

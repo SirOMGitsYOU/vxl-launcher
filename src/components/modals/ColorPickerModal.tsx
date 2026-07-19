@@ -244,17 +244,17 @@ export function ColorPickerModal({ onClose, onColorSelected }: ColorPickerModalP
         {/* Color Values */}
         <div className="grid grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-minecraft-ten text-white/70 mb-1">Hex</label>
+            <label className="block text-sm  text-white/70 mb-1">Hex</label>
             <input
               type="text"
               value={hex}
               onChange={(e) => handleHexChange(e.target.value)}
-              className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-md text-white font-minecraft-ten focus:outline-none focus:ring-2 focus:ring-white/30"
+              className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-md text-white  focus:outline-none focus:ring-2 focus:ring-white/30"
               placeholder="#000000"
             />
           </div>
           <div>
-            <label className="block text-sm font-minecraft-ten text-white/70 mb-1">R</label>
+            <label className="block text-sm  text-white/70 mb-1">R</label>
             <input
               type="number"
               value={rgb.r}
@@ -262,13 +262,13 @@ export function ColorPickerModal({ onClose, onColorSelected }: ColorPickerModalP
                 const newRgb = { ...rgb, r: parseInt(e.target.value) || 0 };
                 setHsv(rgbToHsv(newRgb.r, newRgb.g, newRgb.b));
               }}
-              className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-md text-white font-minecraft-ten focus:outline-none focus:ring-2 focus:ring-white/30"
+              className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-md text-white  focus:outline-none focus:ring-2 focus:ring-white/30"
               min="0"
               max="255"
             />
           </div>
           <div>
-            <label className="block text-sm font-minecraft-ten text-white/70 mb-1">G</label>
+            <label className="block text-sm  text-white/70 mb-1">G</label>
             <input
               type="number"
               value={rgb.g}
@@ -276,13 +276,13 @@ export function ColorPickerModal({ onClose, onColorSelected }: ColorPickerModalP
                 const newRgb = { ...rgb, g: parseInt(e.target.value) || 0 };
                 setHsv(rgbToHsv(newRgb.r, newRgb.g, newRgb.b));
               }}
-              className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-md text-white font-minecraft-ten focus:outline-none focus:ring-2 focus:ring-white/30"
+              className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-md text-white  focus:outline-none focus:ring-2 focus:ring-white/30"
               min="0"
               max="255"
             />
           </div>
           <div>
-            <label className="block text-sm font-minecraft-ten text-white/70 mb-1">B</label>
+            <label className="block text-sm  text-white/70 mb-1">B</label>
             <input
               type="number"
               value={rgb.b}
@@ -290,7 +290,7 @@ export function ColorPickerModal({ onClose, onColorSelected }: ColorPickerModalP
                 const newRgb = { ...rgb, b: parseInt(e.target.value) || 0 };
                 setHsv(rgbToHsv(newRgb.r, newRgb.g, newRgb.b));
               }}
-              className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-md text-white font-minecraft-ten focus:outline-none focus:ring-2 focus:ring-white/30"
+              className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-md text-white  focus:outline-none focus:ring-2 focus:ring-white/30"
               min="0"
               max="255"
             />
@@ -298,17 +298,17 @@ export function ColorPickerModal({ onClose, onColorSelected }: ColorPickerModalP
         </div>
 
         {/* Current Color Display */}
-        <div className="flex items-center justify-between p-4 rounded-lg border border-[#ffffff20] bg-black/20">
+        <div className="flex items-center justify-between p-4 rounded-lg border border-[var(--surface-border)] bg-black/20">
           <div className="flex items-center gap-3">
             <div
               className="w-12 h-12 rounded-lg border-2 border-white/20 shadow-lg"
               style={{ backgroundColor: hex }}
             />
             <div>
-              <h5 className="font-minecraft text-lg text-white">
+              <h5 className=" text-lg text-white">
                 Selected Color
               </h5>
-              <p className="text-sm text-white/70 font-minecraft-ten">
+              <p className="text-sm text-white/70 ">
                 {hex}
               </p>
             </div>

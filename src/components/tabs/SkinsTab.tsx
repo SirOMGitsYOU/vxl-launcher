@@ -9,8 +9,7 @@ import type {
 } from "../../types/localSkin";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
 import { MinecraftSkinService } from "../../services/minecraft-skin-service";
-import { Button } from "../ui/buttons/Button";
-import { IconButton } from "../ui/buttons/IconButton";
+import { Button, IconButton } from "../ui-v2";
 import { Icon } from "@iconify/react";
 import { StatusMessage } from "../ui/StatusMessage";
 import { useLivePlayerSkin, parseLiveSkinFromProfile } from "../../hooks/useLivePlayerSkin";
@@ -19,7 +18,10 @@ import { useDebounce } from "../../hooks/useDebounce";
 import { useThemeStore } from "../../store/useThemeStore";
 import { useSkinStore } from "../../store/useSkinStore";
 import { toast } from "react-hot-toast";
-import { SearchWithFilters } from "../ui/SearchWithFilters";
+import { BrowseDetailLayout } from "../layout/BrowseDetailLayout";
+import { DetailPanelBody, DetailPanelHero, DetailPanelActions } from "../layout/DetailPanel";
+import { useShellSearchTab } from "../../hooks/useShellSearchTab";
+import { useShellSearch } from "../../contexts/ShellSearchContext";
 import { useGlobalModal } from "../../hooks/useGlobalModal";
 import { AddSkinModal } from "../modals/AddSkinModal";
 import { SkinView3DWrapper } from "../common/SkinView3DWrapper";
@@ -59,10 +61,10 @@ const SortableSkinCard = ({ skin, selectedLocalSkin, accentColor, loading, onSel
     <div
       ref={setNodeRef}
       style={style}
-      className={`relative group p-3 rounded-lg cursor-pointer transition-all border-2 ${
+      className={`relative group p-3 rounded-xl cursor-pointer transition-all border ${
         selectedLocalSkin?.id === skin.id
-          ? `border-[${accentColor.value}] bg-black/40`
-          : 'border-white/10 hover:border-white/20 bg-black/20 hover:bg-black/30'
+          ? "border-[var(--accent)] bg-[rgba(var(--accent-rgb),0.06)] vxl-accent-glow"
+          : "border-[var(--surface-border)] bg-[var(--surface-overlay)] hover:border-[var(--surface-border-strong)]"
       }`}
       onClick={() => onSelectSkin(skin)}
     >
@@ -108,7 +110,7 @@ const SortableSkinCard = ({ skin, selectedLocalSkin, accentColor, loading, onSel
       <div className="aspect-square rounded mb-2 overflow-hidden flex items-center justify-center">
         <SkinPreview
           skin={skin}
-          renderType="dungeons"
+          renderType="fullbody"
           width={160}
           height={160}
           className="w-full h-full"
@@ -116,12 +118,12 @@ const SortableSkinCard = ({ skin, selectedLocalSkin, accentColor, loading, onSel
       </div>
 
       <div className="text-center">
-        <h3 className="text-2xl font-minecraft text-white text-med lowercase truncate">
+        <h3 className="text-sm font-medium text-white truncate">
           {skin.name}
         </h3>
         <div className="mt-1">
-          <span className="px-2 py-1 text-lg font-minecraft rounded bg-white/20 text-white border border-white/30">
-            {skin.variant === "slim" ? "SLIM" : "CLASSIC"}
+          <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-white/10 text-[var(--text-secondary)] border border-[var(--surface-border)]">
+            {skin.variant === "slim" ? "Slim" : "Classic"}
           </span>
         </div>
       </div>
@@ -144,7 +146,7 @@ export function SkinsTab() {
   const [localSkinsLoading, setLocalSkinsLoading] = useState<boolean>(false);
   const [localSkinsError, setLocalSkinsError] = useState<string | null>(null);
   const [selectedLocalSkin, setSelectedLocalSkin] = useState<MinecraftSkin | null>(null);
-  const [search, setSearch] = useState<string>("");
+  const { query: search } = useShellSearch();
   const [currentSkinId, setCurrentSkinId] = useState<string | null>(null);
   const {
     skinUrl: playerCurrentSkin,
@@ -155,13 +157,16 @@ export function SkinsTab() {
   const [delayedActiveId, setDelayedActiveId] = useState<string | null>(null);
   const [draggedItem, setDraggedItem] = useState<{oldIndex: number, newIndex: number, skin: MinecraftSkin} | null>(null);
 
-  const debouncedSearch = useDebounce(search, 250);
+  const debouncedSearch = useDebounce(search ?? "", 250);
   const accentColor = useThemeStore((state) => state.accentColor);
 
+  useShellSearchTab("Search skins...");
+
   const filteredSkins = useMemo(() => {
-    if (!debouncedSearch.trim()) return localSkins;
+    const normalizedSearch = (debouncedSearch ?? "").trim().toLowerCase();
+    if (!normalizedSearch) return localSkins;
     return localSkins.filter((skin) =>
-      skin.name.toLowerCase().includes(debouncedSearch.toLowerCase()),
+      (skin.name ?? "").toLowerCase().includes(normalizedSearch),
     );
   }, [localSkins, debouncedSearch]);
 
@@ -465,191 +470,162 @@ export function SkinsTab() {
   );
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="p-4 border-b border-white/10 flex items-center justify-between">
-        <h2 className="text-3xl font-minecraft text-white">Skins</h2>
-        <div className="flex items-center gap-4">
-          <div className="flex-1 max-w-md">
-            <SearchWithFilters
-              placeholder="Search skins..."
-              searchValue={search}
-              onSearchChange={setSearch}
-              onSearchEnter={() => {}}
-            />
+    <BrowseDetailLayout
+      title="Skins"
+      subtitle="Browse and manage your character skins"
+      icon="temaki:clothes-hanger"
+      toolbarExtra={activeAccount ? addSkinButton : undefined}
+      detailEmpty={!selectedLocalSkin && !playerCurrentSkin}
+      detailEmptyMessage="Select a skin to preview"
+      browseContent={
+        accountLoading ? (
+          <div className="flex items-center justify-center h-full min-h-[240px] text-[var(--text-secondary)]">
+            Loading account...
           </div>
-          {activeAccount && addSkinButton}
-        </div>
-      </div>
-
-      {/* Main content */}
-      <div className="flex-1 overflow-hidden flex gap-4 p-4">
-        {/* Left Side - Player Preview */}
-        <div className="w-1/3 bg-black/30 rounded-lg overflow-hidden border border-white/10 flex flex-col">
-          {/* 3D Preview */}
-          <div className="flex-1 bg-black/50 relative flex items-center justify-center">
-            {(selectedLocalSkin || playerCurrentSkin) ? (
-              <div className="w-full h-full relative">
+        ) : accountError ? (
+          <StatusMessage type="error" message={`Account Error: ${accountError}`} />
+        ) : !activeAccount ? (
+          <div className="flex items-center justify-center h-full min-h-[240px] text-[var(--text-secondary)]">
+            Please log in to a Minecraft account to manage skins.
+          </div>
+        ) : localSkinsError ? (
+          <StatusMessage type="error" message={localSkinsError} />
+        ) : localSkinsLoading ? (
+          <div className="flex items-center justify-center h-full min-h-[240px] text-[var(--text-secondary)]">
+            <Icon icon="solar:refresh-bold" className="w-6 h-6 animate-spin mr-2" />
+            Loading skins...
+          </div>
+        ) : filteredSkins.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full min-h-[240px] text-center">
+            <Icon icon="solar:sad-bold" className="w-10 h-10 text-[var(--text-muted)] mb-2" />
+            <p className="text-white">{debouncedSearch ? "No skins match your search" : "No skins found"}</p>
+            <p className="text-sm text-[var(--text-secondary)] mt-1">
+              {debouncedSearch ? "Try a different search term" : "Add your first skin to get started"}
+            </p>
+          </div>
+        ) : (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={filteredSkins.map((skin) => skin.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3">
+                {filteredSkins.map((skin) => (
+                  <SortableSkinCard
+                    key={skin.id}
+                    skin={skin}
+                    selectedLocalSkin={selectedLocalSkin}
+                    accentColor={accentColor}
+                    loading={loading}
+                    onSelectSkin={handleSelectSkin}
+                    onEditSkin={startEditSkin}
+                    onDeleteSkin={handleDeleteSkin}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+            <DragOverlay dropAnimation={null}>
+              {delayedActiveId ? (
+                <div className="pointer-events-none">
+                  <div className="relative p-3 rounded-xl border border-[var(--accent)] bg-[var(--surface-overlay)] shadow-lg opacity-95">
+                    <div className="aspect-square rounded-lg mb-2 overflow-hidden flex items-center justify-center">
+                      <SkinPreview
+                        skin={filteredSkins.find((skin) => skin.id === delayedActiveId)!}
+                        renderType="fullbody"
+                        width={160}
+                        height={160}
+                        className="w-full h-full"
+                      />
+                    </div>
+                    <div className="text-center">
+                      <h3 className="text-sm font-medium text-white truncate">
+                        {filteredSkins.find((skin) => skin.id === delayedActiveId)?.name}
+                      </h3>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        )
+      }
+      detailContent={
+        <>
+          <DetailPanelHero className="flex-1 min-h-64">
+            <div className="w-full h-full min-h-64 flex items-center justify-center bg-[var(--surface-base)]">
+              {selectedLocalSkin || playerCurrentSkin ? (
                 <SkinView3DWrapper
-                  skinUrl={selectedLocalSkin ? `data:image/png;base64,${selectedLocalSkin.base64_data}` : playerCurrentSkin}
-                  skinVariant={selectedLocalSkin ? (selectedLocalSkin.variant === 'slim' ? 'slim' : 'classic') : playerCurrentSkinVariant}
-                  enableAutoRotate={true}
+                  skinUrl={
+                    selectedLocalSkin
+                      ? `data:image/png;base64,${selectedLocalSkin.base64_data}`
+                      : playerCurrentSkin
+                  }
+                  skinVariant={
+                    selectedLocalSkin
+                      ? selectedLocalSkin.variant === "slim"
+                        ? "slim"
+                        : "classic"
+                      : playerCurrentSkinVariant
+                  }
+                  enableAutoRotate
                   autoRotateSpeed={0.3}
                   zoom={0.9}
-                  enableRotate={true}
+                  enableRotate
                   enableZoom={false}
                   enablePan={false}
-                  horizontalRotationOnly={true}
+                  horizontalRotationOnly
                 />
-              </div>
-            ) : (
-              <div className="text-center">
-                <Icon icon="solar:clothing-bold" className="w-16 h-16 text-white/30 mx-auto mb-2" />
-                <p className="font-minecraft text-white/70">Loading current skin...</p>
-              </div>
+              ) : (
+                <Icon icon="solar:clothing-bold" className="w-12 h-12 text-[var(--text-muted)]" />
+              )}
+            </div>
+          </DetailPanelHero>
+          <DetailPanelBody>
+            <div>
+              <h3 className="text-lg font-semibold text-white">
+                {selectedLocalSkin?.name || (playerCurrentSkin ? "Current Skin" : "No Skin Selected")}
+              </h3>
+              {selectedLocalSkin && (
+                <p className="text-sm mt-1" style={{ color: "var(--accent)" }}>
+                  {selectedLocalSkin.variant === "slim" ? "Slim model" : "Classic model"}
+                </p>
+              )}
+            </div>
+            {selectedLocalSkin?.description && (
+              <p className="text-sm text-[var(--text-secondary)]">{selectedLocalSkin.description}</p>
             )}
-          </div>
-
-          {/* Skin Info and Equip Button */}
-          <div className="p-4 border-t border-white/10 bg-black/20">
-            <h3 className="text-2xl text-medium font-minecraft text-white mb-3 lowercase">
-              {selectedLocalSkin ? selectedLocalSkin.name : (playerCurrentSkin ? 'Current Skin' : 'No Skin Selected')}
-            </h3>
-
+          </DetailPanelBody>
+          <DetailPanelActions>
             <Button
               onClick={() => selectedLocalSkin && handleEquipSkin(selectedLocalSkin)}
               disabled={loading || !selectedLocalSkin || isSkinApplied(selectedLocalSkin)}
-              size="md"
-              className="w-full"
+              className="flex-1"
             >
               {loading ? (
                 <>
-                  <Icon icon="solar:refresh-bold" className="w-4 h-4 mr-2 animate-spin" />
+                  <Icon icon="solar:refresh-bold" className="w-4 h-4 animate-spin" />
                   Applying...
                 </>
               ) : !selectedLocalSkin ? (
-                'Select a skin to equip'
+                "Select a skin to apply"
               ) : isSkinApplied(selectedLocalSkin) ? (
-                'Currently Equipped'
+                "Currently Equipped"
               ) : (
-                'Equip This Skin'
+                <>
+                  <Icon icon="solar:play-bold" className="w-4 h-4" />
+                  Apply Skin
+                </>
               )}
             </Button>
-          </div>
-        </div>
-
-        {/* Right Side - Skin Grid */}
-        <div className="w-2/3 overflow-hidden flex flex-col">
-          {/* Account check */}
-          {accountLoading ? (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-white/70 font-minecraft text-xl text-center py-4">
-                Loading account...
-              </p>
-            </div>
-          ) : accountError ? (
-            <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 mb-4">
-              <p className="text-red-300 font-minecraft text-sm">Account Error: {accountError}</p>
-            </div>
-          ) : !activeAccount ? (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-white/70 italic font-minecraft text-xl text-center py-10">
-                Please log in to a Minecraft account to manage skins.
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Error state */}
-              {localSkinsError && (
-                <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 mb-4">
-                  <p className="text-red-300 font-minecraft text-sm">{localSkinsError}</p>
-                </div>
-              )}
-
-              {/* Skin Grid */}
-              <div className="flex-1 overflow-y-auto">
-                {localSkinsLoading ? (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-center">
-                      <Icon icon="solar:refresh-bold" className="w-8 h-8 animate-spin text-white/50 mx-auto mb-2" />
-                      <p className="text-white/70 font-minecraft">Loading skins...</p>
-                    </div>
-                  </div>
-                ) : filteredSkins.length === 0 && !localSkinsError ? (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-center">
-                      <Icon icon="solar:sad-bold" className="w-12 h-12 text-white/30 mx-auto mb-2" />
-                      <p className="text-4xl text-white/70 font-minecraft">
-                        {debouncedSearch ? 'No skins match your search' : 'No skins found'}
-                      </p>
-                      <p className="text-2xl text-white/50 font-minecraft text-medium mt-2">
-                        {debouncedSearch ? 'Try a different search term' : 'Add your first skin to get started'}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragStart={handleDragStart}
-                    onDragOver={handleDragOver}
-                    onDragEnd={handleDragEnd}
-                  >
-                    <SortableContext
-                      items={filteredSkins.map(skin => skin.id)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3">
-                        {filteredSkins.map((skin) => (
-                          <SortableSkinCard
-                            key={skin.id}
-                            skin={skin}
-                            selectedLocalSkin={selectedLocalSkin}
-                            accentColor={accentColor}
-                            loading={loading}
-                            onSelectSkin={handleSelectSkin}
-                            onEditSkin={startEditSkin}
-                            onDeleteSkin={handleDeleteSkin}
-                          />
-                        ))}
-                      </div>
-                    </SortableContext>
-                    <DragOverlay
-                    dropAnimation={null}
-                  >
-                      {delayedActiveId ? (
-                        <div className="pointer-events-none">
-                          <div className="relative p-3 rounded-lg border-2 border-white/40 bg-black/50 shadow-2xl opacity-95">
-                            <div className="aspect-square rounded mb-2 overflow-hidden flex items-center justify-center">
-                              <SkinPreview
-                                skin={filteredSkins.find(skin => skin.id === delayedActiveId)!}
-                                renderType="dungeons"
-                                width={160}
-                                height={160}
-                                className="w-full h-full"
-                              />
-                            </div>
-                            <div className="text-center">
-                              <h3 className="font-minecraft text-white text-sm lowercase truncate">
-                                {filteredSkins.find(skin => skin.id === delayedActiveId)?.name}
-                              </h3>
-                              <div className="mt-1">
-                                <span className="px-2 py-1 text-xs font-minecraft rounded bg-white/20 text-white border border-white/30">
-                                  {filteredSkins.find(skin => skin.id === delayedActiveId)?.variant === "slim" ? "Slim" : "Classic"}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ) : null}
-                    </DragOverlay>
-                  </DndContext>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
+          </DetailPanelActions>
+        </>
+      }
+    />
   );
 }

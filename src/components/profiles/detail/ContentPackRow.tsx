@@ -245,7 +245,7 @@ export function ContentPackRow({
         </div>
 
         <div className="flex flex-col min-w-0">
-          <div className="text-white py-1 font-minecraft text-2xl lowercase tracking-wide truncate flex items-center gap-2">
+          <div className="text-white py-1 text-sm font-medium tracking-wide truncate flex items-center gap-2">
             {packName}
             {hasUpdate && (
               <Button

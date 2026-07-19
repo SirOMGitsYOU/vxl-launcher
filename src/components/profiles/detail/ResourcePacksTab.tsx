@@ -705,7 +705,7 @@ export function ResourcePacksTab({
             icon="solar:danger-triangle-bold"
             className="w-5 h-5 text-red-400"
           />
-          <span className="text-white font-minecraft text-lg">
+          <span className="text-white  text-lg">
             Error checking for updates: {updateError}
           </span>
         </div>

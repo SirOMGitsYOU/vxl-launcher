@@ -9,7 +9,8 @@ import {
   getOrCreateStaticSkinPreview,
 } from "../../utils/skin-static-preview";
 
-const STARLIGHT_TIMEOUT_MS = 8000;
+const NMSR_TIMEOUT_MS = 8000;
+const NMSR_RENDER_TYPE = "fullbody";
 
 interface SkinPreviewProps {
   skin: MinecraftSkin;
@@ -22,7 +23,7 @@ interface SkinPreviewProps {
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return new Promise((resolve, reject) => {
     const timeoutId = setTimeout(() => {
-      reject(new Error("Starlight preview timed out"));
+      reject(new Error("NMSR preview timed out"));
     }, timeoutMs);
 
     promise
@@ -39,7 +40,7 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
 
 export const SkinPreview = memo(function SkinPreview({
   skin,
-  renderType = "dungeons",
+  renderType = NMSR_RENDER_TYPE,
   width = 140,
   height = 140,
   className,
@@ -92,23 +93,13 @@ export const SkinPreview = memo(function SkinPreview({
         return;
       }
 
+      const cacheKey = await buildSkinPreviewCacheKey(
+        skin.base64_data,
+        renderType,
+        "full",
+      );
+
       try {
-        const cacheKey = await buildSkinPreviewCacheKey(
-          skin.base64_data,
-          renderType,
-          "full",
-        );
-
-        const existingPreviewPath = await MinecraftSkinService.getSkinPreviewPath(cacheKey);
-        if (existingPreviewPath) {
-          if (isMounted) {
-            setRenderUrl(convertFileSrc(existingPreviewPath));
-            setIsRenderLoading(false);
-            setCanShowSpinner(false);
-          }
-          return;
-        }
-
         if (skin.name) {
           try {
             const payload = {
@@ -116,11 +107,12 @@ export const SkinPreview = memo(function SkinPreview({
               render_type: renderType,
               render_view: "full",
               base64_skin_data: skin.base64_data,
+              slim: skin.variant === "slim",
             };
 
             const localPath = await withTimeout(
               MinecraftSkinService.getStarlightSkinRender(payload),
-              STARLIGHT_TIMEOUT_MS,
+              NMSR_TIMEOUT_MS,
             );
 
             if (isMounted) {
@@ -129,10 +121,10 @@ export const SkinPreview = memo(function SkinPreview({
               setCanShowSpinner(false);
             }
             return;
-          } catch (starlightError) {
+          } catch (nmsrError) {
             console.warn(
-              `[SkinPreview] Starlight preview failed for ${skin.name}, using static fallback:`,
-              starlightError,
+              `[SkinPreview] NMSR preview failed for ${skin.name}, using static fallback:`,
+              nmsrError,
             );
           }
         }

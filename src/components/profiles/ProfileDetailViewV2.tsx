@@ -8,11 +8,8 @@ import { toast } from "react-hot-toast";
 import type { Profile } from "../../types/profile";
 import { ProfileIconV2 } from "./ProfileIconV2";
 import { useThemeStore } from "../../store/useThemeStore";
-import { Button } from "../ui/buttons/Button";
-import { IconButton } from "../ui/buttons/IconButton";
+import { Button, IconButton, SelectTab } from "../ui-v2";
 import { ActionButtons, type ActionButton } from "../ui/ActionButtons";
-import { ActionButton as SingleActionButton } from "../ui/ActionButton";
-import { GroupTabs, type GroupTab } from "../ui/GroupTabs";
 import { LocalContentTabV2 } from "./detail/v2/LocalContentTabV2";
 import { SettingsContextMenu, type ContextMenuItem } from "../ui/SettingsContextMenu";
 import { ConfirmDeleteDialog } from "../modals/ConfirmDeleteDialog";
@@ -373,11 +370,11 @@ export function ProfileDetailViewV2({
   };
 
   // Main tabs configuration
-  const mainTabs: GroupTab[] = [
-    { id: "content", name: "Content", count: 0, icon: "solar:widget-bold" },
-    { id: "worlds", name: "Worlds", count: 0, icon: "solar:planet-bold" },
-    { id: "screenshots", name: "Screenshots", count: 0, icon: "solar:camera-bold" },
-    { id: "logs", name: "Logs", count: 0, icon: "solar:code-bold" },
+  const mainTabs = [
+    { id: "content" as const, name: "Content", icon: "solar:widget-bold" },
+    { id: "worlds" as const, name: "Worlds", icon: "solar:planet-bold" },
+    { id: "screenshots" as const, name: "Screenshots", icon: "solar:camera-bold" },
+    { id: "logs" as const, name: "Logs", icon: "solar:code-bold" },
   ];
 
 
@@ -459,7 +456,7 @@ export function ProfileDetailViewV2({
             <div className="flex flex-col gap-2 flex-1">
               {/* Profile Name with Account Indicator */}
               <div className="flex items-center gap-2">
-                <h1 className="font-minecraft-ten text-2xl text-white normal-case">
+                <h1 className="text-xl font-semibold text-white normal-case">
                   <span dangerouslySetInnerHTML={{ __html: parseMotdToHtml(profile.name || profile.id) }} />
                 </h1>
                 
@@ -487,11 +484,11 @@ export function ProfileDetailViewV2({
 
 
               {/* Game Info / Launch Status */}
-              <div className="text-sm font-minecraft-ten">
+              <div className="text-sm ">
                 {isLaunching && statusMessage ? (
                   /* Launch Status Message */
                   <div className="text-white/60 flex items-center gap-2 min-w-0 max-w-lg">
-                    <span className="truncate text-sm font-minecraft-ten" title={statusMessage}>
+                    <span className="truncate text-sm " title={statusMessage}>
                       {statusMessage}
                     </span>
                   </div>
@@ -577,7 +574,7 @@ export function ProfileDetailViewV2({
                 isDeleting={isDeleting}
                 title="Delete Profile"
                 message={
-                  <p className="text-white/80 font-minecraft-ten">
+                  <p className="text-white/80 ">
                     Are you sure you want to permanently delete the profile{" "}
                     <strong className="text-white">"{currentProfile.name}"</strong>?
                     <br />
@@ -591,16 +588,20 @@ export function ProfileDetailViewV2({
           </div>
 
           {/* Divider under profile info */}
-          <div className="h-px w-full bg-white/10 mt-4 mb-4" />
+          <div className="h-px w-full bg-[var(--surface-border)] mt-4 mb-4" />
 
           {/* Main Tabs Navigation - under divider */}
-          <div className="flex-shrink-0">
-            <GroupTabs
-              groups={mainTabs}
-              activeGroup={activeMainTab}
-              onGroupChange={(tabId) => setActiveMainTab(tabId as MainTabType)}
-              showAddButton={false}
-            />
+          <div className="flex-shrink-0 flex items-center gap-2 flex-wrap">
+            {mainTabs.map((tab) => (
+              <SelectTab
+                key={tab.id}
+                active={activeMainTab === tab.id}
+                onClick={() => setActiveMainTab(tab.id)}
+                icon={<Icon icon={tab.icon} className="w-4 h-4" />}
+              >
+                {tab.name}
+              </SelectTab>
+            ))}
           </div>
         </div>
 
@@ -697,7 +698,7 @@ export function ProfileDetailViewV2({
               {/* Content Type Sidebar */}
               <div className="w-64 flex-shrink-0 border-l border-white/10 pl-4">
                 <div className="space-y-2">
-                  <div className="text-white/70 text-sm font-minecraft-ten uppercase tracking-wide mb-4">
+                  <div className="text-white/70 text-sm  uppercase tracking-wide mb-4">
                     Content Types
                   </div>
 
@@ -709,7 +710,7 @@ export function ProfileDetailViewV2({
                       }`}
                   >
                     <Icon icon="solar:widget-bold" className="w-5 h-5 flex-shrink-0" />
-                    <span className="font-minecraft-ten text-sm uppercase tracking-wide">
+                    <span className=" text-sm uppercase tracking-wide">
                       Mods
                     </span>
                   </button>
@@ -722,7 +723,7 @@ export function ProfileDetailViewV2({
                       }`}
                   >
                     <Icon icon="solar:palette-bold" className="w-5 h-5 flex-shrink-0" />
-                    <span className="font-minecraft-ten text-sm uppercase tracking-wide">
+                    <span className=" text-sm uppercase tracking-wide">
                       Resource Packs
                     </span>
                   </button>
@@ -735,7 +736,7 @@ export function ProfileDetailViewV2({
                       }`}
                   >
                     <Icon icon="solar:database-bold" className="w-5 h-5 flex-shrink-0" />
-                    <span className="font-minecraft-ten text-sm uppercase tracking-wide">
+                    <span className=" text-sm uppercase tracking-wide">
                       Data Packs
                     </span>
                   </button>
@@ -748,7 +749,7 @@ export function ProfileDetailViewV2({
                       }`}
                   >
                     <Icon icon="solar:sun-bold" className="w-5 h-5 flex-shrink-0" />
-                    <span className="font-minecraft-ten text-sm uppercase tracking-wide">
+                    <span className=" text-sm uppercase tracking-wide">
                       Shader Packs
                     </span>
                   </button>

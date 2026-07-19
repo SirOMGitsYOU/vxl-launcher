@@ -5,6 +5,7 @@ import { ModrinthSearchV2 } from "../modrinth/v2/ModrinthSearchV2";
 import type { Profile } from "../../types/profile";
 import { getAllProfilesAndLastPlayed } from "../../services/profile-service";
 import { ErrorMessage } from "../ui/ErrorMessage";
+import { LoadingState } from "../ui-v2";
 
 interface VXLStudiosTabV2Props {
   profiles?: Profile[];
@@ -60,6 +61,7 @@ export function VXLStudiosTabV2({
         profiles={profiles}
         onInstallSuccess={handleInstallSuccess}
         className="h-full"
+        overrideDisplayContext="standalone"
         initialProjectType="modpack"
         allowedProjectTypes={["modpack", "mod", "resourcepack"]}
         useVXLStudiosData={true}
@@ -69,12 +71,11 @@ export function VXLStudiosTabV2({
   );
 
   if (initialProfiles.length === 0 && !profilesLoaded) {
-    // Still loading profiles, can show a minimal loading state or null
-    return null;
+    return <LoadingState message="Loading profiles..." />;
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden p-4 relative">
+    <div className="h-full flex flex-col overflow-hidden relative bg-[var(--surface-base)]">
       {error && <ErrorMessage message={error} />}
 
       <div className="flex-1 overflow-hidden flex space-x-4">

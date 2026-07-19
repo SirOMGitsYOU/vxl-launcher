@@ -8,6 +8,7 @@ import {
   useOutletContext,
 } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout";
+import { ShellSearchProvider } from "./contexts/ShellSearchContext";
 import { ThemeInitializer } from "./components/ThemeInitializer";
 import { ScrollbarProvider } from "./components/ui/ScrollbarProvider";
 import { GlobalToaster } from "./components/ui/GlobalToaster";
@@ -281,9 +282,11 @@ export function App() {
       <GlobalCrashReportModal />
       <TermsOfServiceModal isOpen={!hasAcceptedTermsOfService} />
       <GlobalModalPortal />
-      <AppLayout activeTab={activeTab} onNavChange={handleNavChange}>
-        <Outlet context={profilesTabContext} />
-      </AppLayout>
+      <ShellSearchProvider>
+        <AppLayout activeTab={activeTab} onNavChange={handleNavChange}>
+          <Outlet context={profilesTabContext} />
+        </AppLayout>
+      </ShellSearchProvider>
     </div>
   );
 }

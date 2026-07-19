@@ -479,7 +479,7 @@ export function LogWindow() {
     <div
       ref={containerRef}
       className={cn(
-        "flex flex-col h-full text-white font-minecraft p-4",
+        "flex flex-col h-full text-white  p-4",
         "transition-colors duration-300",
       )}
       style={{

@@ -706,7 +706,7 @@ export function LocalContentTabV2<T extends LocalContentItem>({
                       title="View version options"
                     >
                       <span
-                        className={`font-minecraft-ten transition-transform duration-200 ${isItemOpen ? "rotate-90" : ""}`}
+                        className={` transition-transform duration-200 ${isItemOpen ? "rotate-90" : ""}`}
                       >
                         &gt;
                       </span>
@@ -715,7 +715,7 @@ export function LocalContentTabV2<T extends LocalContentItem>({
                       createPortal(
                         <div
                           ref={versionDropdownRef}
-                          className="fixed z-[100] font-minecraft-ten"
+                          className="fixed z-[100] "
                           style={{
                             backgroundColor: "rgb(20, 20, 20)",
                             border: `2px solid rgba(${parseInt(accentColor.value.substring(1, 3), 16)}, ${parseInt(accentColor.value.substring(3, 5), 16)}, ${parseInt(accentColor.value.substring(5, 7), 16)}, 0.6)`,
@@ -983,7 +983,7 @@ export function LocalContentTabV2<T extends LocalContentItem>({
                 if (item.path) handleOpenItemFolder(item);
                 setActiveDropdownId(null);
               }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-left font-minecraft-ten text-sm text-white/80 hover:text-white transition-colors duration-150"
+              className="w-full flex items-center gap-3 px-4 py-3 text-left  text-sm text-white/80 hover:text-white transition-colors duration-150"
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = `${accentColor.value}15`;
               }}
@@ -1003,7 +1003,7 @@ export function LocalContentTabV2<T extends LocalContentItem>({
                   handleToggleItemUpdatesEnabled(item);
                   setActiveDropdownId(null);
                 }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-left font-minecraft-ten text-sm text-white/80 hover:text-white transition-colors duration-150"
+              className="w-full flex items-center gap-3 px-4 py-3 text-left  text-sm text-white/80 hover:text-white transition-colors duration-150"
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = `${accentColor.value}15`;
               }}
@@ -1285,7 +1285,7 @@ export function LocalContentTabV2<T extends LocalContentItem>({
 
   if (!profile) {
     return (
-      <div className="p-4 font-minecraft text-center text-white/70">
+      <div className="p-4  text-center text-white/70">
         Profile data is not available. Cannot display{" "}
         {itemTypeNamePlural.toLowerCase()}.
       </div>

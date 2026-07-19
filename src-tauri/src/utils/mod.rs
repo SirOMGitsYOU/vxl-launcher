@@ -15,6 +15,7 @@ pub mod security_utils; // Security utilities for masking sensitive data
 pub mod server_ping; // Server-Ping-Modul für die Kommunikation mit Minecraft-Servern
 pub mod shaderpack_utils; // ShaderPack-Utils für das Scannen und Verwalten von ShaderPacks
 pub mod system_info; // <-- Hinzufügen
+pub mod splash_utils;
 pub mod updater_utils;
 pub mod world_utils; // <-- Hinzugefügt
 pub mod trash_utils; // <-- New trash module

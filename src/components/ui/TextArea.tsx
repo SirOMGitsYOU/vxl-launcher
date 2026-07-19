@@ -108,7 +108,7 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
             rows={rows}            className={cn(
               "w-full h-full bg-transparent outline-none",
               "text-white placeholder-white placeholder-opacity-50",
-              "font-minecraft lowercase p-4 text-xl",
+              " p-4 text-xl",
               "focus:outline-none",
               resizeClasses[resize],
             )}onFocus={handleFocus}

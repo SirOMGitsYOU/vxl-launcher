@@ -41,7 +41,7 @@ function Tooltip({ text, children }: TooltipProps) {
       {children}
       {isVisible && (
         <div
-          className="fixed px-2 py-1 text-xs font-minecraft-ten bg-black/90 text-white/90 rounded border border-white/20 whitespace-nowrap pointer-events-none z-50"
+          className="fixed px-2 py-1 text-xs  bg-black/90 text-white/90 rounded border border-white/20 whitespace-nowrap pointer-events-none z-50"
           style={{
             left: `${position.x}px`,
             top: `${position.y - 32}px`,
@@ -215,7 +215,7 @@ function InstanceItem({
     return (
       <Tooltip text={instance.name}>
         <div
-          className="relative p-3 rounded-lg bg-black/20 border border-white/10 hover:border-white/20 cursor-pointer transition-all duration-200 group"
+          className="relative p-3 rounded-lg bg-[var(--surface-overlay)] border border-[var(--surface-border)] hover:border-[var(--surface-border-strong)] cursor-pointer transition-all duration-200 group"
           style={{
             borderColor: isSelected ? `${accentColor.value}60` : undefined,
             backgroundColor: isSelected ? `${accentColor.value}10` : undefined,
@@ -249,7 +249,7 @@ function InstanceItem({
 
           <div className="flex-1 min-w-0">
             <span
-              className="text-sm font-minecraft-ten font-bold"
+              className="text-sm  font-bold"
               style={{ color: statusColor }}
             >
               {formatElapsedTimeCompact(instance.startTime, instance.endTime || currentTime)}
@@ -333,7 +333,7 @@ function InstanceItem({
 
   return (
     <div
-      className="relative p-3 rounded-lg bg-black/20 border border-white/10 hover:border-white/20 cursor-pointer transition-all duration-200"
+      className="relative p-3 rounded-lg bg-[var(--surface-overlay)] border border-[var(--surface-border)] hover:border-[var(--surface-border-strong)] cursor-pointer transition-all duration-200"
       style={{
         borderColor: isSelected ? `${accentColor.value}60` : undefined,
         backgroundColor: isSelected ? `${accentColor.value}10` : undefined,
@@ -378,14 +378,14 @@ function InstanceItem({
 
         <div className="flex-1 min-w-0">
           <span
-            className="block font-minecraft-ten text-white text-sm whitespace-nowrap overflow-hidden text-ellipsis mb-1"
+            className="block  text-white text-sm whitespace-nowrap overflow-hidden text-ellipsis mb-1"
             style={{ textShadow: "0 2px 4px rgba(0,0,0,0.7)" }}
             title={instance.name}
           >
             {instance.name}
           </span>
 
-          <div className="flex items-center gap-2 text-[11px] font-minecraft-ten">
+          <div className="flex items-center gap-2 text-[11px] ">
             {instance.accountName && (
               <div className="flex items-center gap-1.5 text-white/60">
                 <Icon icon="solar:user-bold" className="w-3 h-3" />
@@ -591,7 +591,7 @@ export function InstanceSidebar({
           </div>
         ) : (
           <span
-            className="font-minecraft-ten text-sm tracking-wider flex items-center gap-2"
+            className=" text-sm tracking-wider flex items-center gap-2"
             style={{ color: accentColor.value }}
           >
             <Icon icon="solar:monitor-bold" className="w-4 h-4" />
@@ -604,7 +604,7 @@ export function InstanceSidebar({
             setIsCompact(newCompactState);
             onCompactModeChange?.(newCompactState);
           }}
-          className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-minecraft-ten transition-colors"
+          className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs  transition-colors"
           style={{
             backgroundColor: `${accentColor.value}20`,
             color: accentColor.value
@@ -624,12 +624,12 @@ export function InstanceSidebar({
 
       <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
         {isLoading && instances.length === 0 ? (
-          <div className="flex items-center justify-center py-8 text-white/50 text-sm font-minecraft-ten">
+          <div className="flex items-center justify-center py-8 text-white/50 text-sm ">
             <Icon icon="svg-spinners:pulse-3" className="w-6 h-6 mr-2" />
             Loading...
           </div>
         ) : instances.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-white/50 text-sm font-minecraft-ten text-center">
+          <div className="flex flex-col items-center justify-center py-8 text-white/50 text-sm  text-center">
             <Icon icon="solar:gamepad-no-charge-bold" className="w-8 h-8 mb-2 opacity-50" />
             No active instances
           </div>
@@ -668,11 +668,11 @@ export function InstanceSidebar({
       {selectedInstance && !isCompact && (
         <div className="px-3 py-3 bg-black/30 rounded-lg mx-3 mb-3">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-minecraft-ten text-white/50 truncate">
+            <span className="text-xs  text-white/50 truncate">
               {selectedInstance.name}
             </span>
             <span
-              className="text-xs font-minecraft-ten"
+              className="text-xs "
               style={{ color: getStatusColor(selectedInstance.status) }}
             >
               {formatElapsedTime(selectedInstance.startTime, selectedInstance.endTime || currentTime)}
@@ -682,7 +682,7 @@ export function InstanceSidebar({
           {selectedInstance.status === "running" && selectedInstance.memoryUsage > 0 && (
             <div className="flex gap-4 mb-3 mt-1">
               <div className="flex-1">
-                <div className="flex items-center justify-between text-xs font-minecraft-ten text-white/40 mb-1.5">
+                <div className="flex items-center justify-between text-xs  text-white/40 mb-1.5">
                   <span className="flex items-center gap-1">
                     <Icon icon="solar:sd-card-bold" className="w-3 h-3" />
                     RAM
@@ -703,7 +703,7 @@ export function InstanceSidebar({
               </div>
 
               <div className="flex-1">
-                <div className="flex items-center justify-between text-xs font-minecraft-ten text-white/40 mb-1.5">
+                <div className="flex items-center justify-between text-xs  text-white/40 mb-1.5">
                   <span className="flex items-center gap-1">
                     <Icon icon="solar:cpu-bolt-bold" className="w-3 h-3" />
                     CPU
@@ -730,7 +730,7 @@ export function InstanceSidebar({
              !stoppingProcessIds.has(selectedInstance.id) ? (
               <button
                 onClick={() => handleStopProcess(selectedInstance.id)}
-                className={`${isCompact ? "p-1.5 rounded" : "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-xs font-minecraft-ten"} bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors`}
+                className={`${isCompact ? "p-1.5 rounded" : "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-xs "} bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors`}
                 title={isCompact ? "Stop" : undefined}
               >
                 <Icon icon="solar:stop-bold" className="w-3.5 h-3.5" />
@@ -751,7 +751,7 @@ export function InstanceSidebar({
                       console.error("Failed to abort launch:", error);
                     }
                   }}
-                  className={`${isCompact ? "p-1.5 rounded" : "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-xs font-minecraft-ten"} bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors`}
+                  className={`${isCompact ? "p-1.5 rounded" : "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-xs "} bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors`}
                   title={isCompact ? "Stop" : undefined}
                 >
                   <Icon icon="solar:stop-bold" className="w-3.5 h-3.5" />
@@ -760,7 +760,7 @@ export function InstanceSidebar({
               ) : (
                 <button
                   onClick={() => handleLaunchProfile(selectedInstance.profileId)}
-                  className={`${isCompact ? "p-1.5 rounded" : "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-xs font-minecraft-ten"} bg-green-500/20 text-green-400 hover:bg-green-500/30 transition-colors`}
+                  className={`${isCompact ? "p-1.5 rounded" : "flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-xs "} bg-green-500/20 text-green-400 hover:bg-green-500/30 transition-colors`}
                   title={isCompact ? "Start" : undefined}
                 >
                   <Icon icon="solar:play-bold" className="w-3.5 h-3.5" />
@@ -771,7 +771,7 @@ export function InstanceSidebar({
 
             <button
               onClick={() => handleOpenFolder(selectedInstance.profileId)}
-              className={`${isCompact ? "p-1.5 rounded" : "flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-minecraft-ten"} bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-colors`}
+              className={`${isCompact ? "p-1.5 rounded" : "flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs "} bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-colors`}
               title="Open Folder"
             >
               <Icon icon="solar:folder-bold" className="w-3.5 h-3.5" />
@@ -781,7 +781,7 @@ export function InstanceSidebar({
         </div>
       )}
 
-      <div className="px-4 py-2 text-xs font-minecraft-ten text-white/50">
+      <div className="px-4 py-2 text-xs  text-white/50">
         {instances.filter((i) => i.status === "running").length} RUNNING
       </div>
     </div>

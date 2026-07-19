@@ -56,17 +56,17 @@ export function ActionButton({
   const getSizeClasses = () => {
     switch (size) {
       case "sm":
-        return effectiveVariant === "icon-only" 
-          ? "py-[0.6rem] px-[0.6rem] text-xl" 
-          : "px-2 py-0.5 text-2xl";
+        return effectiveVariant === "icon-only"
+          ? "py-2 px-2 text-sm"
+          : "px-2.5 py-1 text-xs font-medium";
       case "lg":
-        return effectiveVariant === "icon-only" 
-          ? "py-[0.57rem] px-[0.57rem] text-3xl" 
-          : "px-4 py-1.5 text-3xl";
-      default: // md
-        return effectiveVariant === "icon-only" 
-          ? "py-[0.57rem] px-[0.57rem] text-2xl" 
-          : "px-3 py-1 text-2xl";
+        return effectiveVariant === "icon-only"
+          ? "py-2.5 px-2.5 text-base"
+          : "px-4 py-2 text-sm font-medium";
+      default:
+        return effectiveVariant === "icon-only"
+          ? "py-2 px-2 text-sm"
+          : "px-3 py-1.5 text-sm font-medium";
     }
   };
 
@@ -83,8 +83,8 @@ export function ActionButton({
 
   const getButtonStyles = () => {
     const baseClasses = (effectiveVariant === "text" || effectiveVariant === "highlight")
-      ? `transition-all duration-200 font-minecraft lowercase flex items-center gap-2 ${getSizeClasses()}`
-      : `transition-all duration-200 hover:scale-105 border font-minecraft lowercase rounded-lg flex items-center gap-2 ${getSizeClasses()}`;
+      ? `transition-all duration-200 font-medium flex items-center gap-2 ${getSizeClasses()}`
+      : `transition-all duration-200 hover:scale-[1.02] border font-medium rounded-lg flex items-center gap-2 ${getSizeClasses()}`;
     
     switch (effectiveVariant) {
       case "primary":
@@ -111,7 +111,7 @@ export function ActionButton({
       
       case "secondary":
         return {
-          className: `${baseClasses} bg-black/30 hover:bg-black/40 text-white/70 hover:text-white border-white/10 hover:border-white/20`,
+          className: `${baseClasses} bg-[var(--surface-overlay)] hover:bg-[var(--surface-base)] text-[var(--text-secondary)] hover:text-white border-[var(--surface-border)] hover:border-[var(--surface-border-strong)]`,
           style: {},
         };
       
@@ -174,7 +174,7 @@ export function ActionButton({
       
       default:
         return {
-          className: `${baseClasses} bg-black/30 hover:bg-black/40 text-white/70 hover:text-white border-white/10 hover:border-white/20`,
+          className: `${baseClasses} bg-[var(--surface-overlay)] hover:bg-[var(--surface-base)] text-[var(--text-secondary)] hover:text-white border-[var(--surface-border)] hover:border-[var(--surface-border-strong)]`,
           style: {},
         };
     }

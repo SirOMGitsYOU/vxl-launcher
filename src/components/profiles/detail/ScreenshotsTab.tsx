@@ -356,10 +356,10 @@ export function ScreenshotsTab({
                 icon="solar:gallery-remove-bold-duotone"
                 className="w-20 h-20 mb-4 text-red-400/80"
               />
-              <p className="font-minecraft-ten text-xl text-red-400 mb-2">
+              <p className=" text-xl text-red-400 mb-2">
                 Oops! Something went wrong.
               </p>
-              <p className="text-white/60 font-minecraft-five text-base">
+              <p className="text-white/60 -five text-base">
                 {error}
               </p>
             </div>
@@ -374,10 +374,10 @@ export function ScreenshotsTab({
                   icon="solar:gallery-minimalistic-bold-duotone"
                   className="w-20 h-20 mb-4 text-white/40"
                 />
-                <p className="font-minecraft-ten text-xl text-white/70 mb-2">
+                <p className=" text-xl text-white/70 mb-2">
                   No Screenshots Match Filter
                 </p>
-                <p className="text-white/50 font-minecraft-five text-base">
+                <p className="text-white/50 -five text-base">
                   Try adjusting your sort options.
                 </p>
               </div>

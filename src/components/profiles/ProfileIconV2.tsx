@@ -1,43 +1,57 @@
 "use client";
 
 import type React from "react";
-import { useEffect, useState } from "react";
 import type { Profile } from "../../types/profile";
 import ProfileIcon from "./ProfileIcon";
 import { useThemeStore } from "../../store/useThemeStore";
+import { cn } from "../../lib/utils";
 
 interface ProfileIconV2Props {
   profile: Profile;
   size?: "sm" | "md" | "lg";
   className?: string;
+  tone?: "accent" | "neutral";
 }
 
 export function ProfileIconV2({
   profile,
   size = "md",
   className = "",
+  tone = "accent",
 }: ProfileIconV2Props) {
   const accentColor = useThemeStore((state) => state.accentColor);
+  const isNeutral = tone === "neutral";
 
   const sizeClasses = {
     sm: "w-12 h-12",
-    md: "w-16 h-16", 
-    lg: "w-20 h-20",
+    md: "w-14 h-14",
+    lg: "w-[72px] h-[72px]",
   };
 
   const iconSizes = {
     sm: "w-6 h-6",
-    md: "w-8 h-8",
-    lg: "w-10 h-10",
+    md: "w-7 h-7",
+    lg: "w-9 h-9",
   };
 
   return (
     <div
-      className={`${sizeClasses[size]} rounded-lg border-2 flex items-center justify-center overflow-hidden ${className}`}
-      style={{
-        backgroundColor: `${accentColor.value}20`,
-        borderColor: `${accentColor.value}60`,
-      }}
+      className={cn(
+        sizeClasses[size],
+        "flex items-center justify-center overflow-hidden rounded-xl border",
+        isNeutral
+          ? "border-[var(--surface-border)] bg-[var(--surface-base)]"
+          : "border-2",
+        className,
+      )}
+      style={
+        isNeutral
+          ? undefined
+          : {
+              backgroundColor: `${accentColor.value}20`,
+              borderColor: `${accentColor.value}60`,
+            }
+      }
     >
       <ProfileIcon
         profileId={profile.id}
@@ -47,7 +61,7 @@ export function ProfileIconV2({
         onSuccessfulUpdate={() => {}}
         isEditable={false}
         variant="bare"
-        className="w-full h-full"
+        className="h-full w-full"
         placeholderIcon="ph:package-duotone"
         iconClassName={iconSizes[size]}
       />

@@ -123,7 +123,7 @@ export function ModrinthProjectCard({
           <div className="flex-grow">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-2">
-                <h3 className="text-white font-minecraft text-3xl mb-1 tracking-wide lowercase select-none">
+                <h3 className="text-white  text-3xl mb-1 tracking-wide lowercase select-none">
                   {project.title}
                 </h3>
 
@@ -180,7 +180,7 @@ export function ModrinthProjectCard({
               />
             </div>
 
-            <p className="text-white/70 font-minecraft-ten text-base mb-2 line-clamp-2 tracking-wide lowercase select-none">
+            <p className="text-white/70  text-base mb-2 line-clamp-2 tracking-wide lowercase select-none">
               {project.description}
             </p>
             <div className="flex flex-wrap gap-2 mb-2">
@@ -200,7 +200,7 @@ export function ModrinthProjectCard({
             <div className="flex items-center gap-4 text-white/70">
               <div className="flex items-center gap-1">
                 <Icon icon="pixel:download-solid" className="w-5 h-5" />
-                <span className="text-xl font-minecraft-ten tracking-wide lowercase select-none">
+                <span className="text-xl  tracking-wide lowercase select-none">
                   {project.downloads.toLocaleString()}
                 </span>
               </div>
@@ -209,7 +209,7 @@ export function ModrinthProjectCard({
                   icon={getProjectTypeIcon(project.project_type)}
                   className="w-5 h-5"
                 />
-                <span className="text-xl font-minecraft-ten tracking-wide lowercase select-none">
+                <span className="text-xl  tracking-wide lowercase select-none">
                   {project.project_type}
                 </span>
               </div>

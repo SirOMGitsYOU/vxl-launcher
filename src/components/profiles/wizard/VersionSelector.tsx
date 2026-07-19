@@ -74,7 +74,7 @@ export function VersionSelector({
     <div className="space-y-6 select-none">
       <div className="space-y-4">
         <div>
-          <h3 className="text-3xl font-minecraft text-white mb-3 lowercase">
+          <h3 className="text-3xl  text-white mb-3 lowercase">
             version type
           </h3>
           <div ref={typeButtonsRef} className="flex flex-wrap gap-2">
@@ -104,7 +104,7 @@ export function VersionSelector({
         </div>
 
         <div>
-          <h3 className="text-3xl font-minecraft text-white mb-3 lowercase">
+          <h3 className="text-3xl  text-white mb-3 lowercase">
             game version
           </h3>
           <div className="mb-3">

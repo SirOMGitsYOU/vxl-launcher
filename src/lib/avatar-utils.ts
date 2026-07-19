@@ -1,11 +1,12 @@
 /**
- * Utility functions for generating avatar and skin URLs
+ * Utility functions for generating avatar and skin URLs via NMSR.
+ * @see https://nmsr.nickac.dev/
  */
 
-const VXL_AVATAR_HOST = 'https://avatar.vxl.to';
+const NMSR_HOST = 'https://nmsr.nickac.dev';
 
 /**
- * Get avatar URL
+ * Get face avatar URL (NMSR Head:Face mode)
  * @param uuid - Minecraft player UUID (with or without hyphens)
  * @param options - Optional parameters for avatar customization
  * @returns Avatar URL string
@@ -19,25 +20,22 @@ export function getAvatarUrl(
 ): string {
   const cleanUuid = uuid.replace(/-/g, '');
   const params = new URLSearchParams();
-  
-  if (options?.overlay) {
-    params.append('overlay', '');
+
+  if (options?.overlay === false) {
+    params.append('nolayers', '');
   }
   if (options?.size) {
-    params.append('size', options.size.toString());
+    params.append('w', options.size.toString());
   }
-  
+
   const queryString = params.toString();
   const suffix = queryString ? `?${queryString}` : '';
-  
-  return `${VXL_AVATAR_HOST}/avatars/${cleanUuid}${suffix}`;
+
+  return `${NMSR_HOST}/face/${cleanUuid}${suffix}`;
 }
 
 /**
- * Get avatar URL (same as primary since we only use VXL)
- * @param uuid - Minecraft player UUID (with or without hyphens)
- * @param options - Optional parameters for avatar customization
- * @returns Avatar URL string
+ * Get face avatar URL (same as primary)
  */
 export function getFallbackAvatarUrl(
   uuid: string,
@@ -46,47 +44,26 @@ export function getFallbackAvatarUrl(
     size?: number;
   }
 ): string {
-  const cleanUuid = uuid.replace(/-/g, '');
-  const params = new URLSearchParams();
-  
-  if (options?.overlay) {
-    params.append('overlay', '');
-  }
-  if (options?.size) {
-    params.append('size', options.size.toString());
-  }
-  
-  const queryString = params.toString();
-  const suffix = queryString ? `?${queryString}` : '';
-  
-  return `${VXL_AVATAR_HOST}/avatars/${cleanUuid}${suffix}`;
+  return getAvatarUrl(uuid, options);
 }
 
 /**
- * Get skin URL
- * @param uuid - Minecraft player UUID (with or without hyphens)
- * @returns Skin URL string
+ * Get raw skin texture URL
  */
 export function getSkinUrl(uuid: string): string {
   const cleanUuid = uuid.replace(/-/g, '');
-  return `${VXL_AVATAR_HOST}/skins/${cleanUuid}`;
+  return `${NMSR_HOST}/skin/${cleanUuid}`;
 }
 
 /**
- * Get skin URL (same as primary since we only use VXL)
- * @param uuid - Minecraft player UUID (with or without hyphens)
- * @returns Skin URL string
+ * Get raw skin texture URL (same as primary)
  */
 export function getFallbackSkinUrl(uuid: string): string {
-  const cleanUuid = uuid.replace(/-/g, '');
-  return `${VXL_AVATAR_HOST}/skins/${cleanUuid}`;
+  return getSkinUrl(uuid);
 }
 
 /**
  * Create an image element with fallback support
- * @param primaryUrl - Primary image URL
- * @param fallbackUrl - Fallback image URL
- * @returns Image element with onerror handler
  */
 export function createImageWithFallback(
   primaryUrl: string,

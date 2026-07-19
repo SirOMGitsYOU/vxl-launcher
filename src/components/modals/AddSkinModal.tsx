@@ -3,21 +3,18 @@
 import { memo, useState } from "react";
 import type { MinecraftSkin, SkinVariant } from "../../types/localSkin";
 import type { TexturesData } from "../../types/minecraft";
-import { useThemeStore } from "../../store/useThemeStore";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
 import { useGlobalModal } from "../../hooks/useGlobalModal";
-import { Modal } from "../ui/Modal";
-import { Button } from "../ui/buttons/Button";
-import { IconButton } from "../ui/buttons/IconButton";
-import { Icon } from "@iconify/react";
-import { Input } from "../ui/Input";
-import { Checkbox } from "../ui/Checkbox";
+import { SkinView3DWrapper } from "../common/SkinView3DWrapper";
 import { toast } from "react-hot-toast";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { MinecraftSkinService } from "../../services/minecraft-skin-service";
-import { SkinView3DWrapper } from "../common/SkinView3DWrapper";
+import { Modal } from "../ui/Modal";
+import { Button, IconButton } from "../ui-v2";
+import { Icon } from "@iconify/react";
 import { SearchStyleInput } from "../ui/Input";
+import { CheckboxV2 } from "../ui/CheckboxV2";
 
 interface AddSkinModalProps {
   skin?: MinecraftSkin;
@@ -49,7 +46,6 @@ export const AddSkinModal = memo(
     const [importingCurrentSkin, setImportingCurrentSkin] = useState<boolean>(false);
 
     const variant: SkinVariant = isSlimVariant ? "slim" : "classic";
-    const accentColor = useThemeStore((state) => state.accentColor);
     const { hideModal } = useGlobalModal();
     const { activeAccount } = useMinecraftAuthStore();
 
@@ -528,35 +524,55 @@ export const AddSkinModal = memo(
 
     return (
       <Modal
-        title={skin ? "Edit Skin Properties" : (isPreviewMode ? "Add Skin - Preview" : "Add Skin")}
+        title={skin ? "Edit Skin" : isPreviewMode ? "Preview Skin" : "Add Skin"}
         onClose={handleClose}
-        variant="flat"
+        width="sm"
         footer={
-          <div className="flex gap-3 justify-center">
+          <div className="flex justify-end gap-3">
             {isPreviewMode ? (
-              <Button
-                variant="flat"
-                onClick={handleSave}
-                disabled={isLoading}
-                size="sm"
-              >
-                {isLoading ? "Saving..." : (skin ? "Save Changes" : "Save Skin")}
-              </Button>
+              <>
+                <Button variant="secondary" onClick={handleBackToEdit} disabled={isLoading} size="sm">
+                  Back
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={handleSave}
+                  disabled={isLoading}
+                  size="sm"
+                >
+                  {isLoading ? "Saving..." : skin ? "Save Changes" : "Save Skin"}
+                </Button>
+              </>
             ) : (
               <>
+                <Button
+                  variant="secondary"
+                  onClick={handleClose}
+                  disabled={isLoading || isPreviewLoading}
+                  size="sm"
+                >
+                  Cancel
+                </Button>
                 {!skin && (
                   <Button
-                    variant="flat-secondary"
+                    variant="primary"
                     onClick={handlePreview}
-                    disabled={isPreviewLoading}
+                    disabled={isPreviewLoading || !skinInput.trim()}
                     size="sm"
+                    icon={
+                      isPreviewLoading ? (
+                        <Icon icon="solar:refresh-bold" className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Icon icon="solar:eye-bold" className="w-4 h-4" />
+                      )
+                    }
                   >
-                    {isPreviewLoading ? "Loading..." : "Preview Skin"}
+                    {isPreviewLoading ? "Loading..." : "Preview"}
                   </Button>
                 )}
                 {skin && (
                   <Button
-                    variant="flat"
+                    variant="primary"
                     onClick={handleSave}
                     disabled={isLoading}
                     size="sm"
@@ -564,121 +580,89 @@ export const AddSkinModal = memo(
                     {isLoading ? "Saving..." : "Save Changes"}
                   </Button>
                 )}
-                <Button
-                  variant="flat-secondary"
-                  onClick={handleClose}
-                  disabled={isLoading || isPreviewLoading}
-                  size="sm"
-                >
-                  Cancel
-                </Button>
               </>
             )}
           </div>
         }
       >
         {isPreviewMode ? (
-          <div className="p-4">
-            {/* Skin Name Input - Above Preview */}
-            <div className="flex justify-center mb-4">
-              <div className="w-full max-w-md">
-                <SearchStyleInput
-                  value={previewSkinName}
-                  onChange={(e) => setPreviewSkinName(e.target.value)}
-                  placeholder="Enter skin name..."
-                  disabled={isLoading}
-                />
-              </div>
+          <div className="px-6 py-5 space-y-5">
+            <SearchStyleInput
+              value={previewSkinName}
+              onChange={(e) => setPreviewSkinName(e.target.value)}
+              placeholder="Skin name"
+              disabled={isLoading}
+            />
+
+            <div className="mx-auto aspect-[4/5] w-full max-w-[220px] rounded-xl border border-[var(--surface-border)] bg-[var(--surface-base)] overflow-hidden">
+              <SkinView3DWrapper
+                skinUrl={previewBase64Url || undefined}
+                skinVariant={variant}
+                enableAutoRotate
+                autoRotateSpeed={0.2}
+                zoom={0.9}
+              />
             </div>
 
-            <div className="flex justify-center">
-              <div className="w-64 h-80">
-                <SkinView3DWrapper
-                  skinUrl={previewBase64Url || undefined}
-                  skinVariant={variant}
-                  enableAutoRotate={true}
-                  autoRotateSpeed={0.2}
-                  zoom={0.9}
-                />
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <div className="flex justify-center gap-6">
-                <Checkbox
-                  checked={!isSlimVariant}
-                  onChange={(e) => setIsSlimVariant(false)}
-                  disabled={isLoading}
-                  label="Classic (Steve)"
-                  size="md"
-                />
-                <Checkbox
-                  checked={isSlimVariant}
-                  onChange={(e) => setIsSlimVariant(true)}
-                  disabled={isLoading}
-                  label="Slim (Alex)"
-                  size="md"
-                />
-              </div>
+            <div className="flex justify-center gap-6">
+              <CheckboxV2
+                checked={!isSlimVariant}
+                onChange={() => setIsSlimVariant(false)}
+                disabled={isLoading}
+                label="Classic (Steve)"
+                size="sm"
+              />
+              <CheckboxV2
+                checked={isSlimVariant}
+                onChange={() => setIsSlimVariant(true)}
+                disabled={isLoading}
+                label="Slim (Alex)"
+                size="sm"
+              />
             </div>
           </div>
         ) : (
-          <div className="p-4 space-y-4">
+          <div className="px-6 py-5 space-y-5">
             {skin && (
-              <div className="space-y-4">
-                {/* 3D Skin Preview for editing */}
-                <div className="flex justify-center">
-                  <div className="w-48 h-64">
-                    <SkinView3DWrapper
-                      skinUrl={previewBase64Url || undefined}
-                      skinVariant={variant}
-                      enableAutoRotate={true}
-                      autoRotateSpeed={0.3}
-                      zoom={0.8}
-                    />
-                  </div>
+              <div className="space-y-5">
+                <div className="mx-auto aspect-[4/5] w-full max-w-[180px] rounded-xl border border-[var(--surface-border)] bg-[var(--surface-base)] overflow-hidden">
+                  <SkinView3DWrapper
+                    skinUrl={previewBase64Url || undefined}
+                    skinVariant={variant}
+                    enableAutoRotate
+                    autoRotateSpeed={0.3}
+                    zoom={0.8}
+                  />
                 </div>
 
-                {/* Skin Name Input */}
                 <div>
-                  <label className="block font-minecraft text-3xl text-white/80 lowercase mb-2">
-                    Skin Name
+                  <label className="mb-2 block text-sm font-medium text-[var(--text-secondary)]">
+                    Skin name
                   </label>
                   <SearchStyleInput
                     value={previewSkinName}
                     onChange={(e) => setPreviewSkinName(e.target.value)}
-                    placeholder="Enter skin name..."
+                    placeholder="Enter skin name"
                     disabled={isLoading}
                   />
                 </div>
 
-                {/* Skin Variant Selection */}
                 <div>
-                  <p className="font-minecraft text-3xl text-white/80 lowercase mb-4">
-                    Skin Variant
-                  </p>
+                  <p className="mb-3 text-sm font-medium text-[var(--text-secondary)]">Model</p>
                   <div className="flex justify-center gap-6">
-                    <Checkbox
+                    <CheckboxV2
                       checked={!isSlimVariant}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setIsSlimVariant(false);
-                        }
-                      }}
+                      onChange={() => setIsSlimVariant(false)}
                       disabled={isLoading}
                       label="Classic (Steve)"
-                      size="md"
+                      size="sm"
                     />
-                    <Checkbox
+                    <CheckboxV2
                       checked={isSlimVariant}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setIsSlimVariant(true);
-                        }
-                      }}
+                      onChange={() => setIsSlimVariant(true)}
                       disabled={isLoading}
                       label="Slim (Alex)"
-                      size="md"
+                      size="sm"
                     />
                   </div>
                 </div>
@@ -686,37 +670,33 @@ export const AddSkinModal = memo(
             )}
 
             {!skin && (
-              <div className="space-y-3">
-                <label className="block font-minecraft text-3xl text-white/80 lowercase">
-                  Skin
-                </label>
+              <div className="space-y-4">
                 <div className="flex gap-2">
-                  <Input
-                    id="skinInputField"
-                    value={skinInput}
-                    onChange={(e) => setSkinInput(e.target.value)}
-                    placeholder="Copy by username, UUID or download from URL"
-                    disabled={isLoading || importingCurrentSkin}
-                    size="md"
-                    variant="flat"
-                    className="flex-grow"
-                  />
+                  <div className="min-w-0 flex-1">
+                    <SearchStyleInput
+                      value={skinInput}
+                      onChange={(e) => setSkinInput(e.target.value)}
+                      placeholder="Username, UUID, URL, or file path"
+                      disabled={isLoading || importingCurrentSkin}
+                    />
+                  </div>
                   <IconButton
                     onClick={handleOpenFileUpload}
-                    title="Upload Skin from file"
+                    title="Browse for skin file"
                     disabled={isLoading || importingCurrentSkin}
                     size="md"
-                    variant="flat-secondary"
-                    icon={<Icon icon="solar:folder-bold" className="w-5 h-5" />}
-                  />
+                    aria-label="Browse for skin file"
+                  >
+                    <Icon icon="solar:folder-bold" className="w-5 h-5" />
+                  </IconButton>
                 </div>
-                <p className="text-white/50 font-minecraft text-lg lowercase">
-                  Supported Sites: NameMC.com, Crafty.gg, Laby.net & Any Direct Image Host
+                <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                  Supports NameMC, Crafty.gg, Laby.net, and direct image URLs.
                 </p>
                 <Button
                   onClick={handleImportCurrentSkin}
                   disabled={isLoading || importingCurrentSkin || !activeAccount}
-                  variant="flat-secondary"
+                  variant="secondary"
                   size="sm"
                   className="w-full"
                   icon={<Icon icon="solar:download-bold" className="w-4 h-4" />}
@@ -725,7 +705,6 @@ export const AddSkinModal = memo(
                 </Button>
               </div>
             )}
-
           </div>
         )}
       </Modal>

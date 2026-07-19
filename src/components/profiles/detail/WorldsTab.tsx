@@ -703,7 +703,7 @@ export function WorldsTab({
         <>
           {/* Top: Title */}
           <h3
-            className="font-minecraft-ten text-base tracking-wide truncate flex-shrink-0"
+            className=" text-base tracking-wide truncate flex-shrink-0"
             title={itemDisplayName}
           >
             {itemDisplayName}
@@ -712,14 +712,14 @@ export function WorldsTab({
           {/* Middle: Subtitle (Last Played / MOTD) - vertically centered */}
           <div className="flex-grow flex items-center my-1 overflow-hidden">
             {isWorld ? (
-              <p className="text-white/60 text-xs truncate font-minecraft-ten">
+              <p className="text-white/60 text-xs truncate ">
                 {item.last_played
                   ? `Last played: ${timeAgo(item.last_played)}`
                   : "Never played"}
               </p>
             ) : (
               <div
-                className="text-white/70 text-xs motd-container overflow-hidden truncate font-minecraft-ten text-center"
+                className="text-white/70 text-xs motd-container overflow-hidden truncate  text-center"
                 title={pingInfo?.description || item.address || ""}
               >
                 {isPinging ? (
@@ -966,7 +966,7 @@ export function WorldsTab({
       return (
         <div
           key={key}
-          className="relative flex items-center gap-4 p-3 rounded-lg bg-black/20 border border-white/10 hover:border-white/20 transition-all duration-200"
+          className="relative flex items-center gap-4 p-3 rounded-lg bg-[var(--surface-overlay)] border border-[var(--surface-border)] hover:border-[var(--surface-border-strong)] transition-all duration-200"
         >
           {/* Icon */}
           <div className="relative w-16 h-16 flex-shrink-0">

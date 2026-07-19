@@ -2,7 +2,7 @@ import * as skinview3d from "skinview3d";
 import type { SkinVariant } from "../types/localSkin";
 
 const PREVIEW_SIZE = 256;
-const SKIN_PREVIEW_CACHE_VERSION = "fallback_v2";
+const SKIN_PREVIEW_CACHE_VERSION = "nmsr_fullbody_v1";
 
 async function sha1HexPrefix(input: string, length = 8): Promise<string> {
   const hashBuffer = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(input));

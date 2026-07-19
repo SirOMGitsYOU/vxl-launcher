@@ -117,7 +117,7 @@ export function GlobalToaster() {
     <div ref={toasterRef}>      <HotToaster
         position="bottom-right"
         toastOptions={{
-          className: `font-minecraft tracking-wider lowercase text-shadow-sm ${borderRadiusClass}`,
+          className: `text-sm font-medium ${borderRadiusClass}`,
           style: {
             borderWidth: "1px",
             borderBottomWidth: "2px",

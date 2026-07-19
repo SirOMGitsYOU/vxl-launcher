@@ -6,7 +6,7 @@ import { ErrorMessage } from "../ui/ErrorMessage";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
 import { useProfileStore } from "../../store/profile-store";
 import { useThemeStore } from "../../store/useThemeStore";
-import { PlayerActionsDisplay } from "../launcher/PlayerActionsDisplay";
+import { PlayHero } from "../play/PlayHero";
 import { RetroGridEffect } from "../effects/RetroGridEffect";
 import {
   BACKGROUND_EFFECTS,
@@ -71,8 +71,7 @@ export function PlayTab() {
             />
           )}
 
-          <PlayerActionsDisplay
-            displayMode="playerName"
+          <PlayHero
             playerName={
               activeAccount?.minecraft_username || activeAccount?.username
             }
@@ -81,12 +80,11 @@ export function PlayTab() {
             }
             onLaunchVersionChange={handleVersionChange}
             launchButtonVersions={versions}
-            className=""
           />
         </div>
       </div>
 
-      <ServerSection className="w-1/3 border-l-2 border-white/40 bg-black/10 backdrop-blur-lg p-5 overflow-hidden flex flex-col relative z-10" />
+      <ServerSection className="relative z-10 flex-shrink-0 border-l border-[var(--surface-border)] bg-[var(--surface-raised)]" />
     </div>
   );
 }

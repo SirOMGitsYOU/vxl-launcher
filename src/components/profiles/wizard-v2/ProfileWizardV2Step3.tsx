@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import type { ModLoader } from "../../../types/profile";
 import { Modal } from "../../ui/Modal";
-import { Button } from "../../ui/buttons/Button";
+import { Button } from "../../ui-v2";
 import { StatusMessage } from "../../ui/StatusMessage";
 import { useThemeStore } from "../../../store/useThemeStore";
 import { SearchStyleInput } from "../../ui/Input";
@@ -159,7 +159,7 @@ export function ProfileWizardV2Step3({
                 {/* Profile Details */}
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <label className="block text-base font-minecraft-ten text-white/50">
+                        <label className="block text-base  text-white/50">
                             Profile Name
                         </label>
                         <SearchStyleInput
@@ -170,19 +170,19 @@ export function ProfileWizardV2Step3({
                             required
                         />
                         {profileCharRemoved && (
-                            <p className="text-xs text-red-400 font-minecraft-ten mt-1">
+                            <p className="text-xs text-red-400  mt-1">
                                 The profile name cannot contain these characters: &lt; &gt; : " / \ | ? *
                             </p>
                         )}
                         {profileNameHasForbiddenEnding && (
-                            <p className="text-xs text-red-400 font-minecraft-ten mt-1">
+                            <p className="text-xs text-red-400  mt-1">
                                 The profile name cannot end with a space or dot.
                             </p>
                         )}
                     </div>
 
                     <div className="space-y-2">
-                        <label className="block text-base font-minecraft-ten text-white/50">
+                        <label className="block text-base  text-white/50">
                             Group (Optional)
                         </label>
                         <SearchStyleInput
@@ -201,10 +201,10 @@ export function ProfileWizardV2Step3({
                             checked={useSharedMinecraftFolder}
                             onChange={(event) => setUseSharedMinecraftFolder(event.target.checked)}
                             description="When enabled, a shared Minecraft folder will be used based on the group. Your settings, worlds, configs and resource packs will remain the same between profiles."
-                            descriptionClassName="font-minecraft-ten text-sm"
+                            descriptionClassName=" text-sm"
                             size="lg"
                         />
-                        <p className="text-xs text-white/50 font-minecraft-ten ml-10 -mt-1">
+                        <p className="text-xs text-white/50  ml-10 -mt-1">
                             (you can change this anytime)
                         </p>
                     </div>
@@ -214,10 +214,10 @@ export function ProfileWizardV2Step3({
                             checked={enableFileSync}
                             onChange={(event) => setEnableFileSync(event.target.checked)}
                             description="Sync servers.dat and options.txt with other profiles. You can configure sync settings after profile creation."
-                            descriptionClassName="font-minecraft-ten text-sm"
+                            descriptionClassName=" text-sm"
                             size="lg"
                         />
-                        <p className="text-xs text-white/50 font-minecraft-ten ml-10 -mt-1">
+                        <p className="text-xs text-white/50  ml-10 -mt-1">
                             (optional - configure later)
                         </p>
                     </div>
@@ -225,7 +225,7 @@ export function ProfileWizardV2Step3({
 
                 {/* RAM Settings */}
                 <div className="space-y-3">
-                    <label className="block text-base font-minecraft-ten text-white/50">
+                    <label className="block text-base  text-white/50">
                         Recommended RAM: 4096 mb
                     </label>
                     <RangeSlider
@@ -256,15 +256,13 @@ export function ProfileWizardV2Step3({
                 onClick={onBack}
                 disabled={creating}
                 size="md"
-                className="text-xl"
-                icon={<Icon icon="solar:arrow-left-bold" className="w-5 h-5" />}
-                iconPosition="left"
+                icon={<Icon icon="solar:arrow-left-bold" className="w-4 h-4" />}
             >
-                back
+                Back
             </Button>
 
             <Button
-                variant="success"
+                variant="primary"
                 onClick={handleCreate}
                 disabled={
                     creating ||
@@ -272,17 +270,15 @@ export function ProfileWizardV2Step3({
                     profileNameHasForbiddenEnding
                 }
                 size="md"
-                className="min-w-[180px] text-xl"
                 icon={
                     creating ? (
-                        <Icon icon="solar:refresh-bold" className="w-5 h-5 animate-spin" />
+                        <Icon icon="solar:refresh-bold" className="w-4 h-4 animate-spin" />
                     ) : (
-                        <Icon icon="solar:check-circle-bold" className="w-5 h-5" />
+                        <Icon icon="solar:check-circle-bold" className="w-4 h-4" />
                     )
                 }
-                iconPosition="left"
             >
-                {creating ? "creating..." : "create profile"}
+                {creating ? "Creating..." : "Create profile"}
             </Button>
         </div>
     );

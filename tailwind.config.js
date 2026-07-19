@@ -50,11 +50,16 @@ module.exports = {
           dark: "#0e4678",
         },
         panel: {
-          DEFAULT: "#1e1e1e",
-          light: "#262626",
-          border: "#3a3a3a",
+          DEFAULT: "#12141a",
+          light: "#181b24",
+          border: "rgba(255, 255, 255, 0.08)",
         },
-        dark: "#121212",
+        surface: {
+          base: "#0a0b10",
+          raised: "#12141a",
+          overlay: "#181b24",
+        },
+        dark: "#0a0b10",
       },
       borderRadius: {
         lg: "var(--radius)",

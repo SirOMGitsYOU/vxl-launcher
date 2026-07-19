@@ -81,7 +81,7 @@ export function ModDetailVersions({ project }: ModDetailVersionsProps) {
     return (
       <div className="flex items-center justify-center py-12">
         <Icon icon="solar:refresh-bold" className="w-6 h-6 text-white/50 animate-spin" />
-        <span className="ml-2 text-white/50 font-minecraft-ten">Loading versions...</span>
+        <span className="ml-2 text-white/50 ">Loading versions...</span>
       </div>
     );
   }
@@ -90,7 +90,7 @@ export function ModDetailVersions({ project }: ModDetailVersionsProps) {
     return (
       <div className="text-center py-12">
         <Icon icon="solar:danger-triangle-bold" className="w-8 h-8 text-red-500 mx-auto mb-2" />
-        <p className="text-red-400 font-minecraft-ten text-sm">{error}</p>
+        <p className="text-red-400  text-sm">{error}</p>
       </div>
     );
   }
@@ -108,7 +108,7 @@ export function ModDetailVersions({ project }: ModDetailVersionsProps) {
           <select
             value={versionTypeFilter}
             onChange={(e) => setVersionTypeFilter(e.target.value)}
-            className="px-2 py-1 rounded text-xs font-minecraft-ten bg-black/30 border border-white/20 text-white"
+            className="px-2 py-1 rounded text-xs  bg-black/30 border border-white/20 text-white"
           >
             <option value="all">All Types</option>
             <option value="release">Release</option>
@@ -119,7 +119,7 @@ export function ModDetailVersions({ project }: ModDetailVersionsProps) {
           <select
             value={gameVersionFilter}
             onChange={(e) => setGameVersionFilter(e.target.value)}
-            className="px-2 py-1 rounded text-xs font-minecraft-ten bg-black/30 border border-white/20 text-white"
+            className="px-2 py-1 rounded text-xs  bg-black/30 border border-white/20 text-white"
           >
             <option value="all">All Game Versions</option>
             {availableGameVersions.map(v => (
@@ -131,7 +131,7 @@ export function ModDetailVersions({ project }: ModDetailVersionsProps) {
             <select
               value={loaderFilter}
               onChange={(e) => setLoaderFilter(e.target.value)}
-              className="px-2 py-1 rounded text-xs font-minecraft-ten bg-black/30 border border-white/20 text-white"
+              className="px-2 py-1 rounded text-xs  bg-black/30 border border-white/20 text-white"
             >
               <option value="all">All Loaders</option>
               {availableLoaders.map(l => (
@@ -140,7 +140,7 @@ export function ModDetailVersions({ project }: ModDetailVersionsProps) {
             </select>
           )}
 
-          <div className="ml-auto text-xs text-white/50 font-minecraft-ten">
+          <div className="ml-auto text-xs text-white/50 ">
             {filteredVersions.length} version{filteredVersions.length !== 1 ? "s" : ""}
           </div>
         </div>
@@ -164,19 +164,19 @@ export function ModDetailVersions({ project }: ModDetailVersionsProps) {
           {filteredVersions.slice(0, displayedCount).map((version) => (
             <div
               key={version.id}
-              className="p-3 rounded-lg bg-black/20 border border-white/10 hover:border-white/20 transition-all"
+              className="p-3 rounded-lg bg-[var(--surface-overlay)] border border-[var(--surface-border)] hover:border-[var(--surface-border-strong)] transition-all"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-minecraft-ten text-white font-bold">
+                    <span className=" text-white font-bold">
                       {version.version_number}
                     </span>
                     <TagBadge size="sm" variant="info">
                       {version.release_type}
                     </TagBadge>
                   </div>
-                  <p className="text-xs text-white/70 font-minecraft-ten">
+                  <p className="text-xs text-white/70 ">
                     {new Date(version.date_published).toLocaleDateString()}
                   </p>
                   {version.game_versions.length > 0 && (
@@ -185,7 +185,7 @@ export function ModDetailVersions({ project }: ModDetailVersionsProps) {
                         <TagBadge key={gv} size="sm">{gv}</TagBadge>
                       ))}
                       {version.game_versions.length > 3 && (
-                        <span className="text-xs text-white/50 font-minecraft-ten">
+                        <span className="text-xs text-white/50 ">
                           +{version.game_versions.length - 3}
                         </span>
                       )}
@@ -193,7 +193,7 @@ export function ModDetailVersions({ project }: ModDetailVersionsProps) {
                   )}
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <p className="text-xs text-white/50 font-minecraft-ten">
+                  <p className="text-xs text-white/50 ">
                     {(version.downloads || 0).toLocaleString()} downloads
                   </p>
                 </div>
@@ -204,7 +204,7 @@ export function ModDetailVersions({ project }: ModDetailVersionsProps) {
           {filteredVersions.length > displayedCount && (
             <button
               onClick={() => setDisplayedCount(prev => prev + 10)}
-              className="w-full mt-2 py-2 rounded-lg text-xs font-minecraft-ten transition-colors"
+              className="w-full mt-2 py-2 rounded-lg text-xs  transition-colors"
               style={{
                 backgroundColor: `${accentColor.value}15`,
                 borderColor: `${accentColor.value}30`,

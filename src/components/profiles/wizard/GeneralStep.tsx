@@ -84,10 +84,10 @@ export function GeneralStep({
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-3xl font-minecraft text-white mb-3 lowercase">
+        <h2 className="text-3xl  text-white mb-3 lowercase">
           profile details
         </h2>
-        <p className="text-xs text-white/70 font-minecraft-ten tracking-wide">
+        <p className="text-xs text-white/70  tracking-wide">
           Enter basic information about your Minecraft profile.
         </p>
       </div>
@@ -98,7 +98,7 @@ export function GeneralStep({
         className="p-6 space-y-6 bg-black/20 border border-white/10"
       >
         <div>
-          <label className="block text-2xl font-minecraft text-white mb-2 lowercase">
+          <label className="block text-2xl  text-white mb-2 lowercase">
             profile name <span className="text-red-400">*</span>
           </label>
           <Input
@@ -111,7 +111,7 @@ export function GeneralStep({
         </div>
 
         <div>
-          <label className="block text-2xl font-minecraft text-white mb-2 lowercase">
+          <label className="block text-2xl  text-white mb-2 lowercase">
             group
           </label>
           <Input
@@ -129,7 +129,7 @@ export function GeneralStep({
         className="p-6 space-y-6 bg-black/20 border border-white/10"
       >
         <div>
-          <label className="block text-2xl font-minecraft text-white mb-2 lowercase">
+          <label className="block text-2xl  text-white mb-2 lowercase">
             maximum ram: {memoryMaxMb} mb ({(memoryMaxMb / 1024).toFixed(1)} gb)
           </label>
           <RangeSlider
@@ -151,7 +151,7 @@ export function GeneralStep({
             recommendedDisplayRam = Math.max(recommendedDisplayRam, 1024); // Ensure at least 1024
 
             return (
-              <p className="text-xs text-white/60 mt-3 font-minecraft-ten tracking-wide">
+              <p className="text-xs text-white/60 mt-3  tracking-wide">
                 Recommended: {recommendedDisplayRam} MB (
                 {(recommendedDisplayRam / 1024).toFixed(1)} GB)
               </p>

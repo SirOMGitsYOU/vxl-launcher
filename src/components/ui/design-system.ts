@@ -39,9 +39,15 @@ export const designTokens = {
     slow: "0.3s"
   },
   shadows: {
-    sm: "0 2px 4px rgba(0,0,0,0.1)",
-    md: "0 4px 8px rgba(0,0,0,0.15)",
-    lg: "0 8px 16px rgba(0,0,0,0.2)"
+    sm: "0 1px 2px rgba(0,0,0,0.25)",
+    md: "0 4px 16px rgba(0,0,0,0.35)",
+    lg: "0 8px 32px rgba(0,0,0,0.45)"
+  },
+  surfaces: {
+    base: "var(--surface-base)",
+    raised: "var(--surface-raised)",
+    overlay: "var(--surface-overlay)",
+    border: "var(--surface-border)"
   }
 };
 
@@ -112,22 +118,22 @@ export const getSizeClasses = (size: ComponentSize, element: "button" | "input" 
   
   if (element === "input") {
     switch (size) {
-      case "xs": return "h-[36px] px-5 text-lg";
-      case "sm": return "h-[42px] px-6 text-xl";
-      case "md": return "h-[50px] px-8 text-xl";
-      case "lg": return "h-[58px] px-10 text-2xl";
-      case "xl": return "h-[66px] px-12 text-2xl";
-      default: return "h-[50px] px-8 text-xl";
+      case "xs": return "h-8 px-3 text-xs";
+      case "sm": return "h-9 px-3.5 text-sm";
+      case "md": return "h-10 px-4 text-sm";
+      case "lg": return "h-11 px-4 text-base";
+      case "xl": return "h-12 px-5 text-base";
+      default: return "h-10 px-4 text-sm";
     }
   }
   
   switch (size) {
-    case "xs": return "h-[36px] px-5 py-2 text-lg";
-    case "sm": return "h-[42px] px-6 py-2 text-xl"; 
-    case "md": return "h-[50px] px-8 py-2.5 text-xl";
-    case "lg": return "h-[58px] px-10 py-3 text-2xl";
-    case "xl": return "h-[66px] px-12 py-4 text-2xl";
-    default: return "h-[50px] px-8 py-2.5 text-xl";
+    case "xs": return "h-8 px-3 py-1.5 text-xs";
+    case "sm": return "h-9 px-3.5 py-2 text-sm";
+    case "md": return "h-10 px-4 py-2 text-sm";
+    case "lg": return "h-11 px-5 py-2.5 text-base";
+    case "xl": return "h-12 px-6 py-3 text-base";
+    default: return "h-10 px-4 py-2 text-sm";
   }
 };
 
@@ -205,42 +211,42 @@ export const getTextSizeClass = (size: ComponentSize, element: "button" | "input
   
   if (element === "input") {
     switch (size) {
-      case "xs": return "text-lg";
-      case "sm": return "text-xl";
-      case "md": return "text-xl";
-      case "lg": return "text-2xl";
-      case "xl": return "text-2xl";
-      default: return "text-xl";
+      case "xs": return "text-xs";
+      case "sm": return "text-sm";
+      case "md": return "text-sm";
+      case "lg": return "text-base";
+      case "xl": return "text-base";
+      default: return "text-sm";
     }
   }
     if (element === "button") {
     switch (size) {
-      case "xs": return "text-lg";
-      case "sm": return "text-xl";
-      case "md": return "text-xl";
-      case "lg": return "text-2xl";
-      case "xl": return "text-2xl";
-      default: return "text-xl";
+      case "xs": return "text-xs";
+      case "sm": return "text-sm";
+      case "md": return "text-sm";
+      case "lg": return "text-base";
+      case "xl": return "text-base";
+      default: return "text-sm";
     }
   }
   
   if (element === "checkbox") {
     switch (size) {
-      case "xs": return "text-xl";
-      case "sm": return "text-2xl";
-      case "md": return "text-2xl";
-      case "lg": return "text-3xl";
-      case "xl": return "text-3xl";
-      default: return "text-2xl";
+      case "xs": return "text-sm";
+      case "sm": return "text-sm";
+      case "md": return "text-base";
+      case "lg": return "text-base";
+      case "xl": return "text-lg";
+      default: return "text-base";
     }
   }
   
   switch (size) {
-    case "xs": return "text-lg";
-    case "sm": return "text-xl";
-    case "md": return "text-xl";
-    case "lg": return "text-2xl";
-    case "xl": return "text-2xl";
-    default: return "text-xl";
+    case "xs": return "text-xs";
+    case "sm": return "text-sm";
+    case "md": return "text-sm";
+    case "lg": return "text-base";
+    case "xl": return "text-base";
+    default: return "text-sm";
   }
 };

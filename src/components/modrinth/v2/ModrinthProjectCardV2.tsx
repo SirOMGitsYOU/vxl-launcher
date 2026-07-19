@@ -10,7 +10,7 @@ import type { UnifiedModSearchResult, UnifiedVersion } from "../../../types/unif
 type CompatibleProject = UnifiedModSearchResult;
 import type { AccentColor } from "../../../store/useThemeStore";
 import type { ContentInstallStatus } from "../../../types/profile";
-import { ActionButton } from "../../ui/ActionButton";
+import { SplitActionButton } from "../../ui/SplitActionButton";
 import { Icon } from "@iconify/react";
 import { TagBadge } from "../../ui/TagBadge";
 import { cn } from "../../../lib/utils";
@@ -215,11 +215,16 @@ export const ModrinthProjectCardV2 = React.memo<ModrinthProjectCardV2Props>(
     };
 
     return (
-      <div>
+      <div className="mb-2">
         {/* Main Card */}
         <div
           className={cn(
-            "relative flex items-center gap-4 p-3 rounded-lg bg-black/20 border border-white/10 hover:border-white/20 transition-all duration-200",
+            "relative flex items-center gap-4 p-3 bg-[var(--surface-overlay)] border border-[var(--surface-border)] vxl-list-item-accent-hover transition-all duration-200",
+            isExpanded &&
+              Array.isArray(projectVersions) &&
+              projectVersions.length > 0
+              ? "rounded-t-xl rounded-b-none border-b-0"
+              : "rounded-xl",
           installStatus?.is_installed &&
             !installStatus?.is_included_in_norisk_pack &&
             "border-l-green-500",
@@ -232,7 +237,7 @@ export const ModrinthProjectCardV2 = React.memo<ModrinthProjectCardV2Props>(
         )}
       >
         {/* Stats - absolute oben rechts */}
-        <div className="absolute top-3 right-3 flex items-center space-x-2 text-xs text-gray-400 font-minecraft-ten">
+        <div className="absolute top-3 right-3 flex items-center space-x-2 text-xs text-gray-400 ">
           {/* Downloads */}
           <div className="text-white/50 flex items-center gap-0.5">
             <svg
@@ -280,7 +285,7 @@ export const ModrinthProjectCardV2 = React.memo<ModrinthProjectCardV2Props>(
           <div className="flex flex-row items-baseline space-x-1.5 mb-1">
             <button
               onClick={handleTitleClick}
-              className="text-white font-minecraft-ten text-lg whitespace-nowrap overflow-hidden text-ellipsis normal-case hover:underline cursor-pointer text-left"
+              className="text-white  text-lg whitespace-nowrap overflow-hidden text-ellipsis normal-case hover:underline cursor-pointer text-left"
               title={`View ${hit.title} details`}
             >
               {hit.title}
@@ -307,7 +312,7 @@ export const ModrinthProjectCardV2 = React.memo<ModrinthProjectCardV2Props>(
                 }}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-gray-400 truncate font-minecraft-ten flex-shrink min-w-0 hover:text-gray-200 hover:underline cursor-pointer"
+                className="text-xs text-gray-400 truncate  flex-shrink min-w-0 hover:text-gray-200 hover:underline cursor-pointer"
                 title={`Open ${hit.author}'s profile on ${hit.source === 'Modrinth' ? 'Modrinth' : 'CurseForge'}`}
               >
                 by {hit.author}
@@ -316,11 +321,11 @@ export const ModrinthProjectCardV2 = React.memo<ModrinthProjectCardV2Props>(
           </div>
 
           {/* Description */}
-          <p className="text-xs text-gray-300 line-clamp-2 font-minecraft-ten leading-tight mb-2 min-h-[2rem]">
+          <p className="text-xs text-gray-300 line-clamp-2  leading-tight mb-2 min-h-[2rem]">
             {hit.description}
           </p>
 
-          <div className="flex items-center gap-1 text-sm font-minecraft-ten">
+          <div className="flex items-center gap-1 text-sm ">
             {/* Status badges */}
             {installStatus && (
               <>
@@ -360,16 +365,25 @@ export const ModrinthProjectCardV2 = React.memo<ModrinthProjectCardV2Props>(
 
 
         {/* Action Buttons */}
-        <div className="flex items-center space-x-1">
+        <div className="flex items-center">
           {hit.project_type === "modpack" ? (
-            <ActionButton
+            <SplitActionButton
               label={isInstallingModpackAsProfile ? "Installing..." : "Install"}
               icon={isInstallingModpackAsProfile ? "solar:refresh-bold" : "solar:download-minimalistic-bold"}
               iconClassName={isInstallingModpackAsProfile ? "animate-spin-slow" : ""}
               variant={isInstallingModpackAsProfile ? "secondary" : "primary"}
               disabled={isInstallingModpackAsProfile || isQuickInstalling || (!!installStatus?.is_installed && !!selectedProfile)}
-              onClick={(e) => {
-                e.stopPropagation();
+              menuDisabled={isLoadingVersions}
+              menuIcon={
+                isLoadingVersions
+                  ? "solar:refresh-bold"
+                  : isExpanded
+                    ? "solar:alt-arrow-up-bold"
+                    : "solar:alt-arrow-down-bold"
+              }
+              menuIconClassName={isLoadingVersions ? "animate-spin-fast" : ""}
+              menuTooltip={isExpanded ? "Hide Versions" : "Show Versions"}
+              onPrimaryClick={() => {
                 if (onInstallModpackAsProfileClick) {
                   onInstallModpackAsProfileClick(hit);
                 } else {
@@ -379,46 +393,37 @@ export const ModrinthProjectCardV2 = React.memo<ModrinthProjectCardV2Props>(
                   onQuickInstallClick(hit);
                 }
               }}
+              onMenuClick={() => onToggleVersionsClick(hit.project_id)}
               size="sm"
             />
           ) : (
-            <ActionButton
+            <SplitActionButton
               label={isQuickInstalling ? "Installing..." : "Install"}
               icon={
-                isQuickInstalling 
-                  ? "solar:refresh-bold" 
-                  : (projectNoRiskStatus === 'blocked' || projectNoRiskStatus === 'warning')
+                isQuickInstalling
+                  ? "solar:refresh-bold"
+                  : projectNoRiskStatus === "blocked" || projectNoRiskStatus === "warning"
                     ? "solar:danger-triangle-bold"
                     : "solar:download-minimalistic-bold"
               }
               iconClassName={isQuickInstalling ? "animate-spin-slow" : ""}
               variant={isQuickInstalling ? "secondary" : "primary"}
               disabled={isQuickInstalling || (!!installStatus?.is_installed && !!selectedProfile)}
-              onClick={(e) => {
-                e.stopPropagation();
-                onQuickInstallClick(hit);
-              }}
+              menuDisabled={isLoadingVersions}
+              menuIcon={
+                isLoadingVersions
+                  ? "solar:refresh-bold"
+                  : isExpanded
+                    ? "solar:alt-arrow-up-bold"
+                    : "solar:alt-arrow-down-bold"
+              }
+              menuIconClassName={isLoadingVersions ? "animate-spin-fast" : ""}
+              menuTooltip={isExpanded ? "Hide Versions" : "Show Versions"}
+              onPrimaryClick={() => onQuickInstallClick(hit)}
+              onMenuClick={() => onToggleVersionsClick(hit.project_id)}
               size="sm"
             />
           )}
-          <ActionButton
-            icon={
-              isLoadingVersions
-                ? "solar:refresh-bold"
-                : isExpanded
-                  ? "solar:alt-arrow-up-bold"
-                  : "solar:alt-arrow-down-bold"
-            }
-            iconClassName={isLoadingVersions ? "animate-spin-fast" : ""}
-            variant="icon-only"
-            disabled={isLoadingVersions}
-            tooltip={isExpanded ? "Hide Versions" : "Show Versions"}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleVersionsClick(hit.project_id);
-            }}
-            size="sm"
-          />
         </div>
 
         </div>
@@ -427,7 +432,7 @@ export const ModrinthProjectCardV2 = React.memo<ModrinthProjectCardV2Props>(
         {isExpanded &&
           Array.isArray(projectVersions) &&
           projectVersions.length > 0 && (
-            <div className="mt-4">
+            <div className="overflow-hidden rounded-b-xl border border-t-0 border-[var(--surface-border)]">
               <ModrinthVersionListV2
               projectId={hit.project_id}
               project={hit}

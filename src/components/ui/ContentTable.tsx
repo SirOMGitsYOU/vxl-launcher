@@ -168,7 +168,7 @@ export function ContentTable({
               onClick={() => handleHeaderClick(header, index)}
             >
               <div className="flex items-center">
-                <span className="font-minecraft text-xl lowercase">
+                <span className="text-sm font-medium">
                   {header.label}
                 </span>
                 {header.sortable && sortKey === header.key && (
@@ -202,7 +202,7 @@ export function ContentTable({
               aria-hidden="true"
             />            <div 
               role="cell"
-              className="text-white/60 font-minecraft text-xl text-center lowercase"
+              className="text-white/60  text-xl text-center lowercase"
             >
               {searchQuery
                 ? `no ${contentType}s match your search`
@@ -220,7 +220,7 @@ export function ContentTable({
         }}
         aria-label="Table summary"
       >
-        <div className="text-white/70 font-minecraft text-xl lowercase">
+        <div className="text-white/70 text-sm font-medium">
           {filteredCount > 0 ? (
             <>
               {filteredCount} {contentType}

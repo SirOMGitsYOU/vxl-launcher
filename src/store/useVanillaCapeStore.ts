@@ -12,7 +12,7 @@ interface VanillaCapeState {
   error: string | null;
   lastFetchTime: number | null;
 
-  fetchOwnedCapes: () => Promise<void>;
+  fetchOwnedCapes: (options?: { force?: boolean }) => Promise<void>;
   fetchCapeInfo: () => Promise<void>;
   equipCape: (capeId: string | null) => Promise<void>;
   refreshData: () => Promise<void>;
@@ -47,12 +47,12 @@ export const useVanillaCapeStore = create<VanillaCapeState>()(
       error: null,
       lastFetchTime: null,
 
-      fetchOwnedCapes: async () => {
+      fetchOwnedCapes: async (options) => {
+        const force = options?.force ?? false;
         const now = Date.now();
         const lastFetch = get().lastFetchTime;
-        
-        // Prevent multiple calls within 5 seconds
-        if (lastFetch && now - lastFetch < 5000) {
+
+        if (!force && lastFetch && now - lastFetch < 5000) {
           console.log("Skipping fetch - too soon since last call");
           return;
         }
@@ -66,11 +66,11 @@ export const useVanillaCapeStore = create<VanillaCapeState>()(
         try {
           const ownedCapes = await VanillaCapeService.getOwnedVanillaCapes();
           const equippedCape = await VanillaCapeService.getCurrentlyEquippedVanillaCape();
-          
-          set({ 
-            ownedCapes, 
+
+          set({
+            ownedCapes,
             equippedCape,
-            isLoading: false 
+            isLoading: false,
           });
           syncCapeTexturesInBackground(ownedCapes);
         } catch (error) {
@@ -153,7 +153,7 @@ export const useVanillaCapeStore = create<VanillaCapeState>()(
           capeInfo: [],
           isLoading: false,
           error: null,
-          lastFetchTime: null
+          lastFetchTime: null,
         });
       },
 

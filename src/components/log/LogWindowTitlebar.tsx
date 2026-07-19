@@ -35,7 +35,7 @@ export function LogWindowTitlebar({ title = "Minecraft Logs" }: LogWindowTitleba
           style={{ color: accentColor.value }}
         />
         <span
-          className="font-minecraft-ten text-sm tracking-wider"
+          className=" text-sm tracking-wider"
           style={{ color: accentColor.value }}
         >
           {title.toUpperCase()}

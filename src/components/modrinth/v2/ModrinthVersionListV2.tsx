@@ -1,23 +1,19 @@
 "use client";
 
 import type React from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
   ModrinthGameVersion,
   ModrinthSearchHit,
-  ModrinthVersion,
 } from "../../../types/modrinth";
 import type { UnifiedVersion } from "../../../types/unified";
 import type { AccentColor } from "../../../store/useThemeStore";
 import type { ContentInstallStatus } from "../../../types/profile";
 import { Icon } from "@iconify/react";
-import { Button } from "../../ui/buttons/Button";
-import { Checkbox } from "../../ui/Checkbox";
 import { ModrinthVersionItemV2 } from "./ModrinthVersionItemV2";
-import { Select, type SelectOption } from "../../ui/Select";
+import { Select, Button } from "../../ui-v2";
+import { CheckboxV2 } from "../../ui/CheckboxV2";
 import { TagBadge } from "../../ui/TagBadge";
-import { gsap } from "gsap";
-import { useThemeStore } from "../../../store/useThemeStore";
 
 // --- Define Props for the new component ---
 interface ModrinthVersionListV2Props {
@@ -98,20 +94,20 @@ export const ModrinthVersionListV2: React.FC<ModrinthVersionListV2Props> = ({
   displayedCount,
   filters,
   uiState,
-  openDropdowns,
+  openDropdowns: _openDropdowns,
   installedVersions,
   installingVersionStates,
   installingModpackVersionStates,
   selectedProfile,
-  accentColor,
+  accentColor: _accentColor,
   hoveredVersionId,
   gameVersionsData,
   showAllGameVersionsSidebar,
   selectedGameVersionsSidebar,
   onFilterChange,
   onUiStateChange,
-  onToggleDropdown,
-  onCloseAllDropdowns,
+  onToggleDropdown: _onToggleDropdown,
+  onCloseAllDropdowns: _onCloseAllDropdowns,
   onLoadMore,
   onInstallClick,
   onInstallModpackVersionAsProfileClick,
@@ -122,38 +118,14 @@ export const ModrinthVersionListV2: React.FC<ModrinthVersionListV2Props> = ({
   isProjectBlocked = false, // Deprecated
   projectNoRiskStatus = null,
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const isAnimationEnabled = useThemeStore((state) => state.isBackgroundAnimationEnabled);
 
-  // Create Select options for version type
-  const versionTypeOptions: SelectOption[] = [
-    { value: "all", label: "All Types" },
+  const versionTypeOptions = [
+    { value: "all", label: "All types" },
     { value: "release", label: "Release" },
     { value: "beta", label: "Beta" },
     { value: "alpha", label: "Alpha" },
   ];
-
-  // Animation for the container when it mounts
-  useEffect(() => {
-    if (containerRef.current && isAnimationEnabled) {
-      // Use a more performant animation approach
-      requestAnimationFrame(() => {
-        gsap.fromTo(
-          containerRef.current,
-          { opacity: 0, y: 20 },
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.4,
-            ease: "power2.out",
-          },
-        );
-      });
-    }
-  }, [isAnimationEnabled]);
-
-  // Update showFilters state when filters change
   useEffect(() => {
     setShowFilters(
       filters.gameVersions.length > 0 ||
@@ -252,30 +224,24 @@ export const ModrinthVersionListV2: React.FC<ModrinthVersionListV2Props> = ({
   // Create game version options
   const gameVersionOptions = useMemo(
     () => [
-      { value: "all", label: "All Game Versions" },
+      { value: "all", label: "All game versions" },
       ...availableGameVersions.map((gv) => ({
         value: gv,
         label: gv,
-        icon: filters.gameVersions.includes(gv) ? (
-          <Icon icon="solar:check-circle-bold" className="w-4 h-4" />
-        ) : undefined,
       })),
     ],
-    [availableGameVersions, filters.gameVersions],
+    [availableGameVersions],
   );
 
   const loaderOptions = useMemo(
     () => [
-      { value: "all", label: "All Loaders" },
+      { value: "all", label: "All loaders" },
       ...availableLoaders.map((loader) => ({
         value: loader,
         label: loader,
-        icon: filters.loaders.includes(loader) ? (
-          <Icon icon="solar:check-circle-bold" className="w-4 h-4" />
-        ) : undefined,
       })),
     ],
-    [availableLoaders, filters.loaders],
+    [availableLoaders],
   );
 
   // Handle clearing all filters
@@ -285,108 +251,85 @@ export const ModrinthVersionListV2: React.FC<ModrinthVersionListV2Props> = ({
     onFilterChange(projectId, "loaders", []);
   };
 
-  // --- JSX Rendering (To be moved here in the next step) ---
   return (
-    <div ref={containerRef} className="p-3 relative">
-      {/* Header with version filters - New design */}
-      <div
-        className="mb-4 p-3 rounded-lg border backdrop-blur-sm"
-        style={{
-          backgroundColor: `${accentColor.value}10`,
-          borderColor: `${accentColor.value}30`,
-        }}
-      >
-        <div className="flex flex-wrap gap-2 items-center">
-          {/* Version Type Select */}
-          <div className="relative">
-            <Select
-              value={filters.versionType}
-              onChange={(value) => {
-                onFilterChange(projectId, "versionType", value);
-              }}
-              options={versionTypeOptions}
-              size="sm"
-              className="w-40"
-            />
-          </div>
+    <div className="bg-[var(--surface-base)] px-3 py-3">
+      <div className="mb-3 rounded-xl border border-[var(--surface-border)] bg-[var(--surface-raised)] p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={filters.versionType}
+            onChange={(e) => onFilterChange(projectId, "versionType", e.target.value)}
+            className="h-8 min-w-[7.5rem] text-xs"
+          >
+            {versionTypeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
 
-          {/* Game Version Select */}
-          <div className="relative">
-            <Select
-              value={
-                filters.gameVersions.length > 0
-                  ? filters.gameVersions[0]
-                  : "all"
+          <Select
+            value={filters.gameVersions.length > 0 ? filters.gameVersions[0] : "all"}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value === "all") {
+                onFilterChange(projectId, "gameVersions", []);
+              } else {
+                const current = filters.gameVersions || [];
+                const isAlreadySelected = current.includes(value);
+                const newValue = isAlreadySelected
+                  ? current.filter((v) => v !== value)
+                  : [...current, value];
+                onFilterChange(projectId, "gameVersions", newValue);
               }
-              onChange={(value) => {
-                if (value === "all") {
-                  onFilterChange(projectId, "gameVersions", []);
-                } else {
-                  // Toggle the selected version
-                  const current = filters.gameVersions || [];
-                  const isAlreadySelected = current.includes(value);
-                  const newValue = isAlreadySelected
-                    ? current.filter((v) => v !== value)
-                    : [...current, value];
-                  onFilterChange(projectId, "gameVersions", newValue);
-                }
-              }}
-              options={gameVersionOptions}
-              size="sm"
-              className="w-52"
-            />
-          </div>
+            }}
+            className="h-8 min-w-[9rem] max-w-[11rem] text-xs"
+          >
+            {gameVersionOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
 
-          {/* Loader Select */}
-          <div className="relative">
-            <Select
-              value={filters.loaders.length > 0 ? filters.loaders[0] : "all"}
-              onChange={(value) => {
-                if (value === "all") {
-                  onFilterChange(projectId, "loaders", []);
-                } else {
-                  // Toggle the selected loader
-                  const current = filters.loaders || [];
-                  const isAlreadySelected = current.includes(value);
-                  const newValue = isAlreadySelected
-                    ? current.filter((l) => l !== value)
-                    : [...current, value];
-                  onFilterChange(projectId, "loaders", newValue);
-                }
-              }}
-              options={loaderOptions}
-              size="sm"
-              className="w-40"
-            />
-          </div>
+          <Select
+            value={filters.loaders.length > 0 ? filters.loaders[0] : "all"}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value === "all") {
+                onFilterChange(projectId, "loaders", []);
+              } else {
+                const current = filters.loaders || [];
+                const isAlreadySelected = current.includes(value);
+                const newValue = isAlreadySelected
+                  ? current.filter((l) => l !== value)
+                  : [...current, value];
+                onFilterChange(projectId, "loaders", newValue);
+              }
+            }}
+            className="h-8 min-w-[7.5rem] text-xs"
+          >
+            {loaderOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
 
-          {/* Show checkbox for 'Show All' when using game versions dropdown */}
           <div className="ml-auto">
-            <Checkbox
-              id={`show-all-gv-${projectId}`}
-              label="Show All Versions"
+            <CheckboxV2
               checked={uiState?.showAllGameVersions || false}
-              onChange={(e) =>
-                onUiStateChange(
-                  projectId,
-                  "showAllGameVersions",
-                  e.target.checked,
-                )
+              onChange={(checked) =>
+                onUiStateChange(projectId, "showAllGameVersions", checked)
               }
-              className="text-sm"
+              label="Show all versions"
+              size="sm"
             />
           </div>
         </div>
 
         {showFilters && (
-          <div className="flex items-center mt-2 gap-2">
-            <div
-              className="flex-1 border rounded-md h-[48px] overflow-x-auto overflow-y-hidden whitespace-nowrap hide-scrollbar"
-              style={{
-                backgroundColor: `${accentColor.value}08`,
-                borderColor: `${accentColor.value}30`,
-              }}
-            >
+          <div className="mt-3 flex items-center gap-2">
+            <div className="flex-1 overflow-x-auto hide-scrollbar rounded-lg border border-[var(--surface-border)] bg-[var(--surface-overlay)]">
               <div className="flex items-center gap-1.5 p-2">
                 <TagBadge
                   variant="destructive"
@@ -472,7 +415,6 @@ export const ModrinthVersionListV2: React.FC<ModrinthVersionListV2Props> = ({
         )}
       </div>
 
-      {/* Filtered Versions List - Moved from ModrinthSearchV2 */}
       {filteredVersions.length > 0 ? (
         <div className="space-y-2">
           {filteredVersions.slice(0, displayedCount).map((version) => {
@@ -491,7 +433,6 @@ export const ModrinthVersionListV2: React.FC<ModrinthVersionListV2Props> = ({
                 versionStatus={versionStatus}
                 isInstalling={isInstalling}
                 isInstallingModpackVersion={isInstallingModpackVersion}
-                accentColor={accentColor}
                 isHovered={isVersionHovered}
                 onMouseEnter={() => onHoverVersion(version.id)}
                 onMouseLeave={() => onHoverVersion(null)}
@@ -511,24 +452,15 @@ export const ModrinthVersionListV2: React.FC<ModrinthVersionListV2Props> = ({
             <Button
               onClick={() => onLoadMore(projectId)}
               variant="ghost"
-              size="xs"
-              shadowDepth="short"
-              className="w-full mt-2 text-xs"
+              size="sm"
+              className="mt-2 w-full text-xs"
             >
-              Load More ({filteredVersions.length - displayedCount} more)
+              Load more ({filteredVersions.length - displayedCount} remaining)
             </Button>
           )}
         </div>
       ) : (
-        <div
-          className="relative overflow-hidden transition-colors duration-150 rounded-md p-4 text-sm text-gray-400 text-center border-2 border-b-4 backdrop-blur-md"
-          style={{
-            borderColor: `${accentColor.value}60`,
-            borderBottomColor: accentColor.value,
-            boxShadow: `0 8px 0 rgba(0,0,0,0.3), 0 10px 15px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 0 0 1px rgba(255,255,255,0.05)`,
-            backgroundColor: `${accentColor.value}15`,
-          }}
-        >
+        <div className="rounded-lg border border-[var(--surface-border)] bg-[var(--surface-overlay)] p-4 text-center text-sm text-[var(--text-secondary)]">
           No versions match the selected filters.
         </div>
       )}

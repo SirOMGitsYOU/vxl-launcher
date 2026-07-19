@@ -19,6 +19,7 @@ use std::sync::Arc;
 use tauri::Listener;
 use tauri::Manager;
 use utils::debug_utils;
+use utils::splash_utils;
 use utils::updater_utils;
 
 use crate::commands::process_command::{
@@ -99,7 +100,7 @@ use commands::file_sync_command::{
 };
 
 // Import config commands
-use commands::config_commands::{get_app_version, get_launcher_config, set_launcher_config};
+use commands::config_commands::{get_app_version, get_launcher_config, is_launcher_ready, set_launcher_config};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -174,6 +175,8 @@ async fn main() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
             let app_handle = app.handle().clone();
+
+            splash_utils::show_main_window(&app_handle);
 
             // --- Initialize System Tray (Tauri 2.0) ---
             let show_item = MenuItem::with_id(app, "show", "Show VXL Launcher", true, None::<&str>)?;
@@ -277,9 +280,12 @@ async fn main() {
                             error!("Failed to close updater window after state init error: {}", close_err);
                         }
                     }
+                    splash_utils::emit_app_ready(&state_init_app_handle);
                     return;
                 }
                 info!("State initialization finished successfully.");
+
+                splash_utils::emit_app_ready(&state_init_app_handle);
 
                 info!("Attempting to retrieve launcher configuration for update check...");
                 match state::state_manager::State::get().await {
@@ -320,20 +326,6 @@ async fn main() {
                             }
                         }
                     }
-                }
-
-                info!("Updater process finished. Attempting to show main window...");
-                if let Some(main_window) = state_init_app_handle.get_webview_window("main") { 
-                    if let Err(e) = main_window.show() {
-                        error!("Failed to show main window: {}", e);
-                    } else {
-                        info!("Main window shown successfully.");
-                        if let Err(e) = main_window.set_focus() {
-                            error!("Failed to focus main window: {}", e);
-                        }
-                    }
-                } else {
-                    error!("Could not get main window handle to show it after update check!");
                 }
 
                 // --- Test Unified Mod Search ---
@@ -528,6 +520,7 @@ async fn main() {
             open_file,
             read_file_bytes,
             get_app_version,
+            is_launcher_ready,
             check_update_available_command,
             download_and_install_update_command,
             get_modrinth_categories_command,

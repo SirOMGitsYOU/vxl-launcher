@@ -163,7 +163,7 @@ export function MainLaunchButton({
         {displaySubText && (
           <span
             className={cn(
-              "text-xs font-minecraft-ten tracking-normal -mt-1 text-center normal-case whitespace-nowrap overflow-hidden text-ellipsis",
+              "text-xs  tracking-normal -mt-1 text-center normal-case whitespace-nowrap overflow-hidden text-ellipsis",
               isButtonLaunching ? "max-w-64" : "",
               statusColorClass
             )}

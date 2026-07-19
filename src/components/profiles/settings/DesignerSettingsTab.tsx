@@ -28,7 +28,7 @@ export function DesignerSettingsTab({
   return (
     <div className="space-y-4 pt-2">
       <div>
-        <h3 className="text-3xl font-minecraft text-white mb-3 lowercase">
+        <h3 className="text-3xl  text-white mb-3 lowercase">
           Asset Management
         </h3>
         <div className="p-0">
@@ -44,7 +44,7 @@ export function DesignerSettingsTab({
               className="text-2xl"
             />
           </div>
-          <p className="text-xs text-white/70 font-minecraft-ten tracking-wide select-none pl-1">
+          <p className="text-xs text-white/70  tracking-wide select-none pl-1">
             If checked, edited assets (wings, norisk.jsons, etc.) will not be 
             overwritten upon relaunch.
           </p>

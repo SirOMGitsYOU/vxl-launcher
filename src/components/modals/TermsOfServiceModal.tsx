@@ -45,17 +45,17 @@ export function TermsOfServiceModal({ isOpen }: TermsOfServiceModalProps) {
     >
       <div className="p-6 space-y-6 text-white">
         <div className="text-center space-y-4">
-          <h3 className="text-3xl font-minecraft text-blue-400 lowercase">
+          <h3 className="text-3xl  text-blue-400 lowercase">
             Welcome to VXL Launcher!
           </h3>
-          <p className="text-lg font-minecraft-ten text-gray-300">
+          <p className="text-lg  text-gray-300">
             Before you start using our launcher, please read and accept our Terms of Service.
           </p>
         </div>
 
-        <div className="space-y-4 text-base font-minecraft-ten text-gray-200 max-h-60 overflow-y-auto custom-scrollbar p-4 bg-black/30 rounded border border-gray-600">
+        <div className="space-y-4 text-base  text-gray-200 max-h-60 overflow-y-auto custom-scrollbar p-4 bg-black/30 rounded border border-gray-600">
           <div className="space-y-3">
-            <h4 className="text-lg font-minecraft text-white">Key Points:</h4>
+            <h4 className="text-lg  text-white">Key Points:</h4>
             <ul className="space-y-2 list-disc list-inside text-sm">
               <li>You must own a legitimate copy of Minecraft to use this launcher</li>
               <li>This launcher is provided "as is" without warranties</li>

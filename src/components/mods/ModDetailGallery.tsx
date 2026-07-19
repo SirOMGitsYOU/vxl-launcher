@@ -40,11 +40,11 @@ export function ModDetailGallery({ images }: ModDetailGalleryProps) {
     <>
       <div className="relative">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-minecraft-ten text-white flex items-center gap-2 normal-case">
+          <h2 className="text-lg  text-white flex items-center gap-2 normal-case">
             <Icon icon="solar:gallery-bold" className="w-5 h-5" />
             Gallery
           </h2>
-          <span className="text-xs text-white/50 font-minecraft-ten">
+          <span className="text-xs text-white/50 ">
             {images.length} image{images.length !== 1 ? "s" : ""}
           </span>
         </div>
@@ -99,14 +99,14 @@ export function ModDetailGallery({ images }: ModDetailGalleryProps) {
                 </div>
 
                 {image.featured && (
-                  <div className="absolute top-2 left-2 bg-yellow-500/90 text-black text-xs font-minecraft-ten px-2 py-0.5 rounded">
+                  <div className="absolute top-2 left-2 bg-yellow-500/90 text-black text-xs  px-2 py-0.5 rounded">
                     Featured
                   </div>
                 )}
 
                 {image.title && (
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                    <p className="text-xs text-white font-minecraft-ten truncate">
+                    <p className="text-xs text-white  truncate">
                       {image.title}
                     </p>
                   </div>
@@ -154,7 +154,7 @@ export function ModDetailGallery({ images }: ModDetailGalleryProps) {
               </>
             )}
 
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 px-3 py-1 rounded text-white text-sm font-minecraft-ten">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 px-3 py-1 rounded text-white text-sm ">
               {lightboxIndex + 1} / {sortedImages.length}
             </div>
           </div>

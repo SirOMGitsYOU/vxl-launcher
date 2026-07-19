@@ -6,7 +6,8 @@ use std::path::PathBuf;
 use tokio::fs as tokio_fs;
 use tokio::io::AsyncWriteExt;
 
-const VXL_AVATAR_API_BASE: &str = "https://avatar.vxl.to";
+const NMSR_API_BASE: &str = "https://nmsr.nickac.dev";
+const NMSR_FACE_CACHE_VERSION: &str = "face_v1";
 
 /// Normalizes UUID by removing hyphens for consistent cache filenames
 fn normalize_uuid(uuid: &str) -> String {
@@ -18,7 +19,10 @@ fn generate_cache_filename(uuid: &str, size: Option<u32>, overlay: bool) -> Stri
     let normalized_uuid = normalize_uuid(uuid);
     let size_str = size.map(|s| s.to_string()).unwrap_or_else(|| "default".to_string());
     let overlay_str = if overlay { "true" } else { "false" };
-    format!("{}_{}_{}.png", normalized_uuid, size_str, overlay_str)
+    format!(
+        "{}_{}_{}_{}.png",
+        NMSR_FACE_CACHE_VERSION, normalized_uuid, size_str, overlay_str
+    )
 }
 
 pub struct CrafatarApiService {
@@ -27,10 +31,10 @@ pub struct CrafatarApiService {
 
 impl CrafatarApiService {
     pub fn new() -> Result<Self> {
-        let cache_dir = LAUNCHER_DIRECTORY.meta_dir().join("crafatar_cache");
+        let cache_dir = LAUNCHER_DIRECTORY.meta_dir().join("nmsr_face_cache");
         if !cache_dir.exists() {
             std::fs::create_dir_all(&cache_dir).map_err(|e| {
-                AppError::Other(format!("Failed to create Crafatar cache directory: {}", e))
+                AppError::Other(format!("Failed to create NMSR face cache directory: {}", e))
             })?;
         }
         Ok(Self { cache_dir })
@@ -43,14 +47,14 @@ impl CrafatarApiService {
         target_cache_path: &PathBuf,
     ) -> Result<Vec<u8>> {
         let normalized_uuid = normalize_uuid(uuid);
-        let base_url = format!("{}/avatars/{}", VXL_AVATAR_API_BASE, normalized_uuid);
+        let base_url = format!("{}/face/{}", NMSR_API_BASE, normalized_uuid);
 
         let mut query_params = Vec::new();
         if let Some(s) = size {
-            query_params.push(("size", s.to_string()));
+            query_params.push(("w", s.to_string()));
         }
-        if overlay {
-            query_params.push(("overlay", "true".to_string()));
+        if !overlay {
+            query_params.push(("nolayers", String::new()));
         }
 
         // Use global HTTP_CLIENT
@@ -60,8 +64,8 @@ impl CrafatarApiService {
         }
 
         let request = request_builder.build().map_err(|e| {
-            error!("Failed to build Crafatar API request: {}", e);
-            AppError::Other(format!("Failed to build Crafatar API request: {}", e))
+            error!("Failed to build NMSR face request: {}", e);
+            AppError::Other(format!("Failed to build NMSR face request: {}", e))
         })?;
 
         let final_url = request.url().to_string();
@@ -74,10 +78,10 @@ impl CrafatarApiService {
         // Use global HTTP_CLIENT to execute the request
         let response = HTTP_CLIENT.execute(request).await.map_err(|e| {
             warn!(
-                "Crafatar API request failed for UUID {} (size: {:?}, overlay: {}): {:?}",
+                "NMSR face request failed for UUID {} (size: {:?}, overlay: {}): {:?}",
                 uuid, size, overlay, e
             );
-            AppError::Other(format!("Crafatar API request failed: {}", e))
+            AppError::Other(format!("NMSR face request failed: {}", e))
         })?;
 
         let status = response.status();
@@ -88,7 +92,7 @@ impl CrafatarApiService {
                 .await
                 .unwrap_or_else(|_| format!("HTTP Error {}", status));
             warn!(
-                "VXL Avatar API call failed for UUID {} (size: {:?}, overlay: {}) with status {}: {}",
+                "NMSR face API call failed for UUID {} (size: {:?}, overlay: {}) with status {}: {}",
                 uuid, size, overlay, status, error_text
             );
 
@@ -224,7 +228,7 @@ impl CrafatarApiService {
                         let normalized_uuid = normalize_uuid(uuid);
                         for entry in entries.flatten() {
                             if let Some(file_name) = entry.file_name().to_str() {
-                                if file_name.starts_with(&normalized_uuid) && file_name.ends_with(".png") {
+                                if file_name.contains(&normalized_uuid) && file_name.ends_with(".png") {
                                     warn!(
                                         "API failed for UUID {} (size: {:?}, overlay: {}), but found cached version: {:?}. Returning cached version.",
                                         uuid, size, overlay, entry.path()

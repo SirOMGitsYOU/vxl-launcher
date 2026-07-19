@@ -84,7 +84,7 @@ export const ModrinthQuickProfile: React.FC<ModrinthQuickProfileProps> = ({
       )}
     >
       <div>
-        <h3 className="text-xl sm:text-2xl font-semibold text-gray-100 font-minecraft-ten normal-case">
+        <h3 className="text-xl sm:text-2xl font-semibold text-gray-100  normal-case">
           {isActuallyCopying
             ? `Copy existing profile and install `
             : `Install `}
@@ -96,7 +96,7 @@ export const ModrinthQuickProfile: React.FC<ModrinthQuickProfileProps> = ({
         </h3>
       </div>
 
-      <p className="text-xs font-minecraft-ten sm:text-sm text-gray-400">
+      <p className="text-xs  sm:text-sm text-gray-400">
         {isActuallyCopying
           ? `Copying settings from '${storeProfiles.find((p) => p.id === selectedSourceProfileId)?.name || "selected profile"}'. Enter a name for the new copy.`
           : "Enter a name for the new profile. Optionally, copy settings from an existing profile."}
@@ -148,10 +148,10 @@ export const ModrinthQuickProfile: React.FC<ModrinthQuickProfileProps> = ({
       {(showSourceSelectInput || isActuallyCopying) && (
         <div className="pt-2 animated-fade-in space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-medium font-minecraft-ten text-gray-400">
+            <label className="text-xs font-medium  text-gray-400">
               Source Profile to Copy
             </label>
-            <span className="text-xs text-white/50 font-minecraft-ten">
+            <span className="text-xs text-white/50 ">
               {filteredProfiles.length} profile{filteredProfiles.length !== 1 ? 's' : ''}
             </span>
           </div>
@@ -159,12 +159,12 @@ export const ModrinthQuickProfile: React.FC<ModrinthQuickProfileProps> = ({
           {profilesLoading ? (
             <div className="flex items-center justify-center gap-2 p-3 bg-black/20 rounded-lg">
               <Icon icon="solar:refresh-bold" className="w-4 h-4 animate-spin text-white/50" />
-              <span className="text-sm text-white/50 font-minecraft-ten">Loading profiles...</span>
+              <span className="text-sm text-white/50 ">Loading profiles...</span>
             </div>
           ) : storeProfiles.length === 0 ? (
             <div className="flex items-center justify-center gap-2 p-3 bg-black/20 rounded-lg">
               <Icon icon="solar:folder-error-bold" className="w-4 h-4 text-amber-500" />
-              <span className="text-sm text-amber-500 font-minecraft-ten">No profiles available</span>
+              <span className="text-sm text-amber-500 ">No profiles available</span>
             </div>
           ) : (
             <>
@@ -178,7 +178,7 @@ export const ModrinthQuickProfile: React.FC<ModrinthQuickProfileProps> = ({
                   value={profileSearchValue}
                   onChange={(e) => setProfileSearchValue(e.target.value)}
                   placeholder="Search profiles..."
-                  className="w-full pl-7 pr-3 py-1.5 bg-black/20 border border-white/10 rounded-md text-xs font-minecraft-ten text-white placeholder-white/50 focus:border-accent focus:outline-none transition-colors"
+                  className="w-full pl-7 pr-3 py-1.5 bg-black/20 border border-white/10 rounded-md text-xs  text-white placeholder-white/50 focus:border-accent focus:outline-none transition-colors"
                   disabled={isLoading}
                 />
                 {profileSearchValue && (
@@ -213,10 +213,10 @@ export const ModrinthQuickProfile: React.FC<ModrinthQuickProfileProps> = ({
                       <Icon icon="solar:user-bold" className="w-3 h-3 text-white/70" />
                     </div>
                     <div className="flex-1 min-w-0 w-full">
-                      <div className="text-xs font-minecraft-ten text-white truncate" title={profile.name}>
+                      <div className="text-xs  text-white truncate" title={profile.name}>
                         {profile.name}
                       </div>
-                      <div className="text-xs text-white/40 font-minecraft-ten truncate">
+                      <div className="text-xs text-white/40  truncate">
                         {profile.game_version}
                       </div>
                     </div>
@@ -230,10 +230,10 @@ export const ModrinthQuickProfile: React.FC<ModrinthQuickProfileProps> = ({
                   <button
                     onClick={handleLoadMoreProfiles}
                     disabled={isLoading}
-                    className="flex flex-col items-center justify-center gap-1 p-2 rounded-md bg-black/20 border border-white/10 hover:border-white/20 hover:bg-black/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex flex-col items-center justify-center gap-1 p-2 rounded-md bg-[var(--surface-overlay)] border border-[var(--surface-border)] hover:border-[var(--surface-border-strong)] hover:bg-black/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Icon icon="solar:add-circle-bold" className="w-4 h-4 text-white/50" />
-                    <span className="text-xs font-minecraft-ten text-white/50">
+                    <span className="text-xs  text-white/50">
                       +{Math.min(9, filteredProfiles.length - maxProfilesToShow)} more
                     </span>
                   </button>
@@ -243,7 +243,7 @@ export const ModrinthQuickProfile: React.FC<ModrinthQuickProfileProps> = ({
               {filteredProfiles.length === 0 && profileSearchValue && (
                 <div className="text-center py-2">
                   <Icon icon="solar:search-bold" className="w-4 h-4 text-white/30 mx-auto mb-1" />
-                  <span className="text-xs text-white/50 font-minecraft-ten">No profiles found</span>
+                  <span className="text-xs text-white/50 ">No profiles found</span>
                 </div>
               )}
             </>

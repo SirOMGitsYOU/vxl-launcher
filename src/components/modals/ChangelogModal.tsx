@@ -3,11 +3,9 @@
 import { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
 import { Modal } from "../ui/Modal";
-import { useThemeStore } from "../../store/useThemeStore";
-import { IconButton } from "../ui/buttons/IconButton";
-import { Button } from "../ui/buttons/Button";
-import { openExternalUrl } from "../../services/tauri-service";
+import { Badge, Button, Card, LoadingState, SelectTab } from "../ui-v2";
 import { fetchChangelog, type ChangelogEntry, type ChangelogResponse } from "../../services/changelog-service";
+import { CreditsContent } from "./CreditsContent";
 
 interface ChangelogModalProps {
   isOpen: boolean;
@@ -15,7 +13,6 @@ interface ChangelogModalProps {
 }
 
 export function ChangelogModal({ isOpen, onClose }: ChangelogModalProps) {
-  const accentColor = useThemeStore((state) => state.accentColor);
   const [activeTab, setActiveTab] = useState<"changelog" | "credits">("changelog");
   const [changelogData, setChangelogData] = useState<ChangelogResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -23,9 +20,9 @@ export function ChangelogModal({ isOpen, onClose }: ChangelogModalProps) {
 
   useEffect(() => {
     if (isOpen && activeTab === "changelog" && !changelogData) {
-      loadChangelog();
+      void loadChangelog();
     }
-  }, [isOpen, activeTab]);
+  }, [isOpen, activeTab, changelogData]);
 
   const loadChangelog = async () => {
     setLoading(true);
@@ -38,14 +35,6 @@ export function ChangelogModal({ isOpen, onClose }: ChangelogModalProps) {
       setError("Failed to load changelog data");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleOpenUrl = async (url: string) => {
-    try {
-      await openExternalUrl(url);
-    } catch (error) {
-      console.error("Failed to open external URL:", error);
     }
   };
 
@@ -66,14 +55,14 @@ export function ChangelogModal({ isOpen, onClose }: ChangelogModalProps) {
     if (changes.length === 0) return null;
 
     return (
-      <div className="mb-4">
-        <div className="flex items-center gap-3 mb-3">
-          <Icon icon={icon} className="w-5 h-5" style={{ color: accentColor.value }} />
-          <h4 className="text-2xl font-minecraft text-white">{title}</h4>
+      <div className="mb-3 last:mb-0">
+        <div className="mb-2 flex items-center gap-2">
+          <Icon icon={icon} className="h-4 w-4 text-[var(--accent)]" />
+          <h4 className="text-sm font-semibold text-white">{title}</h4>
         </div>
-        <ul className="space-y-1 ml-6">
+        <ul className="ml-6 space-y-1">
           {changes.map((change, index) => (
-            <li key={index} className="text-white/60 font-minecraft-ten text-sm">
+            <li key={index} className="text-sm text-[var(--text-secondary)]">
               • {change}
             </li>
           ))}
@@ -82,247 +71,91 @@ export function ChangelogModal({ isOpen, onClose }: ChangelogModalProps) {
     );
   };
 
-  const renderChangelogEntry = (entry: ChangelogEntry, index: number) => (
-    <div
-      key={entry.version}
-      className={`p-4 rounded-lg border-2 transition-colors ${
-        index === 0
-          ? "bg-black/30 border-white/30"
-          : "bg-black/20 border-white/20"
-      }`}
-    >
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center mt-2"
-            style={{ backgroundColor: `${accentColor.value}40` }}
-          >
-            <Icon
-              icon="solar:tag-bold"
-              className="w-4 h-4"
-              style={{ color: accentColor.value }}
-            />
-          </div>
-          <div>
-            <h3 className="text-2xl font-minecraft text-white">
-              {entry.version}
-            </h3>
-            <p className="text-white/50 font-minecraft-ten text-xs -mt-2">
-              {formatDate(entry.date)}
-            </p>
-          </div>
-        </div>
-        {entry.version === changelogData?.current_version && (
-          <div
-            className="px-3 py-1.5 rounded-full text-sm font-minecraft-ten"
-            style={{
-              backgroundColor: `${accentColor.value}20`,
-              color: accentColor.value,
-              border: `1px solid ${accentColor.value}40`,
-            }}
-          >
-            Current
-          </div>
-        )}
-      </div>
+  const renderChangelogEntry = (entry: ChangelogEntry) => {
+    const isCurrent = entry.version === changelogData?.current_version;
 
-      <div className="space-y-2">
-        {renderChangeSection("Features", "solar:star-bold", entry.features)}
-        {renderChangeSection("Improvements", "solar:arrow-up-bold", entry.improvements)}
-        {renderChangeSection("Fixes", "solar:check-circle-bold", entry.fixes)}
-        {renderChangeSection("Changes", "solar:refresh-circle-bold", entry.changes)}
-      </div>
-    </div>
-  );
+    return (
+      <Card
+        key={entry.version}
+        className={isCurrent ? "border-[var(--accent)] bg-[rgba(var(--accent-rgb),0.06)] p-4" : "p-4"}
+      >
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[rgba(var(--accent-rgb),0.2)] bg-[rgba(var(--accent-rgb),0.08)]">
+              <Icon icon="solar:tag-bold" className="h-4 w-4 text-[var(--accent)]" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-white">{entry.version}</h3>
+              <p className="text-xs text-[var(--text-secondary)]">{formatDate(entry.date)}</p>
+            </div>
+          </div>
+          {isCurrent ? <Badge tone="accent">Current</Badge> : null}
+        </div>
+
+        <div className="space-y-1">
+          {renderChangeSection("Features", "solar:star-bold", entry.features)}
+          {renderChangeSection("Improvements", "solar:arrow-up-bold", entry.improvements)}
+          {renderChangeSection("Fixes", "solar:check-circle-bold", entry.fixes)}
+          {renderChangeSection("Changes", "solar:refresh-circle-bold", entry.changes)}
+        </div>
+      </Card>
+    );
+  };
 
   if (!isOpen) return null;
 
   return (
     <Modal
       title={activeTab === "changelog" ? "Changelog" : "Credits"}
-      titleIcon={<Icon icon={activeTab === "changelog" ? "solar:document-text-bold" : "solar:code-bold"} className="w-6 h-6" />}
+      titleIcon={
+        <Icon
+          icon={activeTab === "changelog" ? "solar:document-text-bold" : "solar:code-bold"}
+          className="h-5 w-5"
+        />
+      }
       onClose={onClose}
       width="lg"
     >
-      <div className="p-6">
-        {/* Tab Navigation */}
-        <div className="flex gap-2 mb-6">
-          <Button
-            variant={activeTab === "changelog" ? "default" : "ghost"}
+      <div className="space-y-5 px-6 py-5">
+        <div className="flex flex-wrap gap-2">
+          <SelectTab
+            active={activeTab === "changelog"}
             onClick={() => setActiveTab("changelog")}
-            icon={<Icon icon="solar:document-text-bold" className="w-4 h-4" />}
-            className="whitespace-nowrap"
+            icon={<Icon icon="solar:document-text-bold" className="h-4 w-4" />}
           >
             Changelog
-          </Button>
-          <Button
-            variant={activeTab === "credits" ? "default" : "ghost"}
+          </SelectTab>
+          <SelectTab
+            active={activeTab === "credits"}
             onClick={() => setActiveTab("credits")}
-            icon={<Icon icon="solar:code-bold" className="w-4 h-4" />}
-            className="whitespace-nowrap"
+            icon={<Icon icon="solar:code-bold" className="h-4 w-4" />}
           >
             Credits
-          </Button>
+          </SelectTab>
         </div>
 
-        {/* Tab Content */}
         {activeTab === "changelog" ? (
-          <div className="space-y-4 max-h-96 overflow-y-auto custom-scrollbar">
+          <div className="max-h-96 space-y-3 overflow-y-auto custom-scrollbar">
             {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin w-6 h-6 border-2 border-white/20 border-t-white rounded-full"></div>
-                <span className="ml-3 text-white/70 font-minecraft-ten">Loading changelog...</span>
-              </div>
+              <LoadingState message="Loading changelog..." />
             ) : error ? (
-              <div className="text-center py-8">
-                <Icon icon="solar:danger-triangle-bold" className="w-12 h-12 text-red-400 mx-auto mb-3" />
-                <p className="text-red-400 font-minecraft-ten">{error}</p>
-                <Button
-                  onClick={loadChangelog}
-                  variant="ghost"
-                  className="mt-3"
-                  disabled={loading}
-                >
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <Icon icon="solar:danger-triangle-bold" className="mb-3 h-10 w-10 text-red-400" />
+                <p className="text-sm text-red-400">{error}</p>
+                <Button onClick={loadChangelog} variant="secondary" className="mt-4" disabled={loading}>
                   Retry
                 </Button>
               </div>
             ) : changelogData ? (
-              <div className="space-y-4">
-                {changelogData.entries.map((entry, index) =>
-                  renderChangelogEntry(entry, index)
-                )}
-              </div>
+              changelogData.entries.map((entry) => renderChangelogEntry(entry))
             ) : (
-              <div className="text-center py-8">
-                <p className="text-white/50 font-minecraft-ten">No changelog data available</p>
-              </div>
+              <p className="py-8 text-center text-sm text-[var(--text-secondary)]">
+                No changelog data available
+              </p>
             )}
           </div>
         ) : (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between p-4 rounded-lg bg-black/20 border-2 border-white/20 transition-colors">
-              <div className="flex items-center gap-4">
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: `${accentColor.value}40` }}
-                >
-                  <Icon
-                    icon="solar:code-2-bold"
-                    className="w-5 h-5"
-                    style={{ color: accentColor.value }}
-                  />
-                </div>
-                <div className="min-h-[3rem] flex flex-col justify-center">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-minecraft text-white tracking-wider">
-                      Deadmake
-                    </span>
-                    <span className="text-white/50 font-minecraft text-lg">
-                      aka Maggus
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="text-right mr-3">
-                  <p className="text-white/80 font-minecraft text-lg tracking-wide" title="(sirknubble did it better)">
-                    UI & Frontend
-                  </p>
-                </div>
-                <IconButton
-                  icon={<Icon icon="solar:global-bold" className="w-4 h-4" />}
-                  onClick={() => handleOpenUrl("https://deadmake.dev")}
-                  variant="default"
-                  size="sm"
-                  title="Visit deadmake.dev"
-                />
-              </div>
-            </div>
-            <div className="flex items-center justify-between p-4 rounded-lg bg-black/20 border-2 border-white/20 transition-colors">
-              <div className="flex items-center gap-4">
-                <div 
-                  className="w-10 h-10 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: `${accentColor.value}40` }}
-                >
-                  <Icon
-                    icon="solar:server-bold"
-                    className="w-5 h-5"
-                    style={{ color: accentColor.value }}
-                  />
-                </div>
-                <div className="min-h-[3rem] flex flex-col justify-center">
-                  <div className="flex items-baseline gap-2">
-                    <h4 className="text-2xl font-minecraft text-white tracking-wider">
-                      NoRisk & LiquidBounce
-                    </h4>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="text-right">
-                  <p className="text-white/80 font-minecraft text-lg tracking-wide">
-                    Base Code
-                  </p>
-                </div>
-                <IconButton
-                  icon={<Icon icon="solar:global-bold" className="w-4 h-4" />}
-                  onClick={() => handleOpenUrl("https://github.com/NoRiskClient/noriskclient-launcher")}
-                  variant="default"
-                  size="sm"
-                  title="NoRisk Source Code"
-                />
-                <IconButton
-                  icon={<Icon icon="solar:global-bold" className="w-4 h-4" />}
-                  onClick={() => handleOpenUrl("https://github.com/CCBlueX/LiquidLauncher")}
-                  variant="default"
-                  size="sm"
-                  title="LiquidBounce Source Code"
-                />
-              </div>
-            </div>
-            <div className="flex items-center justify-between p-4 rounded-lg bg-black/20 border-2 border-white/20 transition-colors">
-              <div className="flex items-center gap-4">
-                <div 
-                  className="w-10 h-10 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: `${accentColor.value}40` }}
-                >
-                  <Icon
-                    icon="solar:server-bold"
-                    className="w-5 h-5"
-                    style={{ color: accentColor.value }}
-                  />
-                </div>
-                <div className="min-h-[3rem] flex flex-col justify-center">
-                  <div className="flex items-baseline gap-2">
-                    <h4 className="text-2xl font-minecraft text-white tracking-wider">
-                      Voxel Studios
-                    </h4>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="text-right">
-                  <p className="text-white/80 font-minecraft text-lg tracking-wide">
-                    Code & API
-                  </p>
-                </div>
-                <IconButton
-                  icon={<Icon icon="solar:global-bold" className="w-4 h-4" />}
-                  onClick={() => handleOpenUrl("https://github.com/VicariousNetwork/vxl-launcher")}
-                  variant="default"
-                  size="sm"
-                  title="VXL Launcher Source Code"
-                />
-                <IconButton
-                  icon={<Icon icon="ic:baseline-discord" className="w-4 h-4" />}
-                  onClick={() => handleOpenUrl("https://vxl.to/discord")}
-                  variant="default"
-                  size="sm"
-                  title="VXL Studios Discord"
-                />
-              </div>
-            </div>
-          </div>
+          <CreditsContent />
         )}
       </div>
     </Modal>

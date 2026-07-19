@@ -39,7 +39,7 @@ export function ModpackDebugInfo({ profile }: ModpackDebugInfoProps) {
   const isLatest = modpackVersions.installed_version?.id === latestVersion?.id;
 
   return (
-    <div className="fixed top-4 right-4 bg-black/80 p-3 rounded text-xs font-minecraft-ten z-50 max-w-xs">
+    <div className="fixed top-4 right-4 bg-black/80 p-3 rounded text-xs font-sans z-50 max-w-xs">
       <div className="text-yellow-400 mb-1">DEBUG MODPACK INFO</div>
         <div className="text-white/70 space-y-1">
           <div>Source: {profile.modpack_info.source.source}</div>

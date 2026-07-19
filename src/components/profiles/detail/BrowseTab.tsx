@@ -130,7 +130,7 @@ export function BrowseTab({
     return (
       <div className="h-full flex flex-col items-center justify-center p-4 gap-6">
         <Icon icon="eos-icons:loading" className="w-16 h-16 text-[var(--accent)]" />
-        <p className="text-white/70 font-minecraft text-lg">Loading profile data...</p>
+        <p className="text-white/70  text-lg">Loading profile data...</p>
       </div>
     );
   }
@@ -141,9 +141,9 @@ export function BrowseTab({
         <Card variant="flat" className="p-4 border-red-500 bg-red-900/30">
           <div className="flex items-center gap-2">
             <Icon icon="solar:danger-triangle-bold" className="w-6 h-6 text-red-400" />
-            <span className="text-white font-minecraft text-lg">Error</span>
+            <span className="text-white  text-lg">Error</span>
           </div>
-          <p className="text-red-300 font-minecraft mt-2 text-sm">{error}</p>
+          <p className="text-red-300  mt-2 text-sm">{error}</p>
         </Card>
       </div>
     );
@@ -155,11 +155,11 @@ export function BrowseTab({
         <Card variant="flat" className="p-4 border-orange-500 bg-orange-900/30">
           <div className="flex items-center gap-2">
             <Icon icon="solar:question-circle-bold" className="w-6 h-6 text-orange-400" />
-            <span className="text-white font-minecraft text-lg">
+            <span className="text-white  text-lg">
               Profile Not Found
             </span>
           </div>
-           <p className="text-orange-300 font-minecraft mt-2 text-sm">
+           <p className="text-orange-300  mt-2 text-sm">
             The requested profile (ID: {profileId || 'N/A'}) could not be loaded or does not exist.
           </p>
         </Card>
@@ -185,12 +185,12 @@ export function BrowseTab({
             {/* Profile Details */}
             <div className="flex flex-col gap-2 flex-1">
               {/* Profile Name */}
-              <h1 className="font-minecraft-ten text-2xl text-white normal-case">
+              <h1 className=" text-2xl text-white normal-case">
                 {currentProfile.name || currentProfile.id}
               </h1>
 
               {/* Game Info */}
-              <div className="flex items-center gap-3 text-sm font-minecraft-ten">
+              <div className="flex items-center gap-3 text-sm ">
                 {/* Minecraft Version */}
                 <div className="text-white/70 flex items-center gap-2">
                   <img

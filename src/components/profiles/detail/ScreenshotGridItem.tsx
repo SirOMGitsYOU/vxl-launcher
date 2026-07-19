@@ -90,14 +90,14 @@ const ScreenshotGridItemComponent: React.FC<ScreenshotGridItemProps> = ({
       {(!isLoading && (hasError || imageTagError)) && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 p-2">
           <Icon icon="solar:gallery-remove-bold-duotone" className="w-8 h-8 text-red-400/80 mb-1" />
-          <p className="text-red-400/90 text-xs font-minecraft text-center">Preview Error</p>
+          <p className="text-red-400/90 text-xs  text-center">Preview Error</p>
         </div>
       )}
 
       {!isLoading && !previewSrc && !hasError && !imageTagError && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 p-2">
           <Icon icon="solar:gallery-minimalistic-broken" className="w-8 h-8 text-white/50 mb-1" />
-          <p className="text-white/60 text-xs font-minecraft text-center">No Preview</p>
+          <p className="text-white/60 text-xs  text-center">No Preview</p>
         </div>
       )}
     </div>

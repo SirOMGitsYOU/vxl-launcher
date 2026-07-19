@@ -95,22 +95,22 @@ export function WindowSettingsTab({
   return (
     <div ref={tabRef} className="space-y-6 select-none">
       <div>
-        <h3 className="text-3xl font-minecraft text-white mb-2 lowercase">
+        <h3 className="text-3xl  text-white mb-2 lowercase">
           window settings
         </h3>
-        <p className="text-xs text-white/70 mb-4 font-minecraft-ten tracking-wide select-none">
+        <p className="text-xs text-white/70 mb-4  tracking-wide select-none">
           configure how minecraft's window appears on your screen.
         </p>
       </div>
 
       <div ref={resolutionRef} className="space-y-4">
         <div>
-          <h3 className="text-3xl font-minecraft text-white mb-3 lowercase">
+          <h3 className="text-3xl  text-white mb-3 lowercase">
             resolution
           </h3>
           <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-xl text-white/70 font-minecraft mb-2 lowercase tracking-wide select-none">
+                <label className="block text-xl text-white/70  mb-2 lowercase tracking-wide select-none">
                   width
                 </label>
                 <SearchStyleInput
@@ -129,7 +129,7 @@ export function WindowSettingsTab({
                 />
               </div>
               <div>
-                <label className="block text-xl text-white/70 font-minecraft mb-2 lowercase tracking-wide select-none">
+                <label className="block text-xl text-white/70  mb-2 lowercase tracking-wide select-none">
                   height
                 </label>
                 <SearchStyleInput
@@ -168,7 +168,7 @@ export function WindowSettingsTab({
                       editedProfile.settings?.resolution?.height ===
                         preset.height
                       ? "bg-accent/20 border-accent text-white"
-                      : "bg-black/20 hover:bg-black/30 border-white/10 text-white/80",
+                      : "bg-[var(--surface-overlay)] hover:border-[var(--surface-border-strong)] border-white/10 text-white/80",
                   )}
                   onClick={() => handlePresetClick(preset)}
                 >

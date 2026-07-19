@@ -30,7 +30,7 @@ export function ConfirmDeleteDialog({
 
   const dialogTitle = title || `Delete '${itemName}'?`;
   const dialogMessage = message || (
-    <p className="text-white/80 font-minecraft-ten">
+    <p className="text-white/80 ">
       Are you sure you want to permanently delete <strong className="text-white">{itemName}</strong>?
       <br />
       This action cannot be undone.

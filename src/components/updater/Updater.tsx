@@ -206,7 +206,7 @@ export default function Updater() {
   if (!isThemeLoaded || !accentColor || !accentColor.value) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-black">
-        <div className="animate-pulse text-white text-lg font-minecraft">
+        <div className="animate-pulse text-white text-lg font-sans">
           Loading theme...
         </div>
       </div>
@@ -236,7 +236,7 @@ export default function Updater() {
         <div className="flex-1 w-full flex flex-col items-center justify-center px-6 gap-8">
           <div className="flex flex-col items-center">
             <Logo size="lg" forceAnimate={true} />
-            <p className="text-lg font-minecraft text-white/70 lowercase mt-4">
+            <p className="text-lg font-sans text-white/70 mt-4">
               Updater
             </p>
           </div>
@@ -257,7 +257,7 @@ export default function Updater() {
                   icon="solar:check-circle-bold"
                   className="w-5 h-5 text-green-400"
                 />
-                <span className="font-minecraft text-lg text-white">
+                <span className="font-sans text-lg text-white">
                   Update Complete
                 </span>
               </div>
@@ -276,7 +276,7 @@ export default function Updater() {
                   icon="solar:danger-triangle-bold"
                   className="w-5 h-5 text-red-400"
                 />
-                <span className="font-minecraft text-lg text-white">
+                <span className="font-sans text-lg text-white">
                   {statusMessage}
                 </span>
               </div>
@@ -292,7 +292,7 @@ export default function Updater() {
                 }}
               >
                 {getStatusIcon()}
-                <span className="font-minecraft text-lg text-white">
+                <span className="font-sans text-lg text-white">
                   {statusMessage}
                 </span>
               </div>

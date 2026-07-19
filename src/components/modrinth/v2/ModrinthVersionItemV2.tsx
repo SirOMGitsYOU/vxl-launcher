@@ -1,19 +1,16 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { cn } from "../../../lib/utils";
 import type {
   ModrinthSearchHit,
 } from "../../../types/modrinth";
 import type { UnifiedVersion } from "../../../types/unified";
-import type { AccentColor } from "../../../store/useThemeStore";
 import type { ContentInstallStatus } from "../../../types/profile";
 import { Icon } from "@iconify/react";
 import { ActionButton } from "../../ui/ActionButton";
 import { TagBadge } from "../../ui/TagBadge";
-import { gsap } from "gsap";
-import { useIsFirstRender } from "../../../hooks/useIsFirstRender";
-import { Tooltip } from "../../ui/Tooltip";
+import { Button } from "../../ui-v2";
 
 interface ModrinthVersionItemV2Props {
   version: UnifiedVersion;
@@ -21,7 +18,6 @@ interface ModrinthVersionItemV2Props {
   versionStatus: ContentInstallStatus | null;
   isInstalling?: boolean;
   isInstallingModpackVersion?: boolean;
-  accentColor: AccentColor;
   isHovered: boolean;
   onMouseEnter: (id: string) => void;
   onMouseLeave: () => void;
@@ -57,7 +53,6 @@ export const ModrinthVersionItemV2 = React.memo<ModrinthVersionItemV2Props>(
     versionStatus,
     isInstalling: externalIsInstalling = false,
     isInstallingModpackVersion = false,
-    accentColor,
     isHovered,
     onMouseEnter,
     onMouseLeave,
@@ -70,12 +65,8 @@ export const ModrinthVersionItemV2 = React.memo<ModrinthVersionItemV2Props>(
     noRiskStatus = null,
   }) => {
     const isModpack = project.project_type === "modpack";
-    const cardRef = useRef<HTMLDivElement>(null);
-    const [isCardHovered, setIsCardHovered] = useState(false);
     const [localIsInstalling, setLocalIsInstalling] = useState(false);
     const [installationStartTime, setInstallationStartTime] = useState<number | null>(null);
-    const isFirstRender = useIsFirstRender();
-
     // Use local state or external state
     const isInstalling = localIsInstalling || externalIsInstalling;
 
@@ -122,33 +113,6 @@ export const ModrinthVersionItemV2 = React.memo<ModrinthVersionItemV2Props>(
     const handleMouseLeaveLocal = () => {
       onMouseLeave();
     };
-
-    useEffect(() => {
-      // GSAP animation is removed as the style will be more static like GenericList
-      // if (cardRef.current) {
-      //   if (isFirstRender) return;
-
-      //   if (isCardHovered) { // isCardHovered is also effectively removed for this
-      //     gsap.to(cardRef.current, {
-      //       backgroundColor: `${accentColor.value}15`,
-      //       borderColor: `${accentColor.value}60`,
-      //       y: -3,
-      //       boxShadow: `0 8px 0 rgba(0,0,0,0.3), 0 10px 15px rgba(0,0,0,0.35), inset 0 1px 0 ${accentColor.value}30, inset 0 0 0 1px ${accentColor.value}15`,
-      //       duration: 0.2,
-      //       ease: "power2.out",
-      //     });
-      //   } else {
-      //     gsap.to(cardRef.current, {
-      //       backgroundColor: `${accentColor.value}08`,
-      //       borderColor: `${accentColor.value}30`,
-      //       y: 0,
-      //       boxShadow: `0 2px 0 rgba(0,0,0,0.1), 0 3px 5px rgba(0,0,0,0.1)`,
-      //       duration: 0.2,
-      //       ease: "power2.out",
-      //     });
-      //   }
-      // }
-    }, [isCardHovered, accentColor, isFirstRender]);
 
     const handleButtonClick = () => {
     console.log('Button clicked, localIsInstalling:', localIsInstalling, 'externalIsInstalling:', externalIsInstalling);
@@ -259,15 +223,20 @@ export const ModrinthVersionItemV2 = React.memo<ModrinthVersionItemV2Props>(
       (versionStatus?.is_installed ||
         versionStatus?.is_included_in_norisk_pack);
 
+    const installIcon =
+      isInstalling || isInstallingModpackVersion
+        ? "solar:refresh-bold"
+        : noRiskStatus === "blocked" || noRiskStatus === "warning"
+          ? "solar:danger-triangle-bold"
+          : "solar:download-minimalistic-bold";
+
     return (
       <div
-        ref={cardRef}
         key={version.id}
         onMouseEnter={handleMouseEnterLocal}
         onMouseLeave={handleMouseLeaveLocal}
         className={cn(
-          "relative overflow-hidden transition-colors duration-150 rounded-md backdrop-blur-sm",
-          "border",
+          "relative overflow-hidden rounded-lg border border-[var(--surface-border)] bg-[var(--surface-overlay)] vxl-list-item-accent-hover transition-all duration-150",
           showInstallBorder &&
             versionStatus?.is_installed &&
             "border-l-green-500 border-l-4",
@@ -276,25 +245,21 @@ export const ModrinthVersionItemV2 = React.memo<ModrinthVersionItemV2Props>(
             versionStatus?.is_included_in_norisk_pack &&
             "border-l-blue-500 border-l-4",
         )}
-        style={{
-          backgroundColor: `${accentColor.value}08`,
-          borderColor: `${accentColor.value}20`,
-        }}
       >
         <div className="relative z-10 p-2.5">
           <div className="flex flex-col space-y-2">
             <div className="flex justify-between items-baseline gap-2">
               <div className="flex-shrink min-w-0 flex items-center gap-2">
                 <div className="min-w-0">
-                  <h5 className="text-gray-100 text-sm font-minecraft-ten normal-case truncate">
+                  <h5 className="text-gray-100 text-sm  normal-case truncate">
                     {version.name}
                   </h5>
-                  <p className="text-gray-400 text-xs font-minecraft-ten normal-case truncate">
+                  <p className="text-gray-400 text-xs  normal-case truncate">
                     {version.version_number}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center space-x-2 text-[10px] text-gray-400 font-minecraft-ten flex-shrink-0">
+              <div className="flex items-center space-x-2 text-[10px] text-gray-400  flex-shrink-0">
                 {" "}
                 <span className="flex items-center">
                   <Icon
@@ -407,22 +372,24 @@ export const ModrinthVersionItemV2 = React.memo<ModrinthVersionItemV2Props>(
                     />
                   )}
                 {(!selectedProfileId || !versionStatus?.is_installed) && (
-                  <ActionButton
+                  <Button
                     onClick={handleButtonClick}
                     size="sm"
-                    variant={buttonVariant}
+                    variant={buttonVariant === "primary" ? "primary" : "secondary"}
                     disabled={buttonDisabled || isInstalling}
-                    className="min-w-[80px]"
+                    className="min-w-[80px] h-8 text-xs"
                     icon={
-                      isInstalling || isInstallingModpackVersion 
-                        ? "solar:refresh-bold" 
-                        : (noRiskStatus === 'blocked' || noRiskStatus === 'warning')
-                          ? "solar:danger-triangle-bold"
-                          : "solar:download-minimalistic-bold"
+                      <Icon
+                        icon={installIcon}
+                        className={cn(
+                          "h-3 w-3",
+                          (isInstalling || isInstallingModpackVersion) && "animate-spin-slow",
+                        )}
+                      />
                     }
-                    iconClassName={(isInstalling || isInstallingModpackVersion) ? "animate-spin-slow" : ""}
-                    label={buttonText}
-                  />
+                  >
+                    {buttonText}
+                  </Button>
                 )}
               </div>
             </div>

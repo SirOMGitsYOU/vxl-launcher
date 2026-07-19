@@ -5,6 +5,7 @@ import { ModrinthSearchV2 } from "../modrinth/v2/ModrinthSearchV2"; // Adjusted 
 import type { Profile } from "../../types/profile";
 import { getAllProfilesAndLastPlayed } from "../../services/profile-service";
 import { ErrorMessage } from "../ui/ErrorMessage";
+import { LoadingState } from "../ui-v2";
 // import { LoadingOverlay } from "../ui/LoadingOverlay"; // Removed
 // import { Card } from "../ui/Card"; // Card might not be directly needed here anymore
 // import { useThemeStore } from "../../store/useThemeStore"; // Theme store might be used by sub-components
@@ -66,20 +67,18 @@ export function ModrinthTabV2({
         profiles={profiles}
         onInstallSuccess={handleInstallSuccess}
         className="h-full"
+        overrideDisplayContext="standalone"
       />
     ),
     [profiles, handleInstallSuccess],
   );
 
   if (initialProfiles.length === 0 && !profilesLoaded) {
-    // Still loading profiles, can show a minimal loading state or null
-    // For direct display, we might return null or a very simple placeholder
-    // Or, ensure profiles are loaded before rendering ModrinthSearchV2
-    return null; // Or a minimal loader if preferred, but goal is direct display
+    return <LoadingState message="Loading profiles..." />;
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden p-4 relative">
+    <div className="h-full flex flex-col overflow-hidden relative bg-[var(--surface-base)]">
       {/* <LoadingOverlay // Removed
         isLoading={isLoading}
         message={loadingMessage}

@@ -4,13 +4,7 @@ import type React from "react";
 import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../../../lib/utils";
-import { useThemeStore } from "../../../store/useThemeStore";
-import { 
-  getVariantColors,
-  getBorderRadiusClass,
-  createRadiusStyle,
-  getAccessibilityProps
-} from "../design-system";
+import { getAccessibilityProps } from "../design-system";
 
 interface DropdownProps {
   isOpen: boolean;
@@ -46,14 +40,10 @@ export const Dropdown = forwardRef<HTMLDivElement, DropdownProps>(
     const [animationState, setAnimationState] = useState<
       "entering" | "entered" | "exiting" | "exited"
     >("exited");
-    const accentColor = useThemeStore((state) => state.accentColor);
-    const borderRadius = useThemeStore((state) => state.borderRadius);
     const previousIsOpen = useRef(isOpen);
     const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const [dropdownHeight, setDropdownHeight] = useState(300);
 
-    const colors = getVariantColors("default", accentColor);
-    const radiusClass = getBorderRadiusClass(borderRadius);
     const accessibilityProps = getAccessibilityProps({
       label: ariaLabel
     });
@@ -262,10 +252,8 @@ export const Dropdown = forwardRef<HTMLDivElement, DropdownProps>(
         }}
         role={role}
         className={cn(
-          "fixed font-minecraft backdrop-blur-md z-50 overflow-hidden",
-          radiusClass,
+          "fixed z-50 overflow-hidden rounded-xl border border-[var(--surface-border)] bg-[var(--surface-raised)] shadow-lg",
           "text-white transition-all duration-200",
-          "border-2 border-b-4 shadow-[0_8px_0_rgba(0,0,0,0.3),0_10px_15px_rgba(0,0,0,0.35)]",
           animationState === "entering" && animationClasses.entering,
           animationState === "entered" && animationClasses.entered,
           animationState === "exiting" && animationClasses.exiting,
@@ -275,16 +263,10 @@ export const Dropdown = forwardRef<HTMLDivElement, DropdownProps>(
           top: `${dropdownTop}px`,
           left: `${dropdownLeft}px`,
           width: `${width}px`,
-          backgroundColor: `${colors.main}15`,
-          borderColor: `${colors.main}40`,
-          borderBottomColor: colors.dark,
-          boxShadow: `0 8px 0 rgba(0,0,0,0.3), 0 10px 15px rgba(0,0,0,0.35), inset 0 1px 0 ${colors.light}20, inset 0 0 0 1px ${colors.main}10`,
-          ...createRadiusStyle(borderRadius),
         }}
         {...accessibilityProps}
       >
-        <div className="absolute inset-0 opacity-20 bg-gradient-radial from-white/20 via-transparent to-transparent pointer-events-none" />
-        <div className="relative z-10">{children}</div>
+        {children}
       </div>,
       document.body,
     );

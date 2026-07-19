@@ -96,21 +96,21 @@ export function ProfileSelectionModalContent({
   return (
     <div className="p-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-minecraft lowercase tracking-wide text-white">
+        <h2 className="text-2xl  tracking-wide text-white">
           {title}
         </h2>
       </div>
 
       {profilesLoading ? (
-        <div className="text-center p-4 text-white/60 font-minecraft text-2xl lowercase tracking-wide select-none">
+        <div className="text-center p-4 text-white/60 text-sm font-medium tracking-wide select-none">
           loading profiles...
         </div>
       ) : profilesError ? (
-        <div className="text-center p-4 text-red-400 font-minecraft text-2xl lowercase tracking-wide select-none">
+        <div className="text-center p-4 text-red-400 text-sm font-medium tracking-wide select-none">
           error loading profiles
         </div>
       ) : profiles.length === 0 ? (
-        <div className="text-center p-4 text-white/60 font-minecraft text-2xl lowercase tracking-wide select-none">
+        <div className="text-center p-4 text-white/60 text-sm font-medium tracking-wide select-none">
           no profiles available
         </div>
       ) : (

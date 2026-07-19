@@ -59,7 +59,7 @@ function CapeItemDisplay({
   // Grid layout (similar to ProfileCardV2 grid mode)
   return (
     <div
-      className="relative flex flex-col gap-3 p-4 rounded-lg bg-black/20 border border-white/10 hover:border-white/20 transition-all duration-200 cursor-pointer"
+      className="relative flex flex-col gap-3 p-4 rounded-lg bg-[var(--surface-overlay)] border border-[var(--surface-border)] hover:border-[var(--surface-border-strong)] transition-all duration-200 cursor-pointer"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={(e) => {
@@ -112,7 +112,7 @@ function CapeItemDisplay({
                 className="w-8 h-8 animate-spin mb-1"
                 style={{ color: accentColor.value }}
               />
-              <span className="font-minecraft text-xs text-white lowercase">
+              <span className=" text-xs text-white lowercase">
                 Equipping
               </span>
             </div>

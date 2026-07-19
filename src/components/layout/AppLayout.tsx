@@ -7,7 +7,6 @@ import { Icon } from "@iconify/react";
 
 import { VerticalNavbar } from ".././navigation/VerticalNavbar";
 import { UserProfileBar } from ".././header/UserProfileBar";
-import { NavigationHistory } from "../ui/NavigationHistory";
 import { useThemeStore } from "../../store/useThemeStore";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
 import {
@@ -22,15 +21,15 @@ import { RetroGridEffect } from "../effects/RetroGridEffect";
 import { VoxelGrid } from ".././effects/VoxelGrid";
 import { RetroVoxelGrid } from ".././effects/RetroVoxelGrid";
 import PlainBackground from "../effects/PlainBackground";
-import * as ConfigService from "../../services/launcher-config-service";
 import { checkUpdateAvailable, downloadAndInstallUpdate } from "../../services/nrc-service";
 import type { UpdateInfo } from "../../types/updater";
 import { ProfileWizardV2Modal } from "../modals/ProfileWizardV2Modal";
 import { ProfileSettingsModal } from "../modals/ProfileSettingsModal";
 import { ProfileDuplicateModal } from "../modals/ProfileDuplicateModal";
-import { exit, relaunch } from '@tauri-apps/plugin-process';
+import { exit } from '@tauri-apps/plugin-process';
 import { Tooltip } from "../ui/Tooltip";
 import { toast } from 'react-hot-toast';
+import { signalFrontendReady } from "../../startup/boot-splash";
 
 const getNavItems = (hasAccount: boolean) => [
   { id: "play", icon: "solar:play-bold", label: "Play" },
@@ -64,36 +63,9 @@ export function AppLayout({
   const closeRef = useRef<HTMLDivElement>(null);
   const { currentEffect } = useBackgroundEffectStore();
   const { qualityLevel } = useQualitySettingsStore();
-  const { isBackgroundAnimationEnabled, accentColor: themeAccentColor, accentColor } = useThemeStore();
+  const { isBackgroundAnimationEnabled, accentColor: themeAccentColor } = useThemeStore();
   const { accounts } = useMinecraftAuthStore();
   const hasAccount = accounts && accounts.length > 0;
-
-  const getComplementaryBackground = () => {
-    const hexToRgb = (hex: string) => {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result
-        ? {
-            r: Number.parseInt(result[1], 16),
-            g: Number.parseInt(result[2], 16),
-            b: Number.parseInt(result[3], 16),
-          }
-        : { r: 34, g: 34, b: 34 };
-    };
-
-    const rgb = hexToRgb(themeAccentColor.value);
-
-    const darkR = Math.floor(rgb.r * 0.1);
-    const darkG = Math.floor(rgb.g * 0.1);
-    const darkB = Math.floor(rgb.b * 0.1);
-
-    const finalR = Math.min(darkR, 30);
-    const finalG = Math.min(darkG, 30);
-    const finalB = Math.min(darkB, 30);
-
-    return `rgb(${finalR}, ${finalG}, ${finalB})`;
-  };
-
-  const backgroundColor = getComplementaryBackground();
 
   const getQualityParams = () => {
     switch (qualityLevel) {
@@ -109,11 +81,34 @@ export function AppLayout({
   const qualityParams = getQualityParams();
 
   useEffect(() => {
+    let cancelled = false;
+
+    const markFrontendReady = () => {
+      if (!cancelled) {
+        signalFrontendReady();
+      }
+    };
+
+    const fontsReady = document.fonts?.ready ?? Promise.resolve();
+
+    fontsReady
+      .catch(() => undefined)
+      .finally(() => {
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(markFrontendReady);
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     const ctx = gsap.context(() => {
       gsap.from(launcherRef.current, {
-        opacity: 0,
-        scale: 0.95,
-        duration: 0.8,
+        scale: 0.98,
+        duration: 0.45,
         ease: "power3.out",
       });
 
@@ -240,35 +235,25 @@ export function AppLayout({
   return (
     <div
       ref={launcherRef}
-      className="h-screen w-full bg-black/50 backdrop-blur-lg border-2 overflow-hidden relative flex shadow-[0_0_25px_rgba(0,0,0,0.4)]"
-      style={{
-        backgroundColor: backgroundColor,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundImage: `linear-gradient(to bottom right, ${backgroundColor}, rgba(0,0,0,0.9))`,
-        borderColor: `${themeAccentColor.value}30`,
-        boxShadow: `0 0 15px ${themeAccentColor.value}30, inset 0 0 10px ${themeAccentColor.value}20`,
-      }}
+      className="h-screen w-full overflow-hidden relative flex bg-[var(--surface-base)]"
     >
-      <BorderGlowEffects accentColor={themeAccentColor.value} />
-
       <VerticalNavbar
         items={getNavItems(hasAccount)}
         activeItem={activeTab}
         onItemClick={onNavChange}
-        className="h-full border-r-2 z-10"
+        className="h-full z-10"
         version={appConfig.version}
       />
 
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
+      <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
         <HeaderBar
           minimizeRef={minimizeRef}
           maximizeRef={maximizeRef}
           closeRef={closeRef}
         />
 
-        <div className="flex-1 relative overflow-hidden">
-          {activeTab === "play" && renderBackgroundEffect()}
+        <div className="flex-1 relative overflow-hidden bg-[var(--surface-base)]">
+          {activeTab === "play" && isBackgroundAnimationEnabled && renderBackgroundEffect()}
 
           <div className="relative z-10 h-full overflow-hidden custom-scrollbar">
             {children}
@@ -283,37 +268,6 @@ export function AppLayout({
   );
 }
 
-function BorderGlowEffects({ accentColor }: { accentColor: string }) {
-  return (
-    <>
-      <div
-        className="absolute top-0 left-0 right-0 h-[2px]"
-        style={{
-          background: `linear-gradient(to right, transparent, ${accentColor}70, transparent)`,
-        }}
-      ></div>
-      <div
-        className="absolute bottom-0 left-0 right-0 h-[2px]"
-        style={{
-          background: `linear-gradient(to right, transparent, ${accentColor}70, transparent)`,
-        }}
-      ></div>
-      <div
-        className="absolute top-0 bottom-0 left-0 w-[2px]"
-        style={{
-          background: `linear-gradient(to bottom, transparent, ${accentColor}70, transparent)`,
-        }}
-      ></div>
-      <div
-        className="absolute top-0 bottom-0 right-0 w-[2px]"
-        style={{
-          background: `linear-gradient(to bottom, transparent, ${accentColor}70, transparent)`,
-        }}
-      ></div>
-    </>
-  );
-}
-
 interface HeaderBarProps {
   minimizeRef: React.RefObject<HTMLDivElement>;
   maximizeRef: React.RefObject<HTMLDivElement>;
@@ -322,7 +276,6 @@ interface HeaderBarProps {
 
 function HeaderBar({ minimizeRef, maximizeRef, closeRef }: HeaderBarProps) {
   const accentColor = useThemeStore((state) => state.accentColor);
-  const [appVersion, setAppVersion] = useState<string | null>(null);
   const [availableUpdate, setAvailableUpdate] = useState<UpdateInfo | null>(null);
 
   const handleUpdateClick = async () => {
@@ -341,119 +294,48 @@ function HeaderBar({ minimizeRef, maximizeRef, closeRef }: HeaderBarProps) {
     }
   };
 
-  // Calculate complementary/update highlight color based on current accent
-  const getUpdateHighlightColor = () => {
-    const hexToRgb = (hex: string) => {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result
-        ? {
-            r: Number.parseInt(result[1], 16),
-            g: Number.parseInt(result[2], 16),
-            b: Number.parseInt(result[3], 16),
-          }
-        : { r: 245, g: 158, b: 11 }; // fallback to amber
-    };
-
-    const rgb = hexToRgb(accentColor.value);
-
-    // Calculate a complementary warning color
-    // Mix current accent with amber/yellow for good visibility
-    const accentWeight = 0.4; // How much of the accent color to include
-    const warningWeight = 0.9; // How much of the warning color (amber)
-
-    const warningRgb = { r: 245, g: 158, b: 100 }; // Amber base
-
-    const mixedR = Math.round(rgb.r * accentWeight + warningRgb.r * warningWeight);
-    const mixedG = Math.round(rgb.g * accentWeight + warningRgb.g * warningWeight);
-    const mixedB = Math.round(rgb.b * accentWeight + warningRgb.b * warningWeight);
-
-    return `rgb(${mixedR}, ${mixedG}, ${mixedB})`;
-  };
-
   useEffect(() => {
-    const fetchVersion = async () => {
+    const checkForUpdates = async () => {
       try {
-        const fetchedVersion = await ConfigService.getAppVersion();
-        setAppVersion(fetchedVersion);
+        const updateInfo = await checkUpdateAvailable();
+        if (updateInfo) {
+          setAvailableUpdate(updateInfo);
+        }
       } catch (error) {
-        console.error("Failed to fetch app version:", error);
-        setAppVersion("?.?.?");
+        console.error("Failed to check for updates:", error);
       }
     };
 
-  const checkForUpdates = async () => {
-    try {
-      const updateInfo = await checkUpdateAvailable();
-      if (updateInfo) {
-        console.log("Update available:", updateInfo);
-        setAvailableUpdate(updateInfo);
-      }
-    } catch (error) {
-      console.error("Failed to check for updates:", error);
-      // Don't show error to user, just silently fail
-    }
-  };
-
-    fetchVersion();
     checkForUpdates();
 
-    // Check for updates every 4 hours (4 * 60 * 60 * 1000 = 14,400,000 ms)
-    const updateCheckInterval = setInterval(() => {
-      console.log("Performing scheduled update check...");
-      checkForUpdates();
-    }, 4 * 60 * 60 * 1000);
-
-    return () => {
-      clearInterval(updateCheckInterval);
-    };
+    const updateCheckInterval = setInterval(checkForUpdates, 4 * 60 * 60 * 1000);
+    return () => clearInterval(updateCheckInterval);
   }, []);
 
   return (
     <div
-      className="h-20 flex-shrink-0 border-b-2 backdrop-blur-lg flex items-center justify-between px-8 z-10"
-      style={{
-        borderColor: `${accentColor.value}40`,
-        backgroundColor: `rgba(${Number.parseInt(accentColor.value.slice(1, 3), 16)}, ${Number.parseInt(
-          accentColor.value.slice(3, 5),
-          16,
-        )}, ${Number.parseInt(accentColor.value.slice(5, 7), 16)}, 0.01)`,
-      }}
+      className="h-14 flex-shrink-0 vxl-border border-x-0 border-t-0 flex items-center px-4 z-10 bg-[var(--surface-raised)]"
       data-tauri-drag-region
     >
-      <div className="flex items-center gap-4" data-tauri-drag-region>
-        <NavigationHistory />
+      <div className="flex-1 min-w-0" data-tauri-drag-region />
 
-        <div className="flex flex-col items-start -mt-2.5">
-          <div className="flex items-center gap-3">
-            <h1
-              className="font-minecraft text-4xl tracking-wider font-bold lowercase text-shadow"
-              data-tauri-drag-region
+      <div className="flex items-center gap-3 flex-shrink-0">
+        {availableUpdate && (
+          <Tooltip content={`Click to update: ${availableUpdate.version}`}>
+            <button
+              type="button"
+              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/5 transition-colors"
+              onClick={handleUpdateClick}
             >
-              VXL Launcher
-            </h1>
-            {availableUpdate && (
-              <Tooltip content={`Click to update: ${availableUpdate.version}`}>
-                <div className="cursor-pointer mt-2.5" onClick={handleUpdateClick}>
-                  <Icon
-                    icon="solar:download-minimalistic-bold"
-                    className="w-6 h-6 transition-colors"
-                    style={{
-                      color: accentColor.value,
-                    }}
-                  />
-                </div>
-              </Tooltip>
-            )}
-          </div>
-          <span className="text-white/70 font-minecraft-ten text-[8px] font-normal -mt-2.5">
-            v{appVersion || "?.?.?"}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-4">
+              <Icon
+                icon="solar:download-minimalistic-bold"
+                className="w-5 h-5"
+                style={{ color: accentColor.value }}
+              />
+            </button>
+          </Tooltip>
+        )}
         <UserProfileBar />
-
         <WindowControls
           minimizeRef={minimizeRef}
           maximizeRef={maximizeRef}
@@ -476,27 +358,27 @@ function WindowControls({
   closeRef,
 }: WindowControlsProps) {
   return (
-    <div className="flex items-center gap-3 ml-4">
+    <div className="flex items-center gap-1 ml-1">
       <div
         ref={minimizeRef}
-        className="titlebar-button-borderless w-5 h-5 flex items-center justify-center text-white/60 hover:text-white transition-colors cursor-pointer"
+        className="titlebar-button-borderless w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
         title="Minimize"
       >
-        <Icon icon="pixel:minus-solid" className="w-4 h-4" />
+        <Icon icon="mdi:window-minimize" className="w-4 h-4" />
       </div>
       <div
         ref={maximizeRef}
-        className="titlebar-button-borderless w-5 h-5 flex items-center justify-center text-white/60 hover:text-white transition-colors cursor-pointer"
+        className="titlebar-button-borderless w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
         title="Maximize"
       >
-        <Icon icon="pixel:expand-solid" className="w-4 h-4" />
+        <Icon icon="mdi:window-maximize" className="w-4 h-4" />
       </div>
       <div
         ref={closeRef}
-        className="titlebar-button-borderless w-5 h-5 flex items-center justify-center text-white/60 hover:text-red-500 transition-colors cursor-pointer"
+        className="titlebar-button-borderless w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
         title="Close"
       >
-        <Icon icon="pixel:window-close-solid" className="w-4 h-4" />
+        <Icon icon="mdi:close" className="w-4 h-4" />
       </div>
     </div>
   );

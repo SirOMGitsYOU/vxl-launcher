@@ -360,7 +360,7 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
                       />
                       <span
                         className={cn(
-                          "font-minecraft text-3xl lowercase transition-colors duration-200",
+                          " text-3xl lowercase transition-colors duration-200",
                           isActive ? "font-medium" : "",
                         )}
                         style={isActive ? { color: accentColor.value } : {}}

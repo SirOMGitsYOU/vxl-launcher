@@ -72,6 +72,7 @@ import { Virtuoso } from 'react-virtuoso'; // Import Virtuoso
 import { useNavigate } from 'react-router-dom';
 import { useGlobalModal } from '../../../hooks/useGlobalModal';
 import { useThemeStore } from '../../../store/useThemeStore';
+import { useDisplayContextStore } from '../../../store/useDisplayContextStore';
 import { handleIrisCheckAndShowModal, IrisRequiredModal } from '../../../utils/iris-detection.tsx';
 
 // Remove any other stray imports of uninstallContentFromProfile below this point
@@ -2353,6 +2354,10 @@ export function ModrinthSearchV2({
   }, []);
 
   const accentColor = useThemeStore((state) => state.accentColor); // Get accent color
+  const displayContext = useDisplayContextStore((state) => state.context);
+  const isStandaloneBrowse =
+    overrideDisplayContext === "standalone" ||
+    (overrideDisplayContext !== "detail" && displayContext !== "detail");
   const [hoveredVersionId, setHoveredVersionId] = useState<string | null>(null); // New state for version hover
   const [openVersionDropdowns, setOpenVersionDropdowns] = useState<Record<string, { type: boolean; gameVersion: boolean; loader: boolean }>>({});
 
@@ -3360,10 +3365,13 @@ export function ModrinthSearchV2({
   });
 
   return (
-    // Overall container: now flex-row to place left content and sidebar side-by-side
-<div className={`modrinth-search-v2 flex flex-row h-full gap-3 ${className}`}> 
-  {/* Left Content Area: Takes up most space, contains search bar and results */} 
-  <div className="left-content-area flex flex-col flex-1 overflow-hidden">
+<div className={`modrinth-search-v2 flex h-full flex-row gap-4 ${className}`}>
+  <div
+    className={cn(
+      "left-content-area flex min-w-0 flex-1 flex-col overflow-hidden",
+      isStandaloneBrowse && "pl-6 pt-4",
+    )}
+  >
     {/* Search controls are now in a separate component */}
     <ModrinthSearchControlsV2
       searchTerm={searchTerm}
@@ -3417,7 +3425,7 @@ export function ModrinthSearchV2({
           {searchResults.length > 0 && (
             disableVirtualization ? (
               // Non-virtualized scrollable div
-              <div className="space-y-1">
+              <div>
                 {searchResults.map((hit, index) => {
                   const projectVersions = expandedVersions[hit.project_id];
                   const displayedCount = numDisplayedVersions[hit.project_id] || initialDisplayCount;
@@ -3473,7 +3481,7 @@ export function ModrinthSearchV2({
                   <div className="flex justify-center p-4">
                     <button
                       onClick={loadMoreResults}
-                      className="px-4 py-2 bg-black/30 hover:bg-black/40 text-white/70 hover:text-white border border-white/10 hover:border-white/20 rounded-lg font-minecraft text-2xl lowercase transition-all duration-200"
+                      className="px-4 py-2 bg-[var(--surface-overlay)] text-[var(--text-secondary)] hover:text-white border border-[var(--surface-border)] hover:border-[var(--surface-border-strong)] rounded-lg text-sm font-medium transition-all duration-200"
                     >
                       Load More ({totalHits - searchResults.length} remaining)
                     </button>
@@ -3576,7 +3584,6 @@ export function ModrinthSearchV2({
         </div>
       </div>
 
-      {/* Filters Sidebar (Right, full height, scrollable) - Now with conditional rendering */} 
       {isSidebarVisible && (
         <ModrinthFilterSidebarV2
           projectType={projectType}
@@ -3603,33 +3610,28 @@ export function ModrinthSearchV2({
         />
       )}
 
-      {/* Regular Install Modal - Now using global modal system */}
-
-      {/* Quick Install Modal */}
       {quickInstallProject && quickInstallModalOpen && (
-      <ModrinthQuickInstallModalV2
-        isOpen={quickInstallModalOpen}
-        onClose={closeQuickInstallModal}
-        project={quickInstallProject}
-        versions={quickInstallVersions}
-        isLoading={quickInstallLoading}
-        error={quickInstallError}
-        profiles={internalProfiles}
-        selectedProfileId={selectedProfile?.id}
-        installStatus={installStatus}
-        installingProfiles={installing}
+        <ModrinthQuickInstallModalV2
+          isOpen={quickInstallModalOpen}
+          onClose={closeQuickInstallModal}
+          project={quickInstallProject}
+          versions={quickInstallVersions}
+          isLoading={quickInstallLoading}
+          error={quickInstallError}
+          profiles={internalProfiles}
+          selectedProfileId={selectedProfile?.id}
+          installStatus={installStatus}
+          installingProfiles={installing}
           onInstallToProfile={(profileId) => {
-            // Call the existing quickInstallToProfile function
             quickInstallToProfile(profileId);
           }}
           onUninstallClick={async (profileId, project, version) => {
             await handleDeleteVersionFromProfile(profileId, project, version);
           }}
-        findBestVersionForProfile={findBestVersionForProfile}
+          findBestVersionForProfile={findBestVersionForProfile}
           onInstallToNewProfile={handleInstallToNewProfile}
         />
       )}
-
     </div>
   );
-} 
+}

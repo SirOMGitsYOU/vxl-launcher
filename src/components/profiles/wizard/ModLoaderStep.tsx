@@ -250,10 +250,10 @@ export function ModLoaderStep({ profile, updateProfile }: ModLoaderStepProps) {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-3xl font-minecraft text-white mb-3 lowercase">
+        <h2 className="text-3xl  text-white mb-3 lowercase">
           mod loader
         </h2>
-        <p className="text-xs text-white/70 font-minecraft-ten tracking-wide">
+        <p className="text-xs text-white/70  tracking-wide">
           Choose a mod loader for your Minecraft profile. Some loaders may not
           be compatible with Minecraft {profile.game_version}.
         </p>
@@ -324,19 +324,19 @@ export function ModLoaderStep({ profile, updateProfile }: ModLoaderStepProps) {
           className="p-6 space-y-6 bg-black/20 border border-white/10"
         >
           <div>
-            <label className="block text-2xl font-minecraft text-white mb-4 lowercase">{`${profile.loader} version`}</label>
+            <label className="block text-2xl  text-white mb-4 lowercase">{`${profile.loader} version`}</label>
             {loading ? (
               <div className="flex items-center gap-2 text-white/70">
                 <Icon
                   icon="solar:refresh-bold"
                   className="w-5 h-5 animate-spin"
                 />
-                <span className="font-minecraft text-xl">
+                <span className=" text-xl">
                   Loading {profile.loader} versions...
                 </span>
               </div>
             ) : error ? (
-              <div className="text-red-400 font-minecraft text-xl">{error}</div>
+              <div className="text-red-400  text-xl">{error}</div>
             ) : (
               <Select
                 value={profile.loader_version || ""}
@@ -373,10 +373,10 @@ export function ModLoaderStep({ profile, updateProfile }: ModLoaderStepProps) {
             />
           </div>
           <div>
-            <div className="text-2xl text-white font-minecraft tracking-wide lowercase">
+            <div className="text-2xl text-white  tracking-wide lowercase">
               {profile.loader} {profile.loader_version}
             </div>
-            <div className="text-xs text-white/70 tracking-wide font-minecraft-ten">
+            <div className="text-xs text-white/70 tracking-wide ">
               For Minecraft {profile.game_version}
             </div>
           </div>
@@ -450,7 +450,7 @@ function ModLoaderCard({
             (e.target as HTMLImageElement).src = "/icons/minecraft.png";
           }}
         />
-        <span className="font-minecraft text-xl lowercase">{name}</span>
+        <span className="text-sm font-medium">{name}</span>
       </div>
       <div className="min-h-[20px] flex items-center justify-center">
         {loading ? (

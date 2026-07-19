@@ -196,8 +196,9 @@ export function ToggleSwitch({
       {label && (
         <span
           className={cn(
-            "font-minecraft lowercase text-white",
-            sizeConfig.label,
+            "text-sm font-medium text-white",
+            size === "lg" && "text-base",
+            size === "sm" && "text-xs",
           )}
         >
           {label}

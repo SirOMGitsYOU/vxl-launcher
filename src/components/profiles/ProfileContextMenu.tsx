@@ -203,7 +203,7 @@ export const ProfileContextMenu = forwardRef<
           }}
         >
           <Icon icon="solar:settings-bold" className="w-5 h-5 text-white" />
-          <span className="font-minecraft-ten text-base text-white/80">
+          <span className=" text-base text-white/80">
             {profile.is_standard_version ? "Settings" : "Settings"}
           </span>
         </li>
@@ -222,7 +222,7 @@ export const ProfileContextMenu = forwardRef<
           }}
         >
           <Icon icon="solar:copy-bold" className="w-5 h-5 text-white" />
-          <span className="font-minecraft-ten text-base text-white/80">
+          <span className=" text-base text-white/80">
             Clone Profile
           </span>
         </li>
@@ -238,7 +238,7 @@ export const ProfileContextMenu = forwardRef<
             icon="solar:folder-with-files-bold"
             className="w-5 h-5 text-white"
           />
-          <span className="font-minecraft-ten text-base text-white/80">
+          <span className=" text-base text-white/80">
             Open Profile Folder
           </span>
         </li>
@@ -254,7 +254,7 @@ export const ProfileContextMenu = forwardRef<
             icon="solar:export-bold"
             className="w-5 h-5 text-white"
           />
-          <span className="font-minecraft-ten text-base text-white/80">
+          <span className=" text-base text-white/80">
             Export Profile
           </span>
         </li>
@@ -279,7 +279,7 @@ export const ProfileContextMenu = forwardRef<
                 icon="solar:shield-check-bold"
                 className="w-5 h-5 text-white"
               />
-              <span className="font-minecraft-ten text-base text-white/80">
+              <span className=" text-base text-white/80">
                 Repair Profile
               </span>
             </li>
@@ -308,7 +308,7 @@ export const ProfileContextMenu = forwardRef<
                 icon="solar:trash-bin-trash-bold"
                 className="w-5 h-5 text-red-400"
               />
-              <span className="font-minecraft-ten text-base text-red-400">
+              <span className=" text-base text-red-400">
                 Delete Profile
               </span>
             </li>

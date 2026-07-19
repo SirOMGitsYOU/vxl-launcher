@@ -131,7 +131,7 @@ export function GenericList<T>({
           icon={GENERIC_LIST_DEFAULT_ICONS[0]}
           className="w-5 h-5 text-red-400"
         />
-        <span className="text-white font-minecraft text-lg">{error}</span>
+        <span className="text-white  text-lg">{error}</span>
       </div>
     );
   }

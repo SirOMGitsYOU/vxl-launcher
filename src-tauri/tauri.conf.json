@@ -24,6 +24,7 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "fullscreen": false,
         "resizable": true,
         "title": "VXL Launcher",
@@ -34,7 +35,7 @@
         "decorations": false,
         "transparent": true,
         "center": true,
-        "visible": false,
+        "visible": true,
         "shadow": false
       }
     ],
@@ -48,6 +49,7 @@
           "https://sessionserver.mojang.com",
           "https://api.voxelstudios.co.uk",
           "https://avatar.vxl.to",
+          "https://nmsr.nickac.dev",
           "https://eu.mc-api.net",
           "https://starlightskins.lunareclipse.studio",
           "https://namemc.com",
@@ -63,6 +65,7 @@
           "https://textures.minecraft.net",
           "http://textures.minecraft.net",
           "https://avatar.vxl.to",
+          "https://nmsr.nickac.dev",
           "https://r2.fivemanage.com",
           "https://media.forgecdn.net",
           "https://starlightskins.lunareclipse.studio",

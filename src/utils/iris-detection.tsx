@@ -318,11 +318,11 @@ export function IrisRequiredModal({
             <Icon icon="solar:warning-triangle-bold" className="w-8 h-8 text-yellow-400" />
           </div>
           <div className="flex-1 space-y-3">
-            <p className="text-white/80 font-minecraft-ten leading-relaxed">
+            <p className="text-white/80  leading-relaxed">
               You installed <span className="text-white font-medium">"{projectTitle}"</span> shader pack, but you don't have a shader mod like
               <span style={{ color: accentColor.value }} className="font-medium"> Iris</span> installed!
             </p>
-            <p className="text-white/70 font-minecraft-ten leading-relaxed">
+            <p className="text-white/70  leading-relaxed">
               <strong className="text-yellow-400">You need Iris (or similar)</strong> to display and use shader packs properly.
             </p>
           </div>
@@ -332,7 +332,7 @@ export function IrisRequiredModal({
         <div className="p-4 rounded-lg bg-yellow-500/10 border-2 border-yellow-500/30">
           <div className="flex items-center gap-3">
             <Icon icon="solar:info-circle-bold" className="w-5 h-5 text-yellow-400 flex-shrink-0" />
-            <p className="text-yellow-200 font-minecraft-ten text-sm leading-relaxed">
+            <p className="text-yellow-200  text-sm leading-relaxed">
               Shader mods like Iris can reduce performance
               <strong className="text-yellow-400"> even when shaders are disabled</strong>. Keep this in mind!
             </p>

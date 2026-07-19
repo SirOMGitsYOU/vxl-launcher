@@ -2,9 +2,10 @@ import { create } from "zustand";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { MinecraftAuthService } from "../services/minecraft-auth-service";
 import { MinecraftSkinService } from "../services/minecraft-skin-service";
-import { populateAvatarCache } from "../hooks/useCrafatarAvatar";
+import { populateAvatarCache, AVATAR_FETCH_SIZE } from "../hooks/useCrafatarAvatar";
 import type { MinecraftAccount } from "../types/minecraft";
 import { toast } from "react-hot-toast";
+import { useVanillaCapeStore } from "./useVanillaCapeStore";
 
 interface MinecraftAuthState {
   accounts: MinecraftAccount[];
@@ -29,44 +30,19 @@ async function prefetchAccountAvatars(accounts: MinecraftAccount[]) {
   // Also pre-fetch default Steve avatar for new profiles
   const allUuids = [...new Set([...accounts.map(a => a.id), DEFAULT_STEVE_UUID])];
   
-  const prefetchPromises = allUuids.flatMap(uuid => [
+  const prefetchPromises = allUuids.map((uuid) =>
     MinecraftSkinService.getCrafatarAvatar({
       uuid,
-      size: 28,
+      size: AVATAR_FETCH_SIZE,
       overlay: true,
     })
-      .then(path => {
+      .then((path) => {
         const url = convertFileSrc(path);
-        // Populate the hook's cache so it can use the converted URL immediately
-        populateAvatarCache(`${uuid}-28-true`, url);
+        populateAvatarCache(uuid, url, true);
         return url;
       })
       .catch(() => null),
-    MinecraftSkinService.getCrafatarAvatar({
-      uuid,
-      size: 32,
-      overlay: true,
-    })
-      .then(path => {
-        const url = convertFileSrc(path);
-        // Populate the hook's cache so it can use the converted URL immediately
-        populateAvatarCache(`${uuid}-32-true`, url);
-        return url;
-      })
-      .catch(() => null),
-    MinecraftSkinService.getCrafatarAvatar({
-      uuid,
-      size: 40,
-      overlay: true,
-    })
-      .then(path => {
-        const url = convertFileSrc(path);
-        // Populate the hook's cache so it can use the converted URL immediately
-        populateAvatarCache(`${uuid}-40-true`, url);
-        return url;
-      })
-      .catch(() => null),
-  ]);
+  );
   
   try {
     await Promise.all(prefetchPromises);
@@ -237,6 +213,8 @@ export const useMinecraftAuthStore = create<MinecraftAuthState>((set, get) => ({
         activeAccount,
         isLoading: false,
       });
+
+      useVanillaCapeStore.getState().clearData();
     } catch (error) {
       console.error("Failed to set active account:", error);
       set({

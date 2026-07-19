@@ -44,7 +44,7 @@ function CategoryTransitionLoader() {
           style={{ borderTopColor: accentColor.value }}
         ></div>
       </div>
-      <div className="font-minecraft text-3xl text-white/80 tracking-wide lowercase select-none">
+      <div className="text-lg font-semibold text-white/80 tracking-wide lowercase select-none">
         Loading content...
       </div>
     </div>
@@ -1294,7 +1294,7 @@ export const ModrinthSearch: React.FC<ModrinthSearchProps> = ({
                           ) : filteredVersions.length > 0 ? (
                             <div>
                               <div className="flex items-center justify-between mb-3">
-                                <h4 className="text-white font-minecraft text-3xl tracking-wide lowercase select-none">
+                                <h4 className="text-white  text-3xl tracking-wide lowercase select-none">
                                   Available Versions:
                                 </h4>
 
@@ -1424,7 +1424,7 @@ export const ModrinthSearch: React.FC<ModrinthSearchProps> = ({
                       borderTopWidth: "1px",
                     }}
                   >
-                    <p className="text-white/50 font-minecraft-ten text-2xl tracking-wide lowercase select-none">
+                    <p className="text-white/50  text-2xl tracking-wide lowercase select-none">
                       End of results
                     </p>
                   </div>
@@ -1464,7 +1464,7 @@ export const ModrinthSearch: React.FC<ModrinthSearchProps> = ({
 
       {addError && (
         <div
-          className="fixed bottom-4 right-4 backdrop-blur-md px-4 py-3 font-minecraft-ten text-2xl shadow-md z-50 tracking-wide lowercase select-none"
+          className="fixed bottom-4 right-4 backdrop-blur-md px-4 py-3  text-2xl shadow-md z-50 tracking-wide lowercase select-none"
           style={{
             backgroundColor: "rgba(0, 0, 0, 0.7)",
             borderColor: "rgba(239, 68, 68, 0.3)",

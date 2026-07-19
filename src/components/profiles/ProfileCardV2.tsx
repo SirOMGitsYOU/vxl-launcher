@@ -456,7 +456,7 @@ export function ProfileCardV2({
     
     return (
       <div
-        className={`relative flex flex-col ${gap} ${padding} rounded-lg ${variant === "3d" ? "backdrop-blur-md" : "bg-black/20 border border-white/10 hover:border-white/20"} transition-all duration-200 cursor-pointer`}
+        className={`relative flex flex-col ${gap} ${padding} rounded-lg ${variant === "3d" ? "backdrop-blur-md" : "bg-[var(--surface-overlay)] border border-[var(--surface-border)] hover:border-[var(--surface-border-strong)]"} transition-all duration-200 cursor-pointer`}
         style={variant === "3d" ? get3DStyling() : {}}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -571,7 +571,7 @@ export function ProfileCardV2({
           >
             <Icon icon="solar:box-bold" className={isCompact ? 'w-4 h-4' : 'w-5.5 h-5.5'} />
             {variant === "3d" && (
-              <span className={`font-minecraft-ten ${isCompact ? 'text-xs' : 'text-sm'} uppercase`}>MODS</span>
+              <span className={` ${isCompact ? 'text-xs' : 'text-sm'} uppercase`}>MODS</span>
             )}
           </button>
         </div>
@@ -607,7 +607,7 @@ export function ProfileCardV2({
           <div className={`flex-grow min-w-0 ${isCompact ? 'max-w-[calc(100%-96px)]' : 'max-w-[calc(100%-112px)]'}`}>
             <div className="flex items-center gap-2 mb-0.5">
               <h3
-                className={`font-minecraft-ten text-white ${isCompact ? 'text-base' : 'text-lg'} whitespace-nowrap overflow-hidden text-ellipsis normal-case`}
+                className={` text-white ${isCompact ? 'text-base' : 'text-lg'} whitespace-nowrap overflow-hidden text-ellipsis normal-case`}
                 style={{ textShadow: '0 2px 4px rgba(0,0,0,0.7)' }}
                 title={profile.name}
               >
@@ -636,7 +636,7 @@ export function ProfileCardV2({
             </div>
             {isLaunching ? (
               <div
-                className="text-white/60 text-xs font-minecraft-ten opacity-70 whitespace-nowrap overflow-hidden text-ellipsis max-w-full"
+                className="text-white/60 text-xs  opacity-70 whitespace-nowrap overflow-hidden text-ellipsis max-w-full"
                 style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
               >
                 {statusMessage || "Starting..."}
@@ -644,7 +644,7 @@ export function ProfileCardV2({
             ) : (
               isCompact ? (
                  // Compact mode: Only MC version + last played
-                 <div className="flex items-center gap-1.5 text-xs font-minecraft-ten" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                 <div className="flex items-center gap-1.5 text-xs " style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
                    {/* Minecraft Version */}
                    <div className="text-white/70 flex items-center gap-0.5">
                      <img
@@ -664,7 +664,7 @@ export function ProfileCardV2({
                  </div>
                ) : (
                  // Grid mode: Full info display
-                 <div className="flex items-center gap-2 text-xs font-minecraft-ten" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                 <div className="flex items-center gap-2 text-xs " style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
                    {/* Minecraft Version */}
                    <div className="text-white/70 flex items-center gap-1">
                      <img
@@ -723,7 +723,7 @@ export function ProfileCardV2({
   // List layout (original layout)
   return (
     <div
-      className={`relative flex items-center gap-4 p-3 rounded-lg ${variant === "3d" ? "backdrop-blur-md" : "bg-black/20 border border-white/10 hover:border-white/20"} transition-all duration-200 cursor-pointer`}
+      className={`relative flex items-center gap-4 p-3 rounded-lg ${variant === "3d" ? "backdrop-blur-md" : "bg-[var(--surface-overlay)] border border-[var(--surface-border)] hover:border-[var(--surface-border-strong)]"} transition-all duration-200 cursor-pointer`}
       style={variant === "3d" ? get3DStyling() : {}}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -784,7 +784,7 @@ export function ProfileCardV2({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <h3
-            className="text-white font-minecraft-ten text-sm whitespace-nowrap overflow-hidden text-ellipsis normal-case"
+            className="text-white  text-sm whitespace-nowrap overflow-hidden text-ellipsis normal-case"
             style={{ textShadow: '0 2px 4px rgba(0,0,0,0.7)' }}
             title={profile.name}
           >
@@ -814,13 +814,13 @@ export function ProfileCardV2({
         
         {isLaunching ? (
           <div
-            className="text-white/60 text-xs font-minecraft-ten opacity-70 whitespace-nowrap overflow-hidden text-ellipsis max-w-full"
+            className="text-white/60 text-xs  opacity-70 whitespace-nowrap overflow-hidden text-ellipsis max-w-full"
             style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
           >
             {statusMessage || "Starting..."}
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-xs font-minecraft-ten" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+          <div className="flex items-center gap-2 text-xs " style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
           {/* Minecraft Version */}
           <div className="text-white/70 flex items-center gap-1">
             <img

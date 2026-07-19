@@ -171,7 +171,7 @@ export const ModrinthQuickInstallModalV2: React.FC<ModrinthQuickInstallModalV2Pr
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             ></path>
           </svg>
-          <span className="ml-3 text-gray-300 font-minecraft-ten">
+          <span className="ml-3 text-gray-300 ">
             Finding compatible versions...
           </span>
         </div>
@@ -179,7 +179,7 @@ export const ModrinthQuickInstallModalV2: React.FC<ModrinthQuickInstallModalV2Pr
         <div className="text-red-400 text-center py-6 px-6">{error}</div>
       ) : versions && versions.length > 0 ? (
         <div className="px-6 py-4">
-          <p className="text-gray-300 mb-4 text-xs font-minecraft-ten">
+          <p className="text-gray-300 mb-4 text-xs ">
             Quick Install to existing profile (auto-selects best version):
           </p>
 
@@ -214,14 +214,14 @@ export const ModrinthQuickInstallModalV2: React.FC<ModrinthQuickInstallModalV2Pr
                         }}
                       >
                         <div className="text-white flex-grow mr-3 min-w-0">
-                          <span className="font-medium text-base font-minecraft-ten truncate">{profile.name}</span>
+                          <span className="font-medium text-base  truncate">{profile.name}</span>
                           {profile.id === selectedProfileId && (
                             <span className="ml-2 text-xs text-green-400">
                               (Current Profile)
                             </span>
                           )}
                           {isCompatible && bestVersion && (
-                            <div className="text-xs text-gray-400 mt-0.5 font-minecraft-ten truncate">
+                            <div className="text-xs text-gray-400 mt-0.5  truncate">
                               Version: {bestVersion.version_number}
                             </div>
                           )}
@@ -343,7 +343,7 @@ export const ModrinthQuickInstallModalV2: React.FC<ModrinthQuickInstallModalV2Pr
         <h3 className="text-xl font-semibold text-gray-100">
           {sourceProfileToCopyId ? "Profile Copied & Content Installed!" : "Profile Created & Content Installed!"}
         </h3>
-        <p className="text-sm text-gray-300 font-minecraft-ten">
+        <p className="text-sm text-gray-300 ">
           {project.title} (v{versions?.[0]?.version_number || 'latest'}) has been successfully installed into the profile '{quickProfileName.trim()}'.
           {sourceProfileToCopyId && profiles.find(p => p.id === sourceProfileToCopyId) && (
             <>

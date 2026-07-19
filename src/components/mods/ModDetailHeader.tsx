@@ -7,7 +7,7 @@ import type { UnifiedProjectDetails, UnifiedModSearchResult } from "../../types/
 import { ModPlatform } from "../../types/unified";
 import type { AccentColor } from "../../store/useThemeStore";
 import { TagBadge } from "../ui/TagBadge";
-import { ActionButton } from "../ui/ActionButton";
+import { SplitActionButton } from "../ui/SplitActionButton";
 import { openExternalUrl } from "../../services/tauri-service";
 
 interface ModDetailHeaderProps {
@@ -83,19 +83,19 @@ export function ModDetailHeader({ project, accentColor, showVersions, onToggleVe
           <div>
             <button
               onClick={handleOpenProjectPage}
-              className="text-2xl font-minecraft-ten text-white leading-tight hover:text-accent hover:underline transition-colors text-left"
+              className="text-2xl  text-white leading-tight hover:text-accent hover:underline transition-colors text-left"
             >
               {project.title}
             </button>
             {project.author && (
-              <p className="text-sm text-gray-400 font-minecraft-ten mt-1">
+              <p className="text-sm text-gray-400  mt-1">
                 by {project.author}
               </p>
             )}
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-4 text-sm text-white/70 font-minecraft-ten">
+            <div className="flex items-center gap-4 text-sm text-white/70 ">
               <div className="flex items-center gap-1">
                 <Icon icon="solar:download-minimalistic-bold" className="w-4 h-4" />
                 <span>{formatNumber(project.downloads)}</span>
@@ -106,28 +106,22 @@ export function ModDetailHeader({ project, accentColor, showVersions, onToggleVe
               </div>
             </div>
 
-            <div className="flex items-center gap-1">
-              <ActionButton
-                label={isInstalling ? "Installing..." : "Install"}
-                icon={isInstalling ? "solar:refresh-bold" : "solar:download-minimalistic-bold"}
-                iconClassName={isInstalling ? "animate-spin-slow" : ""}
-                variant={isInstalling ? "secondary" : "primary"}
-                size="sm"
-                disabled={isInstalling}
-                onClick={handleInstallClick}
-              />
-              <ActionButton
-                icon={showVersions ? "solar:alt-arrow-up-bold" : "solar:alt-arrow-down-bold"}
-                variant="icon-only"
-                tooltip={showVersions ? "Hide Versions" : "Show Versions"}
-                onClick={onToggleVersions}
-                size="sm"
-              />
-            </div>
+            <SplitActionButton
+              label={isInstalling ? "Installing..." : "Install"}
+              icon={isInstalling ? "solar:refresh-bold" : "solar:download-minimalistic-bold"}
+              iconClassName={isInstalling ? "animate-spin-slow" : ""}
+              variant={isInstalling ? "secondary" : "primary"}
+              size="sm"
+              disabled={isInstalling}
+              menuIcon={showVersions ? "solar:alt-arrow-up-bold" : "solar:alt-arrow-down-bold"}
+              menuTooltip={showVersions ? "Hide Versions" : "Show Versions"}
+              onPrimaryClick={handleInstallClick}
+              onMenuClick={onToggleVersions}
+            />
           </div>
         </div>
 
-        <p className="text-sm text-gray-300 font-minecraft-ten mt-3 line-clamp-2">
+        <p className="text-sm text-gray-300  mt-3 line-clamp-2">
           {project.description}
         </p>
 
@@ -154,7 +148,7 @@ export function ModDetailHeader({ project, accentColor, showVersions, onToggleVe
             </TagBadge>
           ))}
           {project.categories.length > 4 && (
-            <span className="text-xs text-white/50 font-minecraft-ten">
+            <span className="text-xs text-white/50 ">
               +{project.categories.length - 4} more
             </span>
           )}

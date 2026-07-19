@@ -7,8 +7,8 @@ import type {
 import { UnifiedSortType, ModPlatform } from "../../../types/unified";
 // Profile type will be defined locally
 import { SearchWithFilters } from "../../ui/SearchWithFilters";
-import { GroupTabs, type GroupTab } from "../../ui/GroupTabs";
-import { IconButton } from "../../ui/buttons/IconButton";
+import { SelectTab } from "../../ui-v2/SelectTab";
+import { IconButton } from "../../ui-v2/IconButton";
 import { TagBadge } from "../../ui/TagBadge";
 import { Icon } from "@iconify/react";
 import { useDisplayContextStore } from "../../../store/useDisplayContextStore";
@@ -118,21 +118,24 @@ export const ModrinthSearchControlsV2: React.FC<
 
   // Create groups array for project types - only show available types
   const typesToShow = availableProjectTypes || allProjectTypes;
-  const groups: GroupTab[] = typesToShow.map(type => ({
+  const groups = typesToShow.map(type => ({
     id: type,
     name: type.charAt(0).toUpperCase() + type.slice(1) + 's',
-    count: 0, // Could be populated with result counts if needed
   }));
 
   return (
     <>
-      {/* Group Tabs for Project Types */}
-      <GroupTabs
-        groups={groups}
-        activeGroup={projectType}
-        onGroupChange={onProjectTypeChange}
-        showAddButton={false}
-      />
+      <div className="flex items-center gap-2 flex-wrap mb-4">
+        {groups.map((group) => (
+          <SelectTab
+            key={group.id}
+            active={projectType === group.id}
+            onClick={() => onProjectTypeChange(group.id as ModrinthProjectType)}
+          >
+            {group.name}
+          </SelectTab>
+        ))}
+      </div>
 
       {/* Search & Filter Header */}
       <div className="mb-4">
@@ -147,31 +150,26 @@ export const ModrinthSearchControlsV2: React.FC<
               onSortChange={(value) => onSortOrderChange(value as UnifiedSortType)}
             />
 
-            <button
+            <IconButton
               onClick={onToggleSidebar}
-              className="flex items-center gap-2 px-4 py-2 bg-black/30 hover:bg-black/40 text-white/70 hover:text-white border border-white/10 hover:border-white/20 rounded-lg font-minecraft text-2xl lowercase transition-all duration-200 min-h-[2.5rem]"
               title={isSidebarVisible ? "Hide filters" : "Show filters"}
             >
-              <div className="w-4 h-8 flex items-center justify-center">
-                <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
-                </svg>
-              </div>
-            </button>
+              <Icon icon="solar:filter-bold" className="w-4 h-4" />
+            </IconButton>
           </div>
 
           {/* Platform Selection Buttons - ganz rechts */}
-          <div className="flex items-center gap-1 border border-white/10 rounded-lg p-0.5">
+          <div className="flex items-center gap-1 border border-[var(--surface-border)] rounded-lg p-0.5 bg-[var(--surface-overlay)]">
             <button
               onClick={() => {
                 onModSourceChange(ModPlatform.Modrinth);
                 onClearAllFilters();
               }}
               className={cn(
-                "flex items-center gap-1.5 px-2 py-1 rounded-md font-minecraft text-2xl lowercase transition-all duration-200 min-h-[2.5rem]",
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200",
                 modSource === ModPlatform.Modrinth
-                  ? "bg-green-400/40 text-white border border-green-300/30"
-                  : "bg-black/30 text-white/70 hover:text-white hover:bg-black/40 border border-transparent"
+                  ? "bg-[rgba(var(--accent-rgb),0.15)] text-white border border-[var(--accent)]/30"
+                  : "text-[var(--text-secondary)] hover:text-white hover:bg-[var(--surface-base)] border border-transparent",
               )}
               title="Search Modrinth"
             >
@@ -189,10 +187,10 @@ export const ModrinthSearchControlsV2: React.FC<
                 onClearAllFilters();
               }}
               className={cn(
-                "flex items-center gap-1.5 px-2 py-1 rounded-md font-minecraft text-2xl lowercase transition-all duration-200 min-h-[2.5rem]",
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200",
                 modSource === ModPlatform.CurseForge
-                  ? "bg-orange-400/40 text-white border border-orange-300/30"
-                  : "bg-black/30 text-white/70 hover:text-white hover:bg-black/40 border border-transparent"
+                  ? "bg-orange-500/20 text-white border border-orange-400/30"
+                  : "text-[var(--text-secondary)] hover:text-white hover:bg-[var(--surface-base)] border border-transparent",
               )}
               title="Search CurseForge"
             >

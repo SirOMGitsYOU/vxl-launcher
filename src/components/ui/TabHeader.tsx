@@ -5,9 +5,7 @@ import { useEffect, useRef } from "react";
 import { Icon } from "@iconify/react";
 import { cn } from "../../lib/utils";
 import { gsap } from "gsap";
-import { useThemeStore } from "../../store/useThemeStore";
 import { 
-  getVariantColors,
   getAccessibilityProps
 } from "./design-system";
 
@@ -29,9 +27,7 @@ export function TabHeader({
   ariaLabel,
 }: TabHeaderProps) {
   const headerRef = useRef<HTMLDivElement>(null);
-  const accentColor = useThemeStore((state) => state.accentColor);
 
-  const colors = getVariantColors("default", accentColor);
   const accessibilityProps = getAccessibilityProps({
     label: ariaLabel
   });
@@ -52,32 +48,27 @@ export function TabHeader({
   }, []);
   return (
     <div
-      ref={headerRef}      className={cn(
-        "flex-shrink-0 flex flex-col gap-4 p-6 backdrop-blur-md border-b-4 shadow-md",
-        "rounded-none",
+      ref={headerRef}
+      className={cn(
+        "flex-shrink-0 flex flex-col gap-4 px-6 py-5 border-b border-[var(--surface-border)] bg-[var(--surface-raised)]",
         className,
       )}
-      style={{
-        backgroundColor: `${colors.main}30`,
-        borderColor: `${colors.main}60`,
-        borderRadius: "0px",
-      }}
       role={role}
       {...accessibilityProps}
-    >      <div className="flex items-center gap-3">        {icon && (
-          <Icon
-            icon={icon}
-            className="text-xl"
-            style={{ color: colors.light }}
-            aria-hidden="true"
-          />
+    >
+      <div className="flex items-center gap-3">
+        {icon && (
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{
+              backgroundColor: "rgba(var(--accent-rgb), 0.12)",
+              color: "var(--accent)",
+            }}
+          >
+            <Icon icon={icon} className="w-5 h-5" aria-hidden="true" />
+          </div>
         )}
-        <h1
-          className="text-xl font-minecraft font-bold"
-          style={{ color: "#ffffff" }}
-        >
-          {title}
-        </h1>
+        <h1 className="text-xl font-semibold text-white">{title}</h1>
       </div>
       {children}
     </div>

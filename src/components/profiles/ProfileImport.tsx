@@ -126,16 +126,16 @@ export function ProfileImport({
 
         <div className="space-y-6">
           <div>
-            <p className="text-lg text-white/70 mb-6 font-minecraft-ten tracking-wide select-none">
+            <p className="text-lg text-white/70 mb-6  tracking-wide select-none">
               Select a file or drag and drop a .mrpack, .vxlpack, or .zip file into the launcher to import it and create a new profile.
             </p>
 
             <div className="mb-6">
-              <h3 className="text-2xl text-white font-minecraft mb-4 select-none lowercase">
+              <h3 className="text-2xl text-white  mb-4 select-none lowercase">
                 supported formats:
               </h3>
               <ul
-                className="text-2xl text-white/80 space-y-4 select-none lowercase font-minecraft"
+                className="text-2xl text-white/80 space-y-4 select-none lowercase "
                 ref={formatItemsRef}
               >
                 <li className="flex items-center">

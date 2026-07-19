@@ -108,16 +108,16 @@ export function ProfileDuplicateModal() {
     >
       <div className="space-y-6 p-6">
         <div className="text-center">
-          <p className="text-2xl font-minecraft text-white/80 mb-4 lowercase">
+          <p className="text-2xl  text-white/80 mb-4 lowercase">
             duplicate profile "{sourceProfile.name}"
           </p>
-          <p className="text-xs text-white/60 font-minecraft-ten tracking-wide">
+          <p className="text-xs text-white/60  tracking-wide">
             This will create a copy of the profile including worlds, configs, mods, and settings.
           </p>
         </div>
 
         <div>
-          <label className="block text-2xl font-minecraft text-white mb-2 lowercase">
+          <label className="block text-2xl  text-white mb-2 lowercase">
             new profile name
           </label>
           <SearchStyleInput

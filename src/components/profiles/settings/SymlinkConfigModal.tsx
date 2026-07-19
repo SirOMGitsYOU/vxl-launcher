@@ -110,7 +110,7 @@ export function SymlinkConfigModal({
               icon={externalPath.includes('.') && !externalPath.endsWith('/') && !externalPath.endsWith('\\') ? "solar:file-bold" : "solar:folder-bold"} 
               className="w-5 h-5 text-white/70" 
             />
-            <h4 className="text-xl font-minecraft text-white">
+            <h4 className="text-xl  text-white">
               External {externalPath.includes('.') && !externalPath.endsWith('/') && !externalPath.endsWith('\\') ? 'File' : 'Folder'}
             </h4>
           </div>
@@ -119,7 +119,7 @@ export function SymlinkConfigModal({
               {externalPath}
             </p>
           </div>
-          <p className="text-xs text-white/60 mt-2 font-minecraft-ten tracking-wide select-none">
+          <p className="text-xs text-white/60 mt-2  tracking-wide select-none">
             <Icon icon="solar:refresh-bold" className="w-3 h-3 inline mr-1" />
             Changes to this {externalPath.includes('.') && !externalPath.endsWith('/') && !externalPath.endsWith('\\') ? 'file' : 'folder'} will sync automatically with your profile
           </p>
@@ -133,11 +133,11 @@ export function SymlinkConfigModal({
           >
             <div className="flex items-center gap-2">
               <Icon icon="solar:settings-bold" className="w-4 h-4 text-white/70" />
-              <span className="text-sm font-minecraft-ten text-white tracking-wide">
+              <span className="text-sm  text-white tracking-wide">
                 Advanced: Custom Location
               </span>
               {targetDirectory && (
-                <span className="text-xs text-accent font-minecraft-ten">
+                <span className="text-xs text-accent ">
                   ({targetDirectory})
                 </span>
               )}
@@ -150,7 +150,7 @@ export function SymlinkConfigModal({
 
           {isAdvancedOpen && (
             <div className="p-4 pt-0 space-y-3">
-              <p className="text-xs text-white/60 font-minecraft-ten tracking-wide select-none">
+              <p className="text-xs text-white/60  tracking-wide select-none">
                 By default, <code className="text-white/80">{folderName}</code> will be placed in the profile root.
                 <br />
                 Change the location if you want to organize it in a subfolder.
@@ -160,7 +160,7 @@ export function SymlinkConfigModal({
                 onClick={handleSelectTargetDirectory}
                 variant="secondary" 
                 size="md" 
-                className="w-full font-minecraft-ten text-sm"
+                className="w-full  text-sm"
               >
                 <span className="flex items-center gap-2">
                   <Icon icon="solar:folder-path-bold" className="w-4 h-4" />
@@ -172,7 +172,7 @@ export function SymlinkConfigModal({
               <div className="p-3 bg-white/5 rounded border border-white/10">
                 <div className="flex items-center gap-2 mb-1">
                   <Icon icon="solar:map-point-bold" className="w-4 h-4 text-accent" />
-                  <span className="text-xs font-minecraft-ten text-accent tracking-wide">
+                  <span className="text-xs  text-accent tracking-wide">
                     Symlink will be created at:
                   </span>
                 </div>
@@ -187,7 +187,7 @@ export function SymlinkConfigModal({
                     setTargetDirectory("");
                     setSelectedAbsolutePath(null);
                   }}
-                  className="text-xs text-white/50 hover:text-white transition-colors font-minecraft-ten flex items-center gap-1"
+                  className="text-xs text-white/50 hover:text-white transition-colors  flex items-center gap-1"
                 >
                   <Icon icon="solar:restart-bold" className="w-3 h-3" />
                   Reset to Profile Root

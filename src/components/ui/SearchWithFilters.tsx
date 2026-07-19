@@ -73,7 +73,7 @@ export function SearchWithFilters({
           value={searchValue}
           onChange={handleSearchChange}
           onKeyDown={handleSearchKeyDown}
-          className="bg-transparent text-white placeholder-white/50 font-minecraft-ten text-sm flex-1 outline-none"
+          className="bg-transparent text-white placeholder-white/50  text-sm flex-1 outline-none"
         />
         
         {/* Sort Filter */}

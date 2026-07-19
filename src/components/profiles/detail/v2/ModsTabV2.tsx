@@ -67,7 +67,7 @@ export function ModsTabV2({ profile, onRefreshRequired }: ModsTabV2Props) {
   if (!profile) {
     // Optionally, render a more specific loading/error state for this case
     return (
-      <div className="p-4 font-minecraft text-center text-white/70">
+      <div className="p-4  text-center text-white/70">
         Profile data is not available. Cannot display mods.
       </div>
     );
@@ -448,7 +448,7 @@ export function ModsTabV2({ profile, onRefreshRequired }: ModsTabV2Props) {
       >
         <button 
           onClick={() => { handleOpenFolder(mod); setActiveDropdownModId(null); }}
-          className="w-full text-left px-2 py-1.5 text-[11px] font-minecraft-ten hover:bg-[var(--accent-color-soft)] rounded-sm text-white/80 hover:text-white transition-colors duration-100 flex items-center gap-1.5"
+          className="w-full text-left px-2 py-1.5 text-[11px]  hover:bg-[var(--accent-color-soft)] rounded-sm text-white/80 hover:text-white transition-colors duration-100 flex items-center gap-1.5"
         >
           <Icon icon="solar:folder-open-bold-duotone" className="w-3 h-3 flex-shrink-0" />
           Open Folder
@@ -463,7 +463,7 @@ export function ModsTabV2({ profile, onRefreshRequired }: ModsTabV2Props) {
           <button 
             key={actionText}
             onClick={() => { alert(`PROTOTYPE: ${actionText}`); setActiveDropdownModId(null); }}
-            className="w-full text-left px-2 py-1.5 text-[11px] font-minecraft-ten hover:bg-[var(--accent-color-soft)] rounded-sm text-white/70 hover:text-white transition-colors duration-100"
+            className="w-full text-left px-2 py-1.5 text-[11px]  hover:bg-[var(--accent-color-soft)] rounded-sm text-white/70 hover:text-white transition-colors duration-100"
           >
             {actionText.startsWith("Select Version") ? actionText : actionText.split(" (")[0]}
           </button>
@@ -959,7 +959,7 @@ export function ModsTabV2({ profile, onRefreshRequired }: ModsTabV2Props) {
             icon="solar:danger-triangle-bold"
             className="w-4 h-4 text-red-400 flex-shrink-0"
           />
-          <span className="font-minecraft">Update Error: {updateError}</span>
+          <span className="">Update Error: {updateError}</span>
         </div>
       )}
       {mods.length > 0 && (

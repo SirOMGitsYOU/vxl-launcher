@@ -1,8 +1,10 @@
 "use client";
 
-import React, { ReactNode, useState } from 'react';
+import React, { ReactNode } from 'react';
 import { Icon } from '@iconify/react'; // For default icons if needed
 import { CheckboxV2 } from '../../../ui/CheckboxV2'; // New checkbox with ActionButton styling
+import { cn } from '../../../../lib/utils';
+import { listItemAccentHover } from '../../../ui-v2/tokens';
 
 export interface GenericDetailListItemProps {
   id: string;
@@ -61,18 +63,16 @@ export function GenericDetailListItem({
   accentColor = '#FFFFFF', // Default accent if not provided
   onTitleClick,
 }: GenericDetailListItemProps) {
-
-  const [isHovered, setIsHovered] = useState(false);
-
   // Determine default icon if none provided (example)
   const defaultIcon = <Icon icon="solar:box-bold-duotone" className="w-10 h-10 text-white/30" />;
   const displayIconNode = iconNode || defaultIcon;
 
   return (
     <div 
-      className="relative flex items-center gap-4 p-3 rounded-lg bg-black/20 border border-white/10 hover:border-white/20 transition-all duration-200 group"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      className={cn(
+        "group relative flex items-center gap-4 rounded-lg border border-[var(--surface-border)] bg-[var(--surface-overlay)] p-3 transition-all duration-200",
+        listItemAccentHover,
+      )}
     >
       {/* Checkbox Area */}
       <div className="flex-shrink-0 self-center" onClick={(e) => e.stopPropagation()}>
@@ -86,11 +86,10 @@ export function GenericDetailListItem({
 
       {/* Icon Area - Smaller and more compact with ProfileCardV2 styling */}
       <div 
-        className={`relative w-16 h-16 flex-shrink-0 rounded-lg flex items-center justify-center overflow-hidden border-2 transition-all duration-200 ${isDisabled ? 'opacity-50 grayscale' : ''}`}
-        style={{
-          backgroundColor: isHovered ? `${accentColor}20` : 'transparent',
-          borderColor: isHovered ? `${accentColor}60` : 'transparent',
-        }}
+        className={cn(
+          "relative flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--surface-border)] bg-[var(--surface-base)] transition-colors duration-200",
+          isDisabled && "opacity-50 grayscale",
+        )}
       >
         {displayIconNode}
       </div>
@@ -98,7 +97,7 @@ export function GenericDetailListItem({
       {/* Content Area - Title, Description, Badges */}
       <div className="flex-1 min-w-0">
         <h3 
-          className={`font-minecraft-ten text-sm whitespace-nowrap overflow-hidden text-ellipsis normal-case mb-1 ${isDisabled ? 'text-white/50 line-through' : 'text-white'} ${onTitleClick ? 'cursor-pointer hover:text-accent hover:underline transition-colors' : ''}`}
+          className={` text-sm whitespace-nowrap overflow-hidden text-ellipsis normal-case mb-1 ${isDisabled ? 'text-white/50 line-through' : 'text-white'} ${onTitleClick ? 'cursor-pointer hover:text-accent hover:underline transition-colors' : ''}`}
           title={typeof title === 'string' ? title : undefined}
           onClick={(e) => {
             e.stopPropagation();
@@ -110,12 +109,12 @@ export function GenericDetailListItem({
           {title}
         </h3>
         {descriptionNode && (
-          <div className={`text-xs font-minecraft-ten mb-1 ${isDisabled ? 'text-white/40' : 'text-white/70'}`}>
+          <div className={`text-xs  mb-1 ${isDisabled ? 'text-white/40' : 'text-white/70'}`}>
             {descriptionNode}
           </div>
         )}
         {infoItems && infoItems.length > 0 && (
-          <div className="flex items-center gap-2 text-xs font-minecraft-ten">
+          <div className="flex items-center gap-2 text-xs ">
             {infoItems.map((item, index) => (
               <React.Fragment key={index}>
                 {index > 0 && <div className="w-px h-3 bg-white/30"></div>}

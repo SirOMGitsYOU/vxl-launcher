@@ -5,7 +5,7 @@ import { Icon } from "@iconify/react";
 import type { ModLoader } from "../../../types/profile";
 import { invoke } from "@tauri-apps/api/core";
 import { Modal } from "../../ui/Modal";
-import { Button } from "../../ui/buttons/Button";
+import { Button, LoadingState } from "../../ui-v2";
 import { StatusMessage } from "../../ui/StatusMessage";
 import { useThemeStore } from "../../../store/useThemeStore";
 import { Select } from "../../ui/Select";
@@ -277,7 +277,7 @@ export function ProfileWizardV2Step2({
       return (
         <div className="flex flex-col items-center justify-center h-64">
           <Icon icon="solar:refresh-bold" className="w-12 h-12 text-white animate-spin mb-4" />
-          <p className="text-xl font-minecraft text-white lowercase">loading...</p>
+          <p className="text-xl  text-white lowercase">loading...</p>
         </div>
       );
     }
@@ -325,11 +325,11 @@ export function ProfileWizardV2Step2({
                   
                   {/* Text */}
                   <div className="flex flex-col items-start">
-                    <h4 className="font-minecraft text-4xl text-white lowercase drop-shadow-lg">
+                    <h4 className=" text-4xl text-white lowercase drop-shadow-lg">
                       {loader.label}
                     </h4>
                     {isDisabled && (
-                      <p className="font-minecraft text-2xl text-white/70 lowercase">
+                      <p className=" text-2xl text-white/70 lowercase">
                         not available
                       </p>
                     )}
@@ -353,14 +353,14 @@ export function ProfileWizardV2Step2({
         <div className="h-20 flex items-center flex-shrink-0">
           {selectedLoader === "vanilla" ? (
             <div className="text-center w-full">
-              <p className="text-lg font-minecraft text-white/50 lowercase">
+              <p className="text-lg  text-white/50 lowercase">
                 no additional version required
               </p>
             </div>
           ) : showLoadingIndicator ? (
             <div className="flex items-center justify-center w-full">
               <Icon icon="solar:refresh-bold" className="w-6 h-6 text-white animate-spin mr-3" />
-              <p className="text-lg font-minecraft text-white lowercase">loading versions...</p>
+              <p className="text-lg  text-white lowercase">loading versions...</p>
             </div>
           ) : loaderVersions.length > 0 ? (
             <Select
@@ -377,7 +377,7 @@ export function ProfileWizardV2Step2({
           ) : showNoVersionsFound ? (
             <div className="text-center w-full">
               <Icon icon="solar:danger-triangle-bold" className="w-8 h-8 text-white/50 mx-auto mb-2" />
-              <p className="text-base font-minecraft text-white/70 lowercase">
+              <p className="text-base  text-white/70 lowercase">
                 no {selectedLoader} versions available for {selectedMinecraftVersion}
               </p>
             </div>
@@ -394,30 +394,26 @@ export function ProfileWizardV2Step2({
         onClick={onBack}
         disabled={loading || loadingVersions}
         size="md"
-        className="text-xl"
-        icon={<Icon icon="solar:arrow-left-bold" className="w-5 h-5" />}
-        iconPosition="left"
+        icon={<Icon icon="solar:arrow-left-bold" className="w-4 h-4" />}
       >
-        back
+        Back
       </Button>
 
       <Button
-        variant="default"
+        variant="primary"
         onClick={handleNext}
         disabled={loading || loadingVersions || (selectedLoader !== "vanilla" && !selectedLoaderVersion)}
         size="md"
-        className="min-w-[180px] text-xl"
-        icon={<Icon icon="solar:arrow-right-bold" className="w-5 h-5" />}
-        iconPosition="right"
+        icon={<Icon icon="solar:arrow-right-bold" className="w-4 h-4" />}
       >
-        next
+        Next
       </Button>
     </div>
   );
 
   return (
     <Modal
-      title="create profile - select mod loader"
+      title="Create profile — select mod loader"
       onClose={onClose}
       width="lg"
       footer={renderFooter()}

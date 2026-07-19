@@ -310,7 +310,7 @@ export function Cape3DRenderer({
         <div ref={ref} className="relative w-full h-full" style={{ width: `${width}px`, height: `${height}px` }}>
           {!inView && (
              <div className="w-full h-full flex items-center justify-center bg-black/5">
-                 <p className="text-xs text-white/30 font-minecraft">Loading Preview...</p> 
+                 <p className="text-xs text-white/30 ">Loading Preview...</p> 
              </div>
           )}
           {inView && errorMessage && (
@@ -327,7 +327,7 @@ export function Cape3DRenderer({
             />
           )}
           {inView && isLoading && !errorMessage && (
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/70 text-white px-3 py-1.5 rounded text-xs font-minecraft lowercase">
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/70 text-white px-3 py-1.5 rounded text-xs ">
               Loading 3D...
             </div>
           )}

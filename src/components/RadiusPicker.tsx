@@ -29,9 +29,9 @@ export const RadiusPicker = ({ className }: RadiusPickerProps) => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Icon icon="solar:widget-bold" className="w-5 h-5 text-white" />
-          <h3 className="text-lg font-minecraft text-white lowercase">Border Radius</h3>
+          <h3 className="text-lg font-sans text-white">Border Radius</h3>
         </div>
-        <span className="text-sm text-white/60 font-minecraft-ten">
+        <span className="text-sm text-white/60 font-sans">
           {borderRadius}px ({getRadiusLabel(borderRadius)})
         </span>
       </div>
@@ -50,7 +50,7 @@ export const RadiusPicker = ({ className }: RadiusPickerProps) => {
         showValue={false}
       />
       
-      <div className="flex justify-between text-xs text-white/60 font-minecraft-ten">
+      <div className="flex justify-between text-xs text-white/60 font-sans">
         <span className={cn(
           "transition-colors duration-200",
           borderRadius === 0 ? "text-white" : "text-white/40"

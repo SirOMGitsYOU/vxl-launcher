@@ -19,41 +19,48 @@
 }
 
 :root {
-    --background: 0 0% 7%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 12%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 12%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 210 78% 35%;
+    --background: 220 16% 6%;
+    --foreground: 210 20% 98%;
+    --card: 220 14% 10%;
+    --card-foreground: 210 20% 98%;
+    --popover: 220 14% 10%;
+    --popover-foreground: 210 20% 98%;
+    --primary: 160 84% 39%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 217 10% 25%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 10% 25%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 10% 25%;
-    --accent-foreground: 210 40% 98%;
+    --secondary: 220 12% 16%;
+    --secondary-foreground: 210 20% 98%;
+    --muted: 220 12% 16%;
+    --muted-foreground: 215 14% 58%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 210 20% 98%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217 19% 27%;
-    --input: 217 19% 27%;
-    --ring: 210 78% 35%;
-    --text-primary: #ffffff;
-    --text-secondary: #ababab;
-    --text-muted: #808080;
-    --animation-short: 0.2s;
-    --animation-medium: 0.5s;
-    --animation-long: 1s;    --radius-sm: 4px;
-    --radius-md: 8px;
+    --border: 220 12% 18%;
+    --input: 220 12% 14%;
+    --ring: 160 84% 39%;
+    --text-primary: #f4f6f8;
+    --text-secondary: #9aa3b2;
+    --text-muted: #6b7280;
+    --animation-short: 0.15s;
+    --animation-medium: 0.3s;
+    --animation-long: 0.5s;
+    --radius-sm: 6px;
+    --radius-md: 10px;
     --radius-lg: 12px;
     --radius-xl: 16px;
-    --radius-2xl: 24px;
-    --border-radius: 0px; 
+    --radius-2xl: 20px;
+    --border-radius: 10px;
+    --font-sans: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
     --font-minecraft: "Minecraft", monospace;
     --font-minecraft-ten: "MinecraftTen", sans-serif;
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.2);
-    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.25);
+    --surface-base: #0a0b10;
+    --surface-raised: #12141a;
+    --surface-overlay: #181b24;
+    --surface-border: rgba(255, 255, 255, 0.08);
+    --surface-border-strong: rgba(255, 255, 255, 0.12);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.45);
     --spacing-xs: 0.25rem;
     --spacing-sm: 0.5rem;
     --spacing-md: 1rem;
@@ -61,11 +68,11 @@
     --spacing-xl: 2rem;
     --spacing-2xl: 3rem;
 
-    /* Default accent color */
-    --accent: #4f8eff;
-    --accent-hover: #3a7aff;
-    --accent-shadow: rgba(79, 142, 255, 0.5);
-    --accent-rgb: 79, 142, 255;
+    /* Default accent color (emerald) */
+    --accent: #10b981;
+    --accent-hover: #059669;
+    --accent-shadow: rgba(16, 185, 129, 0.35);
+    --accent-rgb: 16, 185, 129;
 }
 
 @keyframes fadeIn {
@@ -219,12 +226,10 @@
     }
 
     body {
-        @apply bg-dark text-white;
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-        font-family: var(--font-minecraft), monospace;
-        letter-spacing: 0.03em;
+        @apply text-white antialiased;
+        background-color: var(--surface-base);
+        font-family: var(--font-sans);
+        letter-spacing: 0.01em;
     }
 
     h1,
@@ -233,8 +238,9 @@
     h4,
     h5,
     h6 {
-        @apply font-minecraft tracking-wider lowercase;
-        font-weight: normal;
+        font-family: var(--font-sans);
+        font-weight: 600;
+        letter-spacing: -0.01em;
         user-select: none;
     }
 
@@ -313,7 +319,7 @@
 }
 
 :root {
-  --border-radius: 0px; 
+  --border-radius: 10px;
 }
 
 .themed-radius {
@@ -461,6 +467,61 @@ input[type="text"]:not(.no-radius) {
 .dark input:not(.no-radius),
 .dark .card:not(.no-radius) {
   border-radius: var(--border-radius) !important;
+}
+
+/* VXL Launcher v2 design utilities */
+.vxl-surface-base { background-color: var(--surface-base); }
+.vxl-surface-raised { background-color: var(--surface-raised); }
+.vxl-surface-overlay { background-color: var(--surface-overlay); }
+.vxl-border { border: 1px solid var(--surface-border); }
+.vxl-border-strong { border: 1px solid var(--surface-border-strong); }
+.vxl-accent-glow {
+  box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.35), 0 0 24px rgba(var(--accent-rgb), 0.12);
+}
+.vxl-list-item-accent-hover {
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.vxl-list-item-accent-hover:hover {
+  background-color: rgba(var(--accent-rgb), 0.08);
+  border-color: rgba(var(--accent-rgb), 0.4);
+  box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.35);
+}
+.vxl-nav-active {
+  border-left: 3px solid var(--accent);
+  background: rgba(var(--accent-rgb), 0.08);
+  color: var(--accent);
+}
+
+.vxl-select-tab {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.vxl-select-tab-active {
+  border-color: var(--accent);
+  background-color: var(--surface-overlay);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.vxl-brand-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+.vxl-brand-subtitle {
+  margin-top: 0.35rem;
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 /* Backdrop blur which also works on Linux */

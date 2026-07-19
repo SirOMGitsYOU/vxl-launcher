@@ -43,7 +43,7 @@ export function ProfileItem({
     >
       <div className="flex-1">
         <div className="flex items-center gap-2">
-          <span className="text-white font-minecraft text-sm tracking-wide lowercase select-none">
+          <span className="text-white  text-sm tracking-wide lowercase select-none">
             {profile.name}
           </span>
           {isInstalled && (
@@ -57,7 +57,7 @@ export function ProfileItem({
             </Label>
           )}
         </div>
-        <div className="text-white/60 font-minecraft text-xs tracking-wide lowercase select-none">
+        <div className="text-white/60  text-xs tracking-wide lowercase select-none">
           {profile.game_version} • {profile.loader}
         </div>
       </div>

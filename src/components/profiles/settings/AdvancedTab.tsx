@@ -57,11 +57,11 @@ export function AdvancedTab({
       <div className="space-y-6">
         {/* Repair Profile Section */}
         <div className="space-y-3">
-          <label className="block text-3xl font-minecraft text-white mb-2 lowercase">
+          <label className="block text-3xl  text-white mb-2 lowercase">
             repair profile
           </label>
           <div className="flex flex-col space-y-2 max-w-xs">
-            <p className="text-xs text-white/60 font-minecraft-ten select-none leading-relaxed whitespace-normal break-words overflow-wrap-anywhere">
+            <p className="text-xs text-white/60  select-none leading-relaxed whitespace-normal break-words overflow-wrap-anywhere">
               Repairs the profile installation by redownloading missing or corrupted files.
             </p>
             <Button

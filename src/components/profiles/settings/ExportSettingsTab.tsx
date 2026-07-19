@@ -241,10 +241,10 @@ export function ExportSettingsTab({
     <div ref={contentRef} className="space-y-6">
       {!isInModalContext && (
         <div>
-          <h3 className="text-3xl font-minecraft text-white mb-1 lowercase">
+          <h3 className="text-3xl  text-white mb-1 lowercase">
             Export Profile
           </h3>
-          <p className="text-xs text-white/70 mb-4 font-minecraft-ten tracking-wide">
+          <p className="text-xs text-white/70 mb-4  tracking-wide">
             Export your profile to share with others or as a backup. You can
             customize which files are included.
           </p>
@@ -257,7 +257,7 @@ export function ExportSettingsTab({
         <div className="space-y-1">
           <label
             htmlFor="exportFilename"
-            className="block text-2xl text-white font-minecraft mb-2 lowercase"
+            className="block text-2xl text-white  mb-2 lowercase"
           >
             Export Filename
           </label>
@@ -268,16 +268,16 @@ export function ExportSettingsTab({
             icon="solar:document-text-bold"
             disabled={isExporting}
           />
-          <p className="mt-1 text-xs text-white/50 font-minecraft-ten tracking-wide">
+          <p className="mt-1 text-xs text-white/50  tracking-wide">
             The .vxlpack extension will be added automatically.
           </p>
         </div>
         {/* File selection section */}
         <div>
-          <h4 className="text-2xl font-minecraft text-white lowercase mb-1">
+          <h4 className="text-2xl  text-white lowercase mb-1">
             Select Files & Folders (Optional)
           </h4>
-          <p className="text-xs text-white/70 mb-3 font-minecraft-ten tracking-wide">
+          <p className="text-xs text-white/70 mb-3  tracking-wide">
             Choose items to include in the export. If none selected, only
             profile configuration is exported.
           </p>
@@ -343,9 +343,9 @@ export function ExportSettingsTab({
         {/* Progress indicator during export (shown in both contexts) */}
         {isInModalContext && isExporting && exportProgress !== null && (
           <div className="mt-4 space-y-2">
-            <div className="flex justify-between items-center text-sm font-minecraft-ten">
+            <div className="flex justify-between items-center text-sm ">
               <span className="text-white/70">{exportMessage}</span>
-              <span className="text-white font-minecraft">{exportProgress}%</span>
+              <span className="text-white ">{exportProgress}%</span>
             </div>
             <div className="w-full h-2 bg-black/30 border border-white/10 overflow-hidden">
               <div
@@ -377,9 +377,9 @@ export function ExportSettingsTab({
             {/* Progress indicator during export */}
             {isExporting && exportProgress !== null && (
               <div className="mt-4 space-y-2">
-                <div className="flex justify-between items-center text-sm font-minecraft-ten">
+                <div className="flex justify-between items-center text-sm ">
                   <span className="text-white/70">{exportMessage}</span>
-                  <span className="text-white font-minecraft">{exportProgress}%</span>
+                  <span className="text-white ">{exportProgress}%</span>
                 </div>
                 <div className="w-full h-2 bg-black/30 border border-white/10 overflow-hidden">
                   <div

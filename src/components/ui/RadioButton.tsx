@@ -225,7 +225,7 @@ export const RadioButton = forwardRef<HTMLInputElement, RadioButtonProps>(
         <label
           ref={containerRef}
           className={cn(
-            "font-minecraft relative overflow-hidden backdrop-blur-md transition-all duration-200",
+            " relative overflow-hidden backdrop-blur-md transition-all duration-200",
             radiusClass,
             "text-white tracking-wider lowercase",
             "flex items-center gap-3 cursor-pointer",

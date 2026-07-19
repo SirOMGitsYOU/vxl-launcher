@@ -4,9 +4,8 @@ import type React from "react";
 import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Modal } from "../components/ui/Modal";
-import { Button } from "../components/ui/buttons/Button";
-import { Input } from "../components/ui/Input";
-import { Label } from "../components/ui/Label";
+import { Button } from "../components/ui-v2/Button";
+import { Input } from "../components/ui-v2/Input";
 import { StatusMessage } from "../components/ui/StatusMessage";
 
 interface ConfirmOptions {
@@ -104,17 +103,15 @@ export function useConfirmDialog() {
         variant="secondary"
         onClick={handleClose}
         size="md"
-        className="text-2xl"
       >
         {options.cancelText || "Cancel"}
       </Button>
       <Button
         ref={confirmButtonRef}
-        variant={options.type === "danger" ? "destructive" : "default"}
+        variant={options.type === "danger" ? "danger" : "primary"}
         onClick={handleConfirm}
         disabled={options.type === "input" && !isValid}
         size="md"
-        className="text-2xl"
       >
         {options.confirmText || "Confirm"}
       </Button>
@@ -144,18 +141,19 @@ export function useConfirmDialog() {
       {options.type === "input" && (
         <div className="space-y-4">
           {options.inputLabel && (
-            <p className="text-lg font-minecraft-ten">{options.inputLabel}</p>
+            <p className="text-sm text-[var(--text-secondary)]">{options.inputLabel}</p>
           )}
           <Input
             value={inputValue}
             onChange={handleInputChange}
             placeholder={options.inputPlaceholder}
             maxLength={options.inputMaxLength}
-            className="text-2xl py-3"
-            error={!isValid ? "This field is required" : undefined}
             autoFocus
             onClick={(e) => e.stopPropagation()}
           />
+          {!isValid && (
+            <p className="text-sm text-red-400">This field is required</p>
+          )}
         </div>
       )}
     </div>

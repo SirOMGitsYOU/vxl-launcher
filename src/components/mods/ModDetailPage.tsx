@@ -321,7 +321,7 @@ export function ModDetailPage() {
       <div className="flex flex-col h-full p-6">
         <button
           onClick={handleBack}
-          className="flex items-center gap-2 text-white/70 hover:text-white mb-6 font-minecraft-ten transition-colors"
+          className="flex items-center gap-2 text-white/70 hover:text-white mb-6  transition-colors"
         >
           <Icon icon="solar:arrow-left-bold" className="w-5 h-5" />
           <span>Back</span>
@@ -329,7 +329,7 @@ export function ModDetailPage() {
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <Icon icon="solar:refresh-bold" className="w-12 h-12 text-white/50 animate-spin" />
-            <span className="text-white/50 font-minecraft-ten">Loading project details...</span>
+            <span className="text-white/50 ">Loading project details...</span>
           </div>
         </div>
       </div>
@@ -341,7 +341,7 @@ export function ModDetailPage() {
       <div className="flex flex-col h-full p-6">
         <button
           onClick={handleBack}
-          className="flex items-center gap-2 text-white/70 hover:text-white mb-6 font-minecraft-ten transition-colors"
+          className="flex items-center gap-2 text-white/70 hover:text-white mb-6  transition-colors"
         >
           <Icon icon="solar:arrow-left-bold" className="w-5 h-5" />
           <span>Back</span>
@@ -349,10 +349,10 @@ export function ModDetailPage() {
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <Icon icon="solar:danger-triangle-bold" className="w-12 h-12 text-red-500" />
-            <span className="text-red-400 font-minecraft-ten">{error || "Project not found"}</span>
+            <span className="text-red-400 ">{error || "Project not found"}</span>
             <button
               onClick={handleBack}
-              className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white font-minecraft-ten transition-colors"
+              className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white  transition-colors"
             >
               Go Back
             </button>
@@ -367,7 +367,7 @@ export function ModDetailPage() {
       <div className="px-6 pt-6 pb-4">
         <button
           onClick={handleBack}
-          className="flex items-center gap-2 text-white/70 hover:text-white font-minecraft-ten transition-colors"
+          className="flex items-center gap-2 text-white/70 hover:text-white  transition-colors"
         >
           <Icon icon="solar:arrow-left-bold" className="w-5 h-5" />
           <span>Back</span>

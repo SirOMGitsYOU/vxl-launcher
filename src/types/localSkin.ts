@@ -67,6 +67,7 @@ export interface GetStarlightSkinRenderPayload {
   render_type: string;
   render_view: string;
   base64_skin_data?: string | null;
+  slim?: boolean;
 }
 // --- End Payload Type ---
 
@@ -76,4 +77,3 @@ export interface GetCrafatarAvatarPayload {
   size?: number | null;
   overlay?: boolean;
 }
-// --- End Payload Type --- 

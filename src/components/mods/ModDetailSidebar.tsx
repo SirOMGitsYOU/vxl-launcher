@@ -38,7 +38,7 @@ function LinkItem({ icon, label, url }: LinkItemProps) {
       className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-black/20 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all text-left group"
     >
       <Icon icon={icon} className="w-4 h-4 text-white/70 group-hover:text-white" />
-      <span className="text-sm font-minecraft-ten text-white/70 group-hover:text-white truncate">
+      <span className="text-sm  text-white/70 group-hover:text-white truncate">
         {label}
       </span>
       <Icon
@@ -163,12 +163,12 @@ export function ModDetailSidebar({ project, accentColor }: ModDetailSidebarProps
     <div className="space-y-4">
       {hasCompatibilityInfo && (
         <div className="bg-black/20 rounded-lg p-4 border border-white/10">
-          <h3 className="text-sm font-minecraft-ten text-white/70 mb-3 uppercase flex items-center gap-2">
+          <h3 className="text-sm  text-white/70 mb-3 uppercase flex items-center gap-2">
             <Icon icon="solar:check-circle-bold" className="w-4 h-4" />
             Compatibility
           </h3>
 
-          <div className="space-y-3 text-xs font-minecraft-ten">
+          <div className="space-y-3 text-xs ">
             {formattedVersions.length > 0 && (
               <div>
                 <span className="text-white/50 mb-2 block">
@@ -244,7 +244,7 @@ export function ModDetailSidebar({ project, accentColor }: ModDetailSidebarProps
 
       {hasDependencies && (
         <div className="bg-black/20 rounded-lg p-4 border border-white/10">
-          <h3 className="text-sm font-minecraft-ten text-white/70 mb-3 uppercase flex items-center gap-2">
+          <h3 className="text-sm  text-white/70 mb-3 uppercase flex items-center gap-2">
             <Icon icon="solar:widget-add-bold" className="w-4 h-4" />
             Dependencies ({project.dependencies.length})
           </h3>
@@ -268,10 +268,10 @@ export function ModDetailSidebar({ project, accentColor }: ModDetailSidebarProps
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <span className="text-xs font-minecraft-ten text-white truncate group-hover:text-accent transition-colors block">
+                  <span className="text-xs  text-white truncate group-hover:text-accent transition-colors block">
                     {dep.title}
                   </span>
-                  <span className={`text-[10px] font-minecraft-ten ${
+                  <span className={`text-[10px]  ${
                     dep.dependency_type === UnifiedDependencyType.Required
                       ? 'text-red-400/80'
                       : 'text-yellow-400/80'
@@ -291,7 +291,7 @@ export function ModDetailSidebar({ project, accentColor }: ModDetailSidebarProps
 
       {project.team_members.length > 0 && (
         <div className="bg-black/20 rounded-lg p-4 border border-white/10">
-          <h3 className="text-sm font-minecraft-ten text-white/70 mb-3 uppercase flex items-center gap-2">
+          <h3 className="text-sm  text-white/70 mb-3 uppercase flex items-center gap-2">
             <Icon icon="solar:users-group-rounded-bold" className="w-4 h-4" />
             Team ({project.team_members.length})
           </h3>
@@ -315,8 +315,8 @@ export function ModDetailSidebar({ project, accentColor }: ModDetailSidebarProps
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-minecraft-ten text-white truncate group-hover:text-accent transition-colors">{member.username}</p>
-                  <p className="text-[10px] text-white/50 font-minecraft-ten truncate">{member.role}</p>
+                  <p className="text-xs  text-white truncate group-hover:text-accent transition-colors">{member.username}</p>
+                  <p className="text-[10px] text-white/50  truncate">{member.role}</p>
                 </div>
                 <Icon
                   icon="solar:arrow-right-up-bold"
@@ -330,7 +330,7 @@ export function ModDetailSidebar({ project, accentColor }: ModDetailSidebarProps
 
       {hasDonations && (
         <div className="bg-black/20 rounded-lg p-4 border border-white/10">
-          <h3 className="text-sm font-minecraft-ten text-white/70 mb-3 uppercase flex items-center gap-2">
+          <h3 className="text-sm  text-white/70 mb-3 uppercase flex items-center gap-2">
             <Icon icon="solar:heart-bold" className="w-4 h-4 text-red-400" />
             Support
           </h3>
@@ -350,7 +350,7 @@ export function ModDetailSidebar({ project, accentColor }: ModDetailSidebarProps
 
       {hasLinks && (
         <div className="bg-black/20 rounded-lg p-4 border border-white/10">
-          <h3 className="text-sm font-minecraft-ten text-white/70 mb-3 uppercase flex items-center gap-2">
+          <h3 className="text-sm  text-white/70 mb-3 uppercase flex items-center gap-2">
             <Icon icon="solar:link-bold" className="w-4 h-4" />
             Links
           </h3>
@@ -386,12 +386,12 @@ export function ModDetailSidebar({ project, accentColor }: ModDetailSidebarProps
       )}
 
       <div className="bg-black/20 rounded-lg p-4 border border-white/10">
-        <h3 className="text-sm font-minecraft-ten text-white/70 mb-3 uppercase flex items-center gap-2">
+        <h3 className="text-sm  text-white/70 mb-3 uppercase flex items-center gap-2">
           <Icon icon="solar:info-circle-bold" className="w-4 h-4" />
           Details
         </h3>
 
-        <div className="space-y-3 text-xs font-minecraft-ten">
+        <div className="space-y-3 text-xs ">
           {project.license && (
             <div className="flex justify-between items-center">
               <span className="text-white/50">License</span>

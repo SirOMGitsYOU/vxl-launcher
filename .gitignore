@@ -37,3 +37,4 @@ vite.config.ts.timestamp-*
 /eclipse-codebase
 /.tauri
 /reference-codebase
+/conceptAssets

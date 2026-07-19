@@ -248,7 +248,7 @@ export function ProfileSelectionPopup({
   return (
     <Modal title={title} onClose={onCancel} footer={modalFooter} width="md">
       <div className="p-4">
-        <p className="text-white/70 font-minecraft text-sm mb-4 tracking-wide lowercase select-none">
+        <p className="text-white/70  text-sm mb-4 tracking-wide lowercase select-none">
           {description}
         </p>
 
@@ -261,10 +261,10 @@ export function ProfileSelectionPopup({
               borderBottomColor: `${accentColor.value}40`,
             }}
           >
-            <h4 className="text-white font-minecraft text-base mb-1 tracking-wide lowercase select-none">
+            <h4 className="text-white  text-base mb-1 tracking-wide lowercase select-none">
               Content Details:
             </h4>
-            <div className="text-white/70 font-minecraft text-xs tracking-wide lowercase select-none">
+            <div className="text-white/70  text-xs tracking-wide lowercase select-none">
               <div className="flex items-center gap-2 mb-1">
                 <Icon icon="pixel:cube" className="w-4 h-4" />
                 <span>
@@ -302,7 +302,7 @@ export function ProfileSelectionPopup({
                 borderTopColor: accentColor.value,
               }}
             ></div>
-            <span className="text-white/70 font-minecraft text-sm tracking-wide lowercase select-none">
+            <span className="text-white/70  text-sm tracking-wide lowercase select-none">
               Checking installation status...
             </span>
           </div>
@@ -356,10 +356,10 @@ function EmptyProfilesMessage() {
           className="w-8 h-8 text-white/70"
         />
       </div>
-      <p className="text-white/60 font-minecraft text-sm tracking-wide lowercase select-none">
+      <p className="text-white/60  text-sm tracking-wide lowercase select-none">
         No profiles available
       </p>
-      <p className="text-white/40 font-minecraft text-xs mt-2 tracking-wide lowercase select-none">
+      <p className="text-white/40  text-xs mt-2 tracking-wide lowercase select-none">
         Create a profile first to install content
       </p>
     </div>

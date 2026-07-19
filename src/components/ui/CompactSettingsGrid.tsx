@@ -59,10 +59,10 @@ export function CompactSettingsGrid({
       return (
         <div
           key={setting.id}
-          className="col-span-1 flex items-center justify-between p-2 rounded-lg border border-[#ffffff20] hover:bg-black/30 transition-colors"
+          className="col-span-1 flex items-center justify-between p-2 rounded-lg border border-[var(--surface-border)] hover:bg-black/30 transition-colors"
         >
           <Tooltip content={setting.tooltip}>
-            <span className="font-minecraft-ten text-base text-white">
+            <span className=" text-base text-white">
               {setting.label}
             </span>
           </Tooltip>
@@ -80,11 +80,11 @@ export function CompactSettingsGrid({
       return (
         <div
           key={setting.id}
-          className="col-span-1 p-2 rounded-lg border border-[#ffffff20] hover:bg-black/30 transition-colors"
+          className="col-span-1 p-2 rounded-lg border border-[var(--surface-border)] hover:bg-black/30 transition-colors"
         >
           <div className="flex flex-col gap-2">
             <Tooltip content={setting.tooltip}>
-              <span className="font-minecraft-ten text-base text-white text-center">
+              <span className="text-sm font-medium text-white text-center">
                 {setting.label}
               </span>
             </Tooltip>

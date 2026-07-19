@@ -190,7 +190,7 @@ export function LogViewerDisplay({
               style={{ borderTopColor: accentColor.value }}
             ></div>
           </div>
-          <div className="font-minecraft text-xl text-white/80 tracking-wide lowercase">
+          <div className=" text-xl text-white/80 tracking-wide lowercase">
             Loading logs...
           </div>
         </div>
@@ -227,10 +227,10 @@ export function LogViewerDisplay({
             icon="solar:file-text-bold"
             className="w-12 h-12 text-white/30 mx-auto mb-3"
           />
-          <p className="text-white/60 font-minecraft text-xl tracking-wide lowercase select-none">
+          <p className="text-white/60  text-xl tracking-wide lowercase select-none">
             No log content available
           </p>
-          <p className="text-white/40 font-minecraft text-sm mt-2 tracking-wide lowercase select-none">
+          <p className="text-white/40  text-sm mt-2 tracking-wide lowercase select-none">
             Select a log file to view
           </p>
         </div>
@@ -379,7 +379,7 @@ export function LogViewerDisplay({
                     icon="solar:filter-bold"
                     className="w-12 h-12 text-white/30 mx-auto mb-3"
                   />
-                  <p className="text-white/60 font-minecraft text-xl tracking-wide lowercase select-none">
+                  <p className="text-white/60  text-xl tracking-wide lowercase select-none">
                     No log lines match the current filters
                   </p>
                 </div>
@@ -446,7 +446,7 @@ export function LogViewerDisplay({
           backgroundColor: footerBgColor,
         }}
       >
-        <div className="text-white/70 font-minecraft-ten text-xs">
+        <div className="text-white/70  text-xs">
           {searchTerm || Object.values(levelFilters).some((v) => !v)
             ? `${linesForVirtuoso.length} of ${parsedLogLinesCount} lines matching filters`
             : `${parsedLogLinesCount} lines`}

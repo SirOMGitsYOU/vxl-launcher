@@ -340,6 +340,10 @@ pub async fn set_active_account(account_id: Uuid) -> Result<(), CommandError> {
         .minecraft_account_manager_v2
         .set_active_account(account_id)
         .await?;
+
+    let mut cache = state.vanilla_capes_cache.write().await;
+    cache.clear();
+
     Ok(())
 }
 

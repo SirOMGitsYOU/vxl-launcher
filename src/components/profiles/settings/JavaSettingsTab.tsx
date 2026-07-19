@@ -362,7 +362,7 @@ export function JavaSettingsTab({
     <div ref={tabRef} className="space-y-6 select-none">
       <div ref={memoryRef} className="space-y-4">
         <div>
-          <h3 className="text-3xl font-minecraft text-white mb-3 lowercase">
+          <h3 className="text-3xl  text-white mb-3 lowercase">
             {editedProfile.is_standard_version ? "global memory allocated" : "memory allocated"}
           </h3>
           <Card
@@ -372,7 +372,7 @@ export function JavaSettingsTab({
             {(editedProfile.is_standard_version && (isLoadingGlobalMemory || !globalMemorySettings)) || !isSystemRamLoaded ? (
               <div className="flex items-center justify-center py-8">
                 <Icon icon="solar:refresh-bold" className="w-6 h-6 animate-spin text-white mr-3" />
-                <span className="text-white font-minecraft">
+                <span className="text-white ">
                   Loading settings...
                 </span>
               </div>
@@ -391,11 +391,11 @@ export function JavaSettingsTab({
                   recommendedRange={[4096, 8192]}
                   unit="MB"
                 />
-                <div className="mt-3 text-xs text-white/70 tracking-wide font-minecraft-ten">
+                <div className="mt-3 text-xs text-white/70 tracking-wide ">
                   Recommended: {recommendedMaxRam} MB (
                   {(recommendedMaxRam / 1024).toFixed(1)} GB)
                   {editedProfile.is_standard_version && (
-                    <div className="mt-1 text-accent font-minecraft-ten">
+                    <div className="mt-1 text-accent ">
                       ⚠ This setting applies to all standard profiles
                     </div>
                   )}
@@ -421,11 +421,11 @@ export function JavaSettingsTab({
 
           {!useCustomJava && (
             <div className="mt-3">
-              <div className="text-2xl text-white font-minecraft mb-2 lowercase tracking-wide select-none">
+              <div className="text-2xl text-white  mb-2 lowercase tracking-wide select-none">
                 using launcher default java
               </div>
               {/* Consider fetching and displaying the actual default path if available */}
-              <div className="text-xs text-white/70 font-minecraft-ten break-all lowercase tracking-wide select-none">
+              <div className="text-xs text-white/70  break-all lowercase tracking-wide select-none">
                 The launcher will use its bundled Java or a system-wide default.
               </div>
             </div>
@@ -434,7 +434,7 @@ export function JavaSettingsTab({
           {useCustomJava && (
             <div className="mt-3 space-y-4">
               {isDetectingJava && (
-                <div className="flex items-center text-white/70 font-minecraft">
+                <div className="flex items-center text-white/70 ">
                   <Icon
                     icon="solar:refresh-bold"
                     className="w-5 h-5 mr-2 animate-spin"
@@ -446,7 +446,7 @@ export function JavaSettingsTab({
               <div>
                 <label
                   htmlFor="custom-java-path-input"
-                  className="block text-xs text-white/70 font-minecraft-ten mt-3 mb-2 tracking-wide"
+                  className="block text-xs text-white/70  mt-3 mb-2 tracking-wide"
                 >
                   Manual Java Path (javaw.exe or java executable)
                 </label>
@@ -480,7 +480,7 @@ export function JavaSettingsTab({
 
               {detectedJavaInstallations.length > 0 && !isDetectingJava && (
                 <div className="space-y-2 pt-2">
-                  <h4 className="text-xs text-white/70 font-minecraft-ten mb-2 tracking-wide">
+                  <h4 className="text-xs text-white/70  mb-2 tracking-wide">
                     Detected Java Installations (click to use):
                   </h4>
                   <div className="max-h-40 overflow-y-auto custom-scrollbar space-y-1 p-2 bg-black/10 rounded-lg">
@@ -490,7 +490,7 @@ export function JavaSettingsTab({
                         onClick={() => handleDetectedJavaListItemClick(java)}
                         title={java.path}
                         className={cn(
-                          "w-full text-left p-2 border transition-all duration-150 font-minecraft-ten text-xs rounded-md",
+                          "w-full text-left p-2 border transition-all duration-150  text-xs rounded-md",
                           customJavaPathInput === java.path
                             ? "bg-accent/30 border-accent text-white"
                             : "bg-black/20 border-white/10 hover:bg-black/30 hover:border-white/20 text-white/80",
@@ -505,7 +505,7 @@ export function JavaSettingsTab({
                         }
                       >
                         <span className="block truncate">{java.path}</span>
-                        <span className="block text-xs opacity-70 font-minecraft-ten truncate">
+                        <span className="block text-xs opacity-70  truncate">
                           (v{java.major_version} - {java.vendor} -{" "}
                           {java.architecture})
                         </span>
@@ -561,7 +561,7 @@ export function JavaSettingsTab({
                 placeholder="enter java arguments..."
                 minHeight="100px"
               />
-              <p className="mt-2 text-xs text-white/50 font-minecraft-ten tracking-wide">
+              <p className="mt-2 text-xs text-white/50  tracking-wide">
                 Arguments should be separated by spaces. Example: -Xmx4G
               </p>
             </div>
