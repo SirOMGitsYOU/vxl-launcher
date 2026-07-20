@@ -1,155 +1,147 @@
 ---
-description: 
+description: Guidelines for toast notifications in the VXL Launcher UI
 globs: 
 alwaysApply: true
 ---
-# Richtlinien für Toast-Benachrichtigungen
+# Toast Notification Guidelines
 
-## 1. Zweck von Toasts
+## 1. Purpose of Toasts
 
-Toasts dienen dazu, kurze, nicht-intrusive Benachrichtigungen an den Benutzer zu übermitteln. Sie sollten für Feedback zu Aktionen oder für Systemereignisse verwendet werden, die keine sofortige Interaktion erfordern und nach kurzer Zeit von selbst verschwinden können.
+Toasts deliver short, non-intrusive notifications to the user. Use them for action feedback or system events that do not require immediate interaction and can dismiss themselves after a short time.
 
-## 2. Wann Toasts verwenden?
+## 2. When to Use Toasts
 
-*   **Direktes Feedback auf Benutzeraktionen:**
-    *   "Einstellungen erfolgreich gespeichert."
-    *   "Profil gestartet." / "Startvorgang abgebrochen."
-    *   "Datei erfolgreich gelöscht."
-    *   "Mod heruntergeladen und aktiviert."
-*   **System- und Hintergrundereignisse:**
-    *   "Download abgeschlossen."
-    *   "Ein neues Update ist verfügbar." (ggf. mit Aktionsbutton)
-    *   "Verbindung zum Server verloren." (als kurze Info)
-*   **Kurze Fehler- oder Warnmeldungen:**
-    *   "Eingabe ungültig. Bitte überprüfe das Format." (wenn der Fehler direkt im Kontext des Toasts klar ist)
-    *   "Netzwerkfehler beim Abrufen der News."
-*   **Status von asynchronen Operationen (Promise Toasts):**
-    *   Anzeige von `loading`, `success` und `error` Zuständen für Hintergrundprozesse.
-    *   Beispiel: Mod-Download, Profil-Import/-Export.
+*   **Direct feedback on user actions:**
+    *   "Settings saved successfully."
+    *   "Profile launched." / "Launch cancelled."
+    *   "File deleted successfully."
+    *   "Mod downloaded and enabled."
+*   **System and background events:**
+    *   "Download complete."
+    *   "A new update is available." (optionally with an action button)
+    *   "Connection to server lost." (as a brief notice)
+*   **Short error or warning messages:**
+    *   "Invalid input. Please check the format." (when the error is clear from the toast context)
+    *   "Network error while fetching news."
+*   **Status of async operations (promise toasts):**
+    *   Show `loading`, `success`, and `error` states for background processes.
+    *   Examples: mod download, profile import/export, skin apply, account login.
 
-## 3. Wann KEINE Toasts verwenden?
+## 3. When NOT to Use Toasts
 
-*   **Kritische Fehler:** Für Fehler, die eine sofortige Benutzeraktion erfordern oder wichtige Informationen enthalten, die nicht übersehen werden dürfen (z.B. Datenverlustwarnungen), sollten Modals oder dedizierte UI-Elemente verwendet werden.
-*   **Lange Nachrichten oder komplexe Informationen:** Toasts sind für Kürze gedacht.
-*   **Formulare oder Dateneingaben:** Toasts sind nicht für Eingaben gedacht.
-*   **Als primäres Navigationselement.**
+*   **Critical errors:** For errors that require immediate user action or contain important information that must not be missed (e.g. data-loss warnings), use modals or dedicated UI elements instead.
+*   **Long messages or complex information:** Toasts are meant to be brief.
+*   **Forms or data entry:** Toasts are not for input.
+*   **As a primary navigation element.**
 
-## 4. Implementierung und Ort
+## 4. Implementation and Location
 
-*   **Globaler Toaster:** Die Toast-Konfiguration und das Standard-Styling sind in `src/components/ui/GlobalToaster.tsx` zentralisiert.
-*   **Verfügbarkeit:**
-    *   In der Hauptanwendung (`App.tsx`) ist `<GlobalToaster />` eingebunden.
-    *   Für das Log-Fenster (`logWindowEntry.tsx`) kann `<GlobalToaster />` ebenfalls hinzugefügt werden, um dort Toasts zu ermöglichen.
-*   **Aufruf:** Toasts können von jeder React-Komponente aus durch Import und Aufruf der `toast`-Funktionen von `react-hot-toast` ausgelöst werden.
-
-## 5. Wie Toasts verwenden?
-
-### 5.1. Import
+*   **Global toaster:** Toast configuration and default styling are centralized in `src/components/ui/GlobalToaster.tsx`.
+*   **Availability:** `<GlobalToaster />` is mounted in:
+    *   Main app: `src/App.tsx`
+    *   Log window: `src/logWindowEntry.tsx`
+    *   Minecraft log window: `src/minecraftLogWindowEntry.tsx`
+*   **Invocation:** Import and call `toast` from `react-hot-toast` in components/hooks/stores. This is the pattern used across the project.
 
 ```typescript
 import { toast } from 'react-hot-toast';
 ```
 
-### 5.2. Basis-Typen
+`GlobalToaster.tsx` also exports a wrapped `toast` helper (with GSAP entry animation), but the codebase consistently uses `react-hot-toast` directly — follow that convention unless you intentionally need the wrapper.
 
-*   **Standard-Toast (dynamische Akzentfarbe):**
+## 5. How to Use Toasts
+
+### 5.1. Basic Types
+
+*   **Default toast:**
     ```typescript
-    toast("Dies ist eine Standardnachricht.");
+    toast("This is a default message.");
     ```
-*   **Erfolgs-Toast:**
+*   **Success toast:**
     ```typescript
-    toast.success("Aktion erfolgreich abgeschlossen!");
+    toast.success("Action completed successfully!");
     ```
-*   **Fehler-Toast:**
+*   **Error toast:**
     ```typescript
-    toast.error("Ein Fehler ist aufgetreten.");
+    toast.error("An error occurred.");
     ```
-*   **Mehrzeiliger Toast:**
+*   **Loading toast** (dismiss manually or via promise toast):
     ```typescript
-    toast("Dies ist die erste Zeile.\\nUnd hier folgt die zweite Zeile.");
+    const id = toast.loading("Working...");
+    toast.dismiss(id);
     ```
-*   **Promise-basierter Toast:**
+*   **Multi-line toast:**
     ```typescript
-    const myPromise = /* ...deine Promise-Logik... */;
+    toast("First line.\nSecond line.");
+    ```
+*   **Promise-based toast** (preferred for async work):
+    ```typescript
     toast.promise(myPromise, {
-      loading: 'Wird geladen...',
-      success: (data) => `Erfolgreich: ${data}`, // data ist der resolve-Wert des Promises
-      error: (err) => {
-        const message = err instanceof Error ? err.message : String(err.message);
-        return `Failed: ${message}`;
-      },
+      loading: 'Loading...',
+      success: 'Done!',
+      error: (err) =>
+        err instanceof Error ? err.message : 'Something went wrong',
     });
     ```
 
-### 5.3. Benutzerdefinierter JSX-Inhalt (für Aktionen, Icons etc.)
+### 5.2. Custom JSX Content
 
-Für komplexere Toasts, z.B. mit Buttons oder spezifischen Icons:
+For toasts with buttons or custom layout, use `toast.custom`:
 
 ```typescript
-toast((t) => ( // 't' ist das Toast-Objekt mit Infos wie t.id
-  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-    <span>Möchtest du diese Aktion wirklich durchführen?</span>
-    <div>
-      <button
-        onClick={() => {
-          // Deine Aktion hier
-          toast.dismiss(t.id); // Schließt diesen spezifischen Toast
-        }}
-        style={{ marginRight: '8px' /* ... weitere Styles ... */ }}
-      >
-        Bestätigen
-      </button>
-      <button onClick={() => toast.dismiss(t.id)} style={ { /* ... */ } }>
-        Abbrechen
-      </button>
-    </div>
-  </span>
+toast.custom((t) => (
+  <div className="flex items-center justify-between gap-3">
+    <span>Confirm this action?</span>
+    <button onClick={() => toast.dismiss(t.id)}>OK</button>
+  </div>
 ));
 ```
 
-### 5.4. Styling und Erscheinungsbild
+### 5.3. Styling and Appearance (actual `GlobalToaster` config)
 
-*   **Globales Styling:** Definiert in `src/components/ui/GlobalToaster.tsx` via `toastOptions`.
-    *   **Schriftart:** `font-minecraft`
-    *   **Text-Transformation:** `uppercase`
-    *   **Ecken:** Eckig (`borderRadius: '0px'`)
-    *   **Position:** Unten rechts (`bottom-right`)
-    *   **Mindestbreite:** `290px`
-    *   **Farben:**
-        *   Standard-Toasts verwenden dynamisch die Akzentfarbe des Themes (`--accent`, `--accent-rgb`).
-        *   Success- und Error-Toasts haben spezifische, an das `Label.tsx`-Design angelehnte Farben.
-    *   **Schatten & Rahmen:** Angelehnt an `Label.tsx`.
-*   **Individuelles Styling:** Kann pro Toast beim Aufruf mitgegeben werden, wird aber für Konsistenz seltener benötigt.
-    ```typescript
-    toast("Besonderer Toast!", {
-      icon: '🎉',
-      style: {
-        border: '1px solid #713200',
-        padding: '16px',
-        color: '#713200',
-      },
-    });
-    ```
+Configured via `toastOptions` on `<HotToaster />` in `GlobalToaster.tsx`:
 
-### 5.5. Verhalten und Schließen
+*   **Position:** `bottom-right`
+*   **Typography:** `text-sm font-medium` (not uppercase, not `font-minecraft`)
+*   **Border radius:** Follows the user's theme `borderRadius` setting (`useThemeStore`), not a fixed value
+*   **Minimum width:** `300px`
+*   **Default duration:** `3000` ms; **loading** toasts use `duration: Infinity` until dismissed
+*   **Default style:** Accent-tinted glass background (`backdropFilter: blur(8px)`), 1px border with a 2px bottom accent edge, theme accent colors
+*   **Success:** Green-tinted background/border (`rgba(16, 185, 129, …)`)
+*   **Error:** Red-tinted background/border (`rgba(239, 68, 68, …)`)
+*   **Pause on hover:** Enabled by `react-hot-toast` default (`pauseOnHover: true`)
 
-*   **Automatisches Schließen:** Toasts verschwinden nach einer Standarddauer (ca. 5 Sekunden für Standard, länger für Error).
-*   **Pause bei Hover:** Die Zeit bis zum automatischen Schließen pausiert, wenn sich der Mauszeiger über dem Toast befindet (`pauseOnHover: true` ist Standard).
-*   **Programmatisches Schließen:**
-    *   Einen spezifischen Toast schließen: `toast.dismiss(toastId);` (Die `toastId` erhält man z.B. als Rückgabewert von `toast()` oder im `t`-Objekt bei benutzerdefiniertem JSX).
-    *   Alle Toasts schließen: `toast.dismiss();`
-*   **Expliziter Schließen-Button:** Kann über benutzerdefiniertes JSX hinzugefügt werden (siehe Beispiel in 5.3 oder `PlayTab.tsx` Test-Button).
-    *   Derzeit werden Toasts **NICHT** durch einen Klick auf den gesamten Toast-Body geschlossen. Diese Funktion wurde zugunsten der Klarheit und möglicher versehentlicher Klicks wieder entfernt.
+Per-toast overrides are possible but rarely needed:
 
-## 6. Wichtige Prinzipien
+```typescript
+toast("Special toast!", {
+  icon: '🎉',
+  style: { padding: '16px' },
+});
+```
 
-*   **Prägnanz:** Halte Toast-Nachrichten kurz und auf den Punkt.
-*   **Relevanz:** Zeige nur Toasts an, die für den aktuellen Kontext des Benutzers nützlich sind.
-*   **Aktion (wenn sinnvoll):** Wenn ein Toast eine Folgeaktion nahelegt (z.B. "Details anzeigen", "Rückgängig"), erwäge, einen Button hinzuzufügen.
-*   **Nicht überladen:** Zu viele Toasts in kurzer Zeit können störend wirken.
+### 5.4. Behavior and Dismissal
 
-## 7. Referenz
+*   **Auto-dismiss:** Standard/success/error toasts dismiss after ~3 seconds.
+*   **Loading toasts:** Stay until dismissed or replaced by a promise toast result.
+*   **Programmatic dismissal:**
+    *   One toast: `toast.dismiss(toastId)`
+    *   All toasts: `toast.dismiss()`
+*   **Click-to-dismiss:** Toasts are **not** dismissed by clicking the toast body (avoids accidental dismissals).
+*   **Explicit close buttons:** Add via `toast.custom` when needed.
 
-Die primäre Konfigurationsdatei für das globale Toast-Verhalten und -Aussehen ist:
-`src/components/ui/GlobalToaster.tsx`
+## 6. Key Principles
 
+*   **Brevity:** Keep messages short and contextual.
+*   **Relevance:** Only toast what matters in the current view/action.
+*   **Prefer `toast.promise`** for async operations instead of manual loading + success/error chains.
+*   **Do not overload:** Avoid stacking many toasts in quick succession.
+
+## 7. Reference
+
+Primary configuration: `src/components/ui/GlobalToaster.tsx`
+
+Common usage examples elsewhere in the repo:
+* `src/hooks/useProfileLaunch.tsx`
+* `src/hooks/useLocalContentManager.ts`
+* `src/components/modrinth/v2/hooks/useModrinthInstall.tsx`
