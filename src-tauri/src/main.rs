@@ -578,7 +578,8 @@ async fn main() {
             push_to_hub,
             get_shared_files,
             commands::changelog_command::fetch_changelog_command,
-            commands::changelog_command::fetch_version_changelog_command
+            commands::changelog_command::fetch_version_changelog_command,
+            commands::mojang_status_command::fetch_mojang_service_status_command
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

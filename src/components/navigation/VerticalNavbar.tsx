@@ -8,7 +8,7 @@ import { Logo } from "../ui/Logo";
 import { NavButton } from "../ui/nav/NavButton";
 import { ChangelogModal } from "../modals/ChangelogModal";
 import { AccountSelector } from "../account/AccountSelector";
-import * as ConfigService from "../../services/launcher-config-service";
+import { MojangStatusIndicator } from "./MojangStatusIndicator";
 
 interface NavItem {
   id: string;
@@ -23,7 +23,6 @@ interface VerticalNavbarProps {
   items: NavItem[];
   activeItem?: string;
   onItemClick?: (id: string) => void;
-  version?: string;
 }
 
 export function VerticalNavbar({
@@ -34,7 +33,6 @@ export function VerticalNavbar({
 }: VerticalNavbarProps) {
   const [active, setActive] = useState(activeItem || items[0]?.id);
   const navRef = useRef<HTMLDivElement>(null);
-  const [appVersion, setAppVersion] = useState<string | null>(null);
   const [showChangelogModal, setShowChangelogModal] = useState(false);
 
   useEffect(() => {
@@ -42,19 +40,6 @@ export function VerticalNavbar({
       setActive(activeItem);
     }
   }, [activeItem]);
-
-  useEffect(() => {
-    const fetchVersion = async () => {
-      try {
-        const fetchedVersion = await ConfigService.getAppVersion();
-        setAppVersion(`v${fetchedVersion}`);
-      } catch (error) {
-        console.error("Failed to fetch app version:", error);
-        setAppVersion("v?.?.?");
-      }
-    };
-    fetchVersion();
-  }, []);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -113,14 +98,7 @@ export function VerticalNavbar({
         </nav>
 
         <div className="overflow-visible px-4 py-4 border-t border-[var(--surface-border)] space-y-3">
-          <div className="flex items-center justify-between text-[10px] uppercase tracking-wide text-[var(--text-muted)]">
-            <span>Dev environment</span>
-            <span className="flex items-center gap-1.5 text-[var(--accent)]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
-              Enabled
-            </span>
-          </div>
-          <div className="text-[11px] text-[var(--text-muted)]">{appVersion || "v?.?.?"}</div>
+          <MojangStatusIndicator />
 
           <AccountSelector />
         </div>

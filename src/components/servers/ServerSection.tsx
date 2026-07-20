@@ -426,7 +426,7 @@ export function ServerSection({ className }: ServerSectionProps) {
           <Icon icon="streamline-cyber:server" className="h-5 w-5" />
         </button>
         {!isLoading && userServers.length > 0 && (
-          <span className="mt-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[rgba(var(--accent-rgb),0.15)] px-1.5 text-[10px] font-semibold text-[var(--accent)]">
+          <span className="mt-2 inline-flex h-5 min-w-5 select-none items-center justify-center rounded-full bg-[rgba(var(--accent-rgb),0.15)] px-1.5 text-[10px] font-semibold text-[var(--accent)]">
             {userServers.length}
           </span>
         )}

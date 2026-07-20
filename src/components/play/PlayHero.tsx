@@ -104,10 +104,9 @@ export function PlayHero({
         </button>
       )}
 
-      <h2 className="text-3xl font-semibold tracking-tight text-white mb-1 text-center">
+      <h2 className="text-3xl font-semibold tracking-tight text-white mb-6 text-center">
         {playerName || "No account"}
       </h2>
-      <p className="text-sm text-[var(--text-secondary)] mb-6">Ready to play</p>
 
       <div className="relative w-full flex flex-col items-center">
         <SkinViewer

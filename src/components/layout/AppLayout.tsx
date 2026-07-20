@@ -29,10 +29,6 @@ const getNavItems = (hasAccount: boolean) => [
   { id: "settings", icon: "solar:settings-bold", label: "Settings" },
 ];
 
-const appConfig = {
-  version: "v0.5.22",
-};
-
 interface AppLayoutProps {
   children: ReactNode;
   activeTab: string;
@@ -146,7 +142,6 @@ export function AppLayout({
         activeItem={activeTab}
         onItemClick={onNavChange}
         className="h-full z-10"
-        version={appConfig.version}
       />
 
       <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
