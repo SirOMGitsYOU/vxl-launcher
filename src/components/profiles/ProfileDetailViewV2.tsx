@@ -25,6 +25,7 @@ import { useProfileLaunch } from "../../hooks/useProfileLaunch.tsx";
 import { useAppDragDropStore } from "../../store/appStore";
 
 import { WorldsTabV2 } from "./detail/v2/WorldsTabV2";
+import { ServersTabV2 } from "./detail/v2/ServersTabV2";
 import { ScreenshotsTabV2 } from "./detail/v2/ScreenshotsTabV2";
 import { LogsTabV2 } from "./detail/v2/LogsTabV2";
 import type { LocalContentItem } from "../../hooks/useLocalContentManager";
@@ -35,7 +36,7 @@ import { useCrafatarAvatar } from "../../hooks/useCrafatarAvatar";
 import { parseMotdToHtml } from "../../utils/motd-utils";
 import { getFallbackAvatarUrl } from "../../lib/avatar-utils";
 
-type MainTabType = "content" | "worlds" | "logs" | "screenshots";
+type MainTabType = "content" | "worlds" | "servers" | "logs" | "screenshots";
 type ContentTabType = "mods" | "resourcepacks" | "datapacks" | "shaderpacks" | "nrc";
 
 interface ProfileDetailViewV2Props {
@@ -373,6 +374,7 @@ export function ProfileDetailViewV2({
   const mainTabs = [
     { id: "content" as const, name: "Content", icon: "solar:widget-bold" },
     { id: "worlds" as const, name: "Worlds", icon: "solar:planet-bold" },
+    { id: "servers" as const, name: "Servers", icon: "solar:server-bold" },
     { id: "screenshots" as const, name: "Screenshots", icon: "solar:camera-bold" },
     { id: "logs" as const, name: "Logs", icon: "solar:code-bold" },
   ];
@@ -746,6 +748,20 @@ export function ProfileDetailViewV2({
           {activeMainTab === "worlds" && (
             <div className="h-full">
               <WorldsTabV2
+                key={`worlds-${currentProfile.id}`}
+                profile={currentProfile}
+                onRefresh={handleRefresh}
+                isActive={true}
+                mode="worlds"
+                onLaunchRequest={handleLaunchRequest}
+              />
+            </div>
+          )}
+
+          {activeMainTab === "servers" && (
+            <div className="h-full">
+              <ServersTabV2
+                key={`servers-${currentProfile.id}`}
                 profile={currentProfile}
                 onRefresh={handleRefresh}
                 isActive={true}

@@ -5,7 +5,9 @@ use crate::minecraft::downloads::java_download::JavaDownloadService;
 use crate::minecraft::downloads::mc_assets_download::MinecraftAssetsDownloadService;
 use crate::minecraft::downloads::mc_client_download::MinecraftClientDownloadService;
 use crate::minecraft::downloads::mc_libraries_download::MinecraftLibrariesDownloadService;
-use crate::minecraft::downloads::mc_natives_download::MinecraftNativesDownloadService;
+use crate::minecraft::downloads::mc_natives_download::{
+    MinecraftNativesDownloadService, uses_subdirectory_native_layout_from_jvm_args,
+};
 use crate::minecraft::downloads::ModDownloadService;
 use crate::minecraft::dto::JavaDistribution;
 use crate::minecraft::{MinecraftLaunchParameters, MinecraftLauncher};
@@ -348,9 +350,18 @@ pub async fn install_minecraft_version(
     .await?;
 
     info!("\nExtracting natives...");
+    let use_subdirectory_layout = piston_meta
+        .arguments
+        .as_ref()
+        .map(|args| uses_subdirectory_native_layout_from_jvm_args(&args.jvm))
+        .unwrap_or(false);
     let natives_service = MinecraftNativesDownloadService::new();
     natives_service
-        .extract_natives(&piston_meta.libraries, version_id)
+        .extract_natives(
+            &piston_meta.libraries,
+            version_id,
+            use_subdirectory_layout,
+        )
         .await?;
     info!("Native extraction completed!");
 

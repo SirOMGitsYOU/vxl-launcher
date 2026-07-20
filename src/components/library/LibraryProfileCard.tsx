@@ -5,6 +5,7 @@ import type { Profile } from "../../types/profile";
 import { ProfileIconV2 } from "../profiles/ProfileIconV2";
 import { Card } from "../ui-v2";
 import { cn } from "../../lib/utils";
+import { useProfileLaunch } from "../../hooks/useProfileLaunch";
 
 type LibraryCardLayout = "list" | "grid" | "compact";
 
@@ -115,6 +116,15 @@ export function LibraryProfileCard({
   const isCompact = layout === "compact";
   const groupLabel = profile.group ? formatGroup(profile.group) : null;
   const iconSize = isCompact ? "sm" : "md";
+  const { handleLaunch, isLaunching } = useProfileLaunch({
+    profileId: profile.id,
+    profileName: profile.name,
+  });
+
+  const handleIconClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    void handleLaunch();
+  };
 
   return (
     <Card
@@ -127,7 +137,30 @@ export function LibraryProfileCard({
         layout === "grid" && "h-full",
       )}
     >
-      <ProfileIconV2 profile={profile} size={iconSize} tone="neutral" className="flex-shrink-0" />
+      <button
+        type="button"
+        className="group/play relative flex-shrink-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        onClick={handleIconClick}
+        title={isLaunching ? "Stop launch" : `Play ${profile.name}`}
+        aria-label={isLaunching ? "Stop launch" : `Play ${profile.name}`}
+      >
+        <ProfileIconV2 profile={profile} size={iconSize} tone="neutral" />
+
+        <div
+          className={cn(
+            "absolute inset-0 flex items-center justify-center rounded-xl bg-black/50 backdrop-blur-sm transition-opacity duration-150",
+            isLaunching ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+          )}
+        >
+          <Icon
+            icon={isLaunching ? "solar:stop-bold" : "solar:play-bold"}
+            className={cn(
+              "text-white transition-colors duration-150 group-hover/play:text-[var(--accent)]",
+              isCompact ? "h-6 w-6" : "h-7 w-7",
+            )}
+          />
+        </div>
+      </button>
 
       <div className="min-w-0 flex-1">
         <h3

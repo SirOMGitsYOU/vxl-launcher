@@ -15,9 +15,7 @@ import {
   uploadLogToMclogs,
 } from "../../../services/log-service";
 import { LogViewerDisplay } from "../../log/LogViewerDisplay";
-import { useThemeStore } from "../../../store/useThemeStore";
 import { toast } from "react-hot-toast";
-import { gsap } from "gsap";
 
 interface LogsTabProps {
   profile: Profile;
@@ -61,23 +59,6 @@ export function LogsTab({
 
   const [displayLines, setDisplayLines] = useState<ParsedLogLine[]>([]);
   const scrollableContainerRef = useRef<HTMLDivElement>(null);
-  const accentColor = useThemeStore((state) => state.accentColor);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (isActive && containerRef.current) {
-      gsap.fromTo(
-        containerRef.current,
-        { opacity: 0, y: 20 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.4,
-          ease: "power2.out",
-        },
-      );
-    }
-  }, [isActive]);
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -263,8 +244,8 @@ export function LogsTab({
   }, []);
 
   return (
-    <div ref={containerRef} className="h-full flex flex-col select-none">
-      <div className="flex-1 min-h-0 flex flex-col">
+    <div className="flex h-full flex-col select-none">
+      <div className="flex min-h-0 flex-1 flex-col">
         <LogViewerDisplay
           isLoading={isLoadingList || isLoadingContent}
           error={errorList || errorContent}

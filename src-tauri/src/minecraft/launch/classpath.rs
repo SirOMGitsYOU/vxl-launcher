@@ -12,6 +12,22 @@ struct LibraryInfo {
     priority: u32, // Höhere Zahl = höhere Priorität
 }
 
+fn parse_maven_coordinates(name: &str) -> Option<(&str, &str, &str, Option<&str>)> {
+    let parts: Vec<&str> = name.split(':').collect();
+    match parts.as_slice() {
+        [group, artifact, version] => Some((group, artifact, version, None)),
+        [group, artifact, version, classifier] => Some((group, artifact, version, Some(*classifier))),
+        _ => None,
+    }
+}
+
+fn library_dedup_key(artifact: &str, classifier: Option<&str>) -> String {
+    match classifier {
+        Some(classifier) => format!("{artifact}:{classifier}"),
+        None => artifact.to_string(),
+    }
+}
+
 pub struct ClasspathBuilder {
     entries: Vec<String>,
     libraries: HashMap<String, LibraryInfo>,
@@ -48,26 +64,31 @@ impl ClasspathBuilder {
             }
 
             if let Some(artifact) = &lib.downloads.artifact {
-                // Extrahiere den Pfad aus dem Maven-Format (group:artifact:version)
-                let parts: Vec<&str> = lib.name.split(':').collect();
-                if parts.len() != 3 {
+                let Some((_group, artifact_name, version, classifier)) =
+                    parse_maven_coordinates(&lib.name)
+                else {
                     info!("❌ Skipping library with invalid format: {}", lib.name);
                     continue;
-                }
+                };
 
-                let (group, artifact_name, version) = (parts[0], parts[1], parts[2]);
-                let relativ_path = artifact
-                    .path
-                    .clone()
-                    .unwrap_or(format!("{}-{}.jar", artifact_name, version));
+                let relativ_path = artifact.path.clone().unwrap_or_else(|| {
+                    match classifier {
+                        Some(classifier) => {
+                            format!("{artifact_name}-{version}-{classifier}.jar")
+                        }
+                        None => format!("{artifact_name}-{version}.jar"),
+                    }
+                });
                 info!("Library path: {}", relativ_path);
                 let jar_path = LAUNCHER_DIRECTORY
                     .meta_dir()
                     .join("libraries")
                     .join(relativ_path.clone());
 
+                let dedup_key = library_dedup_key(artifact_name, classifier);
+
                 // Prüfe ob wir diese Library schon haben
-                if let Some(existing) = self.libraries.get(artifact_name) {
+                if let Some(existing) = self.libraries.get(&dedup_key) {
                     // Nur ersetzen wenn neue Version höher ist
                     if compare_versions(version, &existing.version) == std::cmp::Ordering::Greater {
                         info!(
@@ -75,7 +96,7 @@ impl ClasspathBuilder {
                             relativ_path, existing.path, existing.version, version
                         );
                         self.libraries.insert(
-                            artifact_name.to_string(),
+                            dedup_key,
                             LibraryInfo {
                                 path: jar_path,
                                 version: version.to_string(),
@@ -85,13 +106,13 @@ impl ClasspathBuilder {
                     } else {
                         info!(
                             "⏩ Skipping library {} (existing version {} is newer or equal to {})",
-                            artifact_name, existing.version, version
+                            dedup_key, existing.version, version
                         );
                     }
                 } else {
                     info!("✅ Adding library: {}", relativ_path);
                     self.libraries.insert(
-                        artifact_name.to_string(),
+                        dedup_key,
                         LibraryInfo {
                             path: jar_path,
                             version: version.to_string(),
@@ -233,4 +254,37 @@ fn extract_version_from_filename(filename: &str) -> String {
         }
     }
     "0.0.0".to_string() // Fallback
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_maven_coordinates_supports_classifier() {
+        assert_eq!(
+            parse_maven_coordinates("org.lwjgl:lwjgl:3.4.1:unsafe"),
+            Some(("org.lwjgl", "lwjgl", "3.4.1", Some("unsafe")))
+        );
+        assert_eq!(
+            parse_maven_coordinates("org.lwjgl:lwjgl-glfw:3.4.1"),
+            Some(("org.lwjgl", "lwjgl-glfw", "3.4.1", None))
+        );
+    }
+
+    #[test]
+    fn native_libraries_use_distinct_dedup_keys() {
+        assert_eq!(
+            library_dedup_key("lwjgl", Some("natives-windows")),
+            "lwjgl:natives-windows"
+        );
+        assert_eq!(library_dedup_key("lwjgl", None), "lwjgl");
+        assert_eq!(library_dedup_key("lwjgl", Some("unsafe")), "lwjgl:unsafe");
+    }
+
+    #[test]
+    fn dedup_keys_distinguish_classifiers() {
+        assert_eq!(library_dedup_key("lwjgl", None), "lwjgl");
+        assert_eq!(library_dedup_key("lwjgl", Some("unsafe")), "lwjgl:unsafe");
+    }
 }

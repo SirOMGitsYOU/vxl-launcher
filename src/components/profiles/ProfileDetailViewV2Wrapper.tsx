@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useProfileStore } from "../../store/profile-store";
-import { LoadingState } from "../ui/LoadingState";
-import { EmptyState } from "../ui/EmptyState";
+import { EmptyState, LoadingState } from "../ui-v2";
 import { ProfileDetailViewV2 } from "./ProfileDetailViewV2";
 import type { Profile } from "../../types/profile";
 import { useProfileSettingsStore } from "../../store/profile-settings-store";
@@ -84,7 +83,8 @@ export function ProfileDetailViewV2Wrapper() {
     return (
       <EmptyState
         icon="solar:danger-triangle-bold"
-        message="No profile ID provided"
+        title="No profile ID provided"
+        description="Return to the profiles list and try again."
       />
     );
   }
@@ -93,7 +93,8 @@ export function ProfileDetailViewV2Wrapper() {
     return (
       <EmptyState
         icon="solar:widget-bold"
-        message="Profile not found"
+        title="Profile not found"
+        description="This profile may have been deleted or moved."
       />
     );
   }

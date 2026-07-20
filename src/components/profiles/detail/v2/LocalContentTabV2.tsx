@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import { Icon } from "@iconify/react";
 import { useNavigate } from "react-router-dom";
+import { Button as UiV2Button } from "../../../ui-v2";
 import { Button } from "../../../ui/buttons/Button";
 import { ContentActionButtons, type ContentActionButton } from "../../../ui/ContentActionButtons";
 import { GenericDetailListItem } from "../items/GenericDetailListItem";
@@ -48,7 +49,7 @@ import { createPortal } from "react-dom";
 import { ModrinthService } from "../../../../services/modrinth-service"; // Added import
 import UnifiedService from "../../../../services/unified-service";
 import { ModVersionCache } from "../../../../store/mod-version-cache"; // Added import
-import { EmptyState } from "../../../ui/EmptyState"; // Added import
+import { EmptyState } from "../../../ui-v2/EmptyState";
 import { useProfileStore } from "../../../../store/profile-store"; // Added import
 import { useConfirmDialog } from "../../../../hooks/useConfirmDialog"; // Added import
 import { Tooltip } from "../../../ui/Tooltip"; // Added for custom tooltips
@@ -417,7 +418,7 @@ export function LocalContentTabV2<T extends LocalContentItem>({
   const effectiveOnAddContent = onAddContentProp || defaultOnAddContent;
 
   const isContentListReady =
-    !isLoading && !isFetchingModrinthDetails && items.length > 0;
+    !isLoading && !isFetchingHashes && !isFetchingModrinthDetails && items.length > 0;
 
   const handleUpdateCheckButtonClick = useCallback(async () => {
     if (updatableContentCount > 0) {
@@ -1165,8 +1166,7 @@ export function LocalContentTabV2<T extends LocalContentItem>({
     ],
   );
 
-  const isBusyWithEssentialLoad =
-    isLoading;
+  const isBusyWithEssentialLoad = isLoading && items.length === 0;
   const isAnyBatchActionInProgress =
     isBatchToggling || isBatchDeleting || isUpdatingAll;
 
@@ -1432,15 +1432,15 @@ export function LocalContentTabV2<T extends LocalContentItem>({
 
     return (
       <>
-        <EmptyState
-          icon="solar:shield-warning-bold-duotone"
-          message="Standard profiles are read-only."
-          description="Clone to make changes and manage content."
-          action={cloneButton}
-          fullHeight={true}
-          className="justify-center"
-        />
-        {confirmDialog} {/* Added confirm dialog to render */}
+        <div className="flex h-full flex-col items-center justify-center">
+          <EmptyState
+            icon="solar:shield-warning-bold-duotone"
+            title="Standard profiles are read-only"
+            description="Clone to make changes and manage content."
+          />
+          <div className="mt-4">{cloneButton}</div>
+        </div>
+        {confirmDialog}
       </>
     );
   }
@@ -1450,7 +1450,7 @@ export function LocalContentTabV2<T extends LocalContentItem>({
   // Dynamic empty state messages
   const getEmptyStateMessage = () => {
     if (error) {
-      return ""; // Remove title, show only button
+      return "Could not load content";
     } else if (isLoading && items.length === 0) {
       return `Loading ${itemTypeNamePlural}...`;
     } else if (
@@ -1458,13 +1458,13 @@ export function LocalContentTabV2<T extends LocalContentItem>({
       items.length === 0 &&
       selectedItemIds.size === 0
     ) {
-      return ""; // Remove title, show only button
+      return `No ${itemTypeNamePlural} yet`;
     } else if (
       searchQuery &&
       filteredItems.length === 0 &&
       selectedItemIds.size === 0
     ) {
-      return ""; // Remove title, show only button
+      return "No results found";
     } else {
       return `Manage your ${itemTypeNamePlural}`;
     }
@@ -1480,7 +1480,7 @@ export function LocalContentTabV2<T extends LocalContentItem>({
       items.length === 0 &&
       selectedItemIds.size === 0
     ) {
-      return `Drag & drop ${itemTypeNamePlural} here to add them, or click Browse to discover and install content online.`;
+      return `Drag and drop ${itemTypeNamePlural} here, or browse online to install.`;
     } else if (
       searchQuery &&
       filteredItems.length === 0 &&
@@ -1531,23 +1531,17 @@ export function LocalContentTabV2<T extends LocalContentItem>({
         emptyStateMessage={getEmptyStateMessage()}
         emptyStateDescription={getEmptyStateDescription()}
         emptyStateAction={
-          // Show browse button for empty states
           (isTrulyEmptyState ||
            (searchQuery && filteredItems.length === 0 && selectedItemIds.size === 0) ||
            (error && !isLoading)) ? (
-            <ContentActionButtons
-              actions={[
-                {
-                  id: "browse-empty",
-                  label: `BROWSE ${itemTypeNamePlural.toUpperCase()}`,
-                  icon: "solar:add-circle-bold",
-                  variant: "highlight" as const,
-                  tooltip: `Browse and download ${itemTypeNamePlural} online`,
-                  onClick: handleEmptyStateBrowse,
-                },
-              ]}
-              size="lg"
-            />
+            <UiV2Button
+              variant="primary"
+              size="md"
+              onClick={handleEmptyStateBrowse}
+              icon={<Icon icon="solar:add-circle-bold" className="h-4 w-4" />}
+            >
+              Browse {itemTypeNamePlural}
+            </UiV2Button>
           ) : undefined
         }
         loadingItemCount={Math.min(items.length > 0 ? items.length : 5, 10)}

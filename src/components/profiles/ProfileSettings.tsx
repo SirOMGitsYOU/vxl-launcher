@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
-import { gsap } from "gsap";
 import type { Profile } from "../../types/profile";
 import GeneralSettingsTab from "./settings/GeneralSettingsTab";
 import { InstallationSettingsTab } from "./settings/InstallationSettingsTab";
@@ -14,7 +13,7 @@ import { SymlinkSettingsTab } from "./settings/SymlinkSettingsTab";
 import { useProfileStore } from "../../store/profile-store";
 import * as ProfileService from "../../services/profile-service";
 import { Modal } from "../ui/Modal";
-import { Button } from "../ui/buttons/Button";
+import { Button } from "../ui-v2";
 import { useThemeStore } from "../../store/useThemeStore";
 import { toast } from "react-hot-toast";
 import { DesignerSettingsTab } from './settings/DesignerSettingsTab';
@@ -43,14 +42,9 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [systemRam, setSystemRam] = useState<number>(8192);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const sidebarRef = useRef<HTMLDivElement>(null);
   const { accentColor } = useThemeStore();
-  const isBackgroundAnimationEnabled = useThemeStore(
-    (state) => state.isBackgroundAnimationEnabled,
-  );
 
-  const showDesignerTab = false; // Always show designer tab
+  const showDesignerTab = false;
   const [tempRamMb, setTempRamMb] = useState(profile.settings?.memory?.max ?? 3072);
 
   useEffect(() => {
@@ -60,26 +54,6 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
         console.error("Failed to get system RAM:", err);
       });
   }, []);
-
-  useEffect(() => {
-    if (isBackgroundAnimationEnabled && contentRef.current) {
-      gsap.fromTo(
-        contentRef.current,
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" },
-      );
-    }
-  }, [activeTab, isBackgroundAnimationEnabled]);
-
-  useEffect(() => {
-    if (isBackgroundAnimationEnabled && sidebarRef.current) {
-      gsap.fromTo(
-        sidebarRef.current,
-        { opacity: 0, x: -20 },
-        { opacity: 1, x: 0, duration: 0.4, ease: "power2.out" },
-      );
-    }
-  }, [isBackgroundAnimationEnabled]);
 
   useEffect(() => {
     setTempRamMb(profile.settings?.memory?.max ?? 3072);
@@ -94,10 +68,9 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
       const updatedProfile = await ProfileService.getProfile(profile.id);
       setCurrentProfile(updatedProfile);
       setEditedProfile(updatedProfile);
-      
-      // Update the global store as well to sync with ProfilesTab
+
       useProfileStore.getState().refreshSingleProfileInStore(updatedProfile);
-      
+
       return updatedProfile;
     } catch (error) {
       console.error("Failed to refresh profile:", error);
@@ -171,7 +144,7 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
   const baseTabConfig = [
     { id: "general", label: "General", icon: "solar:settings-bold" },
     { id: "installation", label: "Installation", icon: "solar:download-bold" },
-    { id: "java", label: "JAVA & Memory", icon: "solar:code-bold" },
+    { id: "java", label: "Java & memory", icon: "solar:code-bold" },
     { id: "window", label: "Window", icon: "solar:widget-bold" },
     { id: "nrc", label: "Advanced", icon: "solar:shield-check-bold" },
     { id: "symlinks", label: "Symlinks", icon: "solar:link-bold" },
@@ -230,14 +203,7 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
           />
         );
       case "nrc":
-        return (
-          <AdvancedTab
-            profile={profile}
-            editedProfile={editedProfile}
-            updateProfile={updateProfileData}
-            onRefresh={handleRefresh}
-          />
-        );
+        return <AdvancedTab profile={profile} />;
 
       case "designer":
         if (showDesignerTab) {
@@ -263,129 +229,70 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
   };
 
   const renderFooter = () => (
-    <div className="flex justify-between">
-      <Button
-        variant="secondary"
-        onClick={onClose}
-        size="md"
-        className="text-2xl"
-      >
-        cancel
+    <div className="flex gap-2">
+      <Button variant="secondary" onClick={onClose} className="flex-1" size="md">
+        Cancel
       </Button>
       <Button
-        variant="default"
+        variant="primary"
         onClick={handleSave}
         disabled={isSaving}
+        className="flex-1"
         size="md"
-        className="text-2xl"
       >
-        {isSaving ? (
-          <div className="flex items-center gap-3">
-            <Icon
-              icon="solar:refresh-bold"
-              className="w-6 h-6 animate-spin text-white"
-            />
-            <span>saving...</span>
-          </div>
-        ) : (
-          "save changes"
-        )}
+        {isSaving ? "Saving..." : "Save changes"}
       </Button>
     </div>
   );
 
-  const handleTabClick = (tabId: string) => {
-    if (activeTab !== tabId) {
-      if (isBackgroundAnimationEnabled && contentRef.current) {
-        gsap.to(contentRef.current, {
-          opacity: 0,
-          y: 20,
-          duration: 0.2,
-          ease: "power2.in",
-          onComplete: () => setActiveTab(tabId as SettingsTab),
-        });
-      } else {
-        setActiveTab(tabId as SettingsTab);
-      }
-    }
-  };
-
   return (
     <Modal
-      title={`profile settings: ${profile.name}`}
+      title={`Profile settings — ${profile.name}`}
       onClose={onClose}
       width="xl"
       footer={renderFooter()}
       className="h-[650px] min-h-[550px] flex flex-col"
     >
-      <div className="flex h-full">
-        <div
-          ref={sidebarRef}
-          className="w-64 flex flex-col"
-        >
-          <div className="space-y-0 flex-1">
-            {tabConfig.map((tab) => {
-              const isActive = activeTab === tab.id;
+      <div className="flex h-full min-h-0">
+        <nav className="flex w-52 flex-shrink-0 flex-col border-r border-[var(--surface-border)] py-2">
+          {tabConfig.map((tab) => {
+            const isActive = activeTab === tab.id;
 
-              return (
-                <div key={tab.id} className="w-full">
-                  <button
-                    className={cn(
-                      "w-full text-left p-3 transition-all duration-200 rounded-none relative border-0 outline-none",
-                      isActive
-                        ? "border-l-2 shadow-sm text-white"
-                        : "bg-transparent border-transparent text-white/70 hover:text-white",
-                    )}
-                    style={
-                      isActive
-                        ? {
-                            backgroundColor: `${accentColor.value}10`, // 60% opacity
-                            borderLeftColor: accentColor.value,
-                            color: "white"
-                          }
-                        : {
-                            "--hover-bg": `${accentColor.value}33` // 20% opacity for hover
-                          } as any
-                    }
-                    onClick={() => handleTabClick(tab.id)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon
-                        icon={tab.icon}
-                        className={cn(
-                          "w-6 h-6 transition-colors duration-200",
-                          isActive ? "" : "text-white/50",
-                        )}
-                        style={isActive ? { color: accentColor.value } : {}}
-                      />
-                      <span
-                        className={cn(
-                          " text-3xl lowercase transition-colors duration-200",
-                          isActive ? "font-medium" : "",
-                        )}
-                        style={isActive ? { color: accentColor.value } : {}}
-                      >
-                        {tab.label}
-                      </span>
-                    </div>
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                className={cn(
+                  "flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition-colors",
+                  isActive
+                    ? "border-l-2 font-medium text-white"
+                    : "border-l-2 border-transparent text-[var(--text-secondary)] hover:bg-[var(--surface-overlay)]/60 hover:text-white",
+                )}
+                style={
+                  isActive
+                    ? {
+                        backgroundColor: `${accentColor.value}10`,
+                        borderLeftColor: accentColor.value,
+                      }
+                    : undefined
+                }
+                onClick={() => setActiveTab(tab.id as SettingsTab)}
+              >
+                <Icon
+                  icon={tab.icon}
+                  className="h-4 w-4 flex-shrink-0"
+                  style={isActive ? { color: accentColor.value } : undefined}
+                />
+                <span style={isActive ? { color: accentColor.value } : undefined}>
+                  {tab.label}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
 
-        {/* Vertical separator line */}
-        <div className="flex items-center">
-          <div className="border-l border-white/10 mx-4 my-3 h-[85%]"></div>
-        </div>
-
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <div
-            className="flex-1 py-2 pl-0 pr-4 overflow-y-auto overflow-x-hidden custom-scrollbar min-w-0"
-            ref={contentRef}
-            style={{ maxWidth: '100%', boxSizing: 'border-box' }}
-          >
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="custom-scrollbar min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-6 py-4">
             {renderTabContent()}
           </div>
         </div>

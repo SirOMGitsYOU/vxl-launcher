@@ -3,17 +3,22 @@
 import React, { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
 import type { LogLevel, ParsedLogLine } from "../../services/log-service";
-import { IconButton } from "../ui/buttons/IconButton";
-import { SearchInput } from "../ui/SearchInput";
 import { Select } from "../ui/Select";
-import { useThemeStore } from "../../store/useThemeStore";
+import { ToggleSwitch } from "../ui/ToggleSwitch";
 import { toast } from "react-hot-toast";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { Checkbox } from "../ui/Checkbox";
 import { cn } from "../../lib/utils";
-import { gsap } from "gsap";
-import { TagBadge, type TagBadgeProps } from "../ui/TagBadge";
 import { Virtuoso } from "react-virtuoso";
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  IconButton,
+  Input,
+  LoadingState,
+} from "../ui-v2";
 
 interface LogViewerDisplayProps {
   isLoading: boolean;
@@ -30,7 +35,6 @@ interface LogViewerDisplayProps {
   scrollableContainerRef?: React.RefObject<HTMLDivElement>;
   isLiveLogs?: boolean;
   showPadding?: boolean;
-
   isAutoscrollEnabled?: boolean;
   onAutoscrollChange?: (enabled: boolean) => void;
   onOpenFolder?: () => void;
@@ -70,6 +74,17 @@ function getLevelColorClass(level: LogLevel | undefined): string {
   }
 }
 
+function getLevelBadgeTone(level: LogLevel, active: boolean): "default" | "accent" | "muted" {
+  if (!active) return "muted";
+  switch (level) {
+    case "ERROR":
+    case "WARN":
+      return "accent";
+    default:
+      return "default";
+  }
+}
+
 export function LogViewerDisplay({
   isLoading,
   error,
@@ -98,120 +113,25 @@ export function LogViewerDisplay({
   scrollToTop,
   scrollToBottom,
 }: LogViewerDisplayProps) {
-  const accentColor = useThemeStore((state) => state.accentColor);
-  const isAnimationEnabled = useThemeStore(
-    (state) => state.isBackgroundAnimationEnabled,
-  );
   const [isSubmittingUpload, setIsSubmittingUpload] = useState(false);
-  const [frozenLogLines, setFrozenLogLines] = useState<ParsedLogLine[] | null>(
-    null,
-  );
-  const controlsRef = React.useRef<HTMLDivElement>(null);
-  const contentRef = React.useRef<HTMLDivElement>(null);
+  const [frozenLogLines, setFrozenLogLines] = useState<ParsedLogLine[] | null>(null);
 
   useEffect(() => {
     if (isAutoscrollEnabled) {
       setFrozenLogLines(null);
-    } else {
-      if (frozenLogLines === null) {
-        setFrozenLogLines([...displayLines]);
-      }
+    } else if (frozenLogLines === null) {
+      setFrozenLogLines([...displayLines]);
     }
   }, [isAutoscrollEnabled, displayLines, frozenLogLines]);
 
-  const headerBgColor = isInsideLogWindow
-    ? `${accentColor.value}1A`
-    : `${accentColor.value}10`;
-  const headerBorderColor = isInsideLogWindow
-    ? `${accentColor.value}3A`
-    : `${accentColor.value}30`;
-  const contentBgColor = isInsideLogWindow
-    ? `${accentColor.value}12`
-    : `${accentColor.value}08`;
-  const contentBorderColor = isInsideLogWindow
-    ? `${accentColor.value}2A`
-    : `${accentColor.value}20`;
-  const footerBgColor = headerBgColor;
-  const footerBorderColor = headerBorderColor;
-
-  useEffect(() => {
-    if (!isAnimationEnabled) return;
-
-    if (controlsRef.current) {
-      gsap.fromTo(
-        controlsRef.current,
-        { opacity: 0, y: -10 },
-        { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" },
-      );
-    }
-
-    if (contentRef.current) {
-      gsap.fromTo(
-        contentRef.current,
-        { opacity: 0 },
-        { opacity: 1, duration: 0.5, ease: "power2.out", delay: 0.2 },
-      );
-    }
-  }, [isAnimationEnabled]);
-
-  const getLogLevelTagBadgeVariant = (
-    level: LogLevel,
-  ): TagBadgeProps["variant"] => {
-    if (!levelFilters[level]) {
-      return "inactive";
-    }
-    switch (level) {
-      case "ERROR":
-        return "destructive";
-      case "WARN":
-        return "warning";
-      case "INFO":
-        return "info";
-      case "DEBUG":
-        return "success";
-      case "TRACE":
-        return "default";
-      default:
-        return "inactive";
-    }
-  };
-
-  const linesForVirtuoso =
-    frozenLogLines !== null ? frozenLogLines : displayLines;
+  const linesForVirtuoso = frozenLogLines !== null ? frozenLogLines : displayLines;
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full bg-black/30 backdrop-awd-sm">
-        <div className="flex flex-col items-center">
-          <div className="relative w-12 h-12 mb-3">
-            <div className="absolute inset-0 border-3 border-white/10 rounded-full"></div>
-            <div
-              className="absolute inset-0 border-3 border-t-white/80 rounded-full animate-spin"
-              style={{ borderTopColor: accentColor.value }}
-            ></div>
-          </div>
-          <div className=" text-xl text-white/80 tracking-wide lowercase">
-            Loading logs...
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingState message="Loading logs..." />;
   }
 
   if (error) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="p-4 bg-red-900/30 border-2 border-red-700/50 text-red-300 text-xl max-w-2xl rounded-lg">
-          <div className="flex items-center gap-2">
-            <Icon
-              icon="solar:danger-triangle-bold"
-              className="w-6 h-6 text-red-400 flex-shrink-0"
-            />
-            <span>{error}</span>
-          </div>
-        </div>
-      </div>
-    );
+    return <Alert tone="error">{error}</Alert>;
   }
 
   if (
@@ -221,208 +141,144 @@ export function LogViewerDisplay({
     Object.values(levelFilters).every((v) => v)
   ) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <Icon
-            icon="solar:file-text-bold"
-            className="w-12 h-12 text-white/30 mx-auto mb-3"
-          />
-          <p className="text-white/60  text-xl tracking-wide lowercase select-none">
-            No log content available
-          </p>
-          <p className="text-white/40  text-sm mt-2 tracking-wide lowercase select-none">
-            Select a log file to view
-          </p>
-        </div>
-      </div>
+      <EmptyState
+        icon="solar:file-text-bold"
+        title="No log content available"
+        description="Select a log file to view."
+      />
     );
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <div
-        ref={controlsRef}
-        className="p-3 rounded-lg border backdrop-blur-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-3 flex-shrink-0"
-        style={{
-          borderColor: headerBorderColor,
-          backgroundColor: headerBgColor,
-        }}
-      >
-        <div className="flex items-center py-1 gap-1 overflow-x-auto scrollbar-hide">
+    <div className="flex h-full flex-col gap-3">
+      <Card className="flex flex-shrink-0 flex-col gap-3 p-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-wrap items-center gap-1.5">
           {logLevelsDefinition
             .filter((level) => level !== "TRACE")
             .map((level) => (
-              <TagBadge
+              <button
                 key={level}
+                type="button"
                 onClick={() => onLevelFilterChange(level, !levelFilters[level])}
                 disabled={isLoading}
-                variant={getLogLevelTagBadgeVariant(level)}
-                size="sm"
               >
-                {level.toLowerCase()}
-              </TagBadge>
+                <Badge tone={getLevelBadgeTone(level, levelFilters[level])}>{level}</Badge>
+              </button>
             ))}
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <SearchInput
+        <div className="flex flex-wrap items-center gap-2 md:justify-end">
+          <Input
             value={searchTerm}
-            onChange={onSearchChange}
+            onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Filter lines..."
-            size="sm"
+            className="min-w-[180px] flex-1 md:max-w-xs"
           />
 
-          <div className="flex items-center gap-2">
+          <IconButton
+            size="sm"
+            onClick={onCopyLog}
+            disabled={displayLines.length === 0 || copied}
+            title={copied ? "Copied" : "Copy log"}
+            aria-label={copied ? "Copied" : "Copy log"}
+            className={copied ? "border-green-500/40 text-green-300" : undefined}
+          >
+            <Icon icon={copied ? "solar:check-circle-bold" : "solar:copy-bold"} className="h-4 w-4" />
+          </IconButton>
+
+          {onUploadLog && (
             <IconButton
-              onClick={onCopyLog}
-              disabled={displayLines.length === 0 || isLoading || copied}
-              variant={copied ? "success" : "secondary"}
               size="sm"
-              icon={
-                <Icon
-                  icon={copied ? "solar:check-circle-bold" : "solar:copy-bold"}
-                />
-              }
-            />
-
-            {onUploadLog && (
-              <IconButton
-                onClick={async () => {
-                  if (isSubmittingUpload) return;
-                  if (onUploadLog) {
-                    setIsSubmittingUpload(true);
-                    try {
-                      const url = await onUploadLog();
-                      let clipboardSuccess = false;
-                      try {
-                        await writeText(url);
-                        clipboardSuccess = true;
-                      } catch (copyError) {
-                        console.error(
-                          "Failed to copy URL to clipboard:",
-                          copyError,
-                        );
-                      }
-
-                      const successMessage = clipboardSuccess
-                        ? "Link copied! Click to open."
-                        : "Log uploaded (copy failed)! Click to open.";
-
-                      toast.success(
-                        (t) => (
-                          <span
-                            onClick={() => {
-                              if (url && onOpenUploadUrl) onOpenUploadUrl(url);
-                              toast.dismiss(t.id);
-                            }}
-                            className="cursor-pointer hover:underline"
-                          >
-                            {successMessage}
-                          </span>
-                        ),
-                        { duration: 5000 },
-                      );
-                    } catch (err: any) {
-                      toast.error(`Upload failed: ${err.toString()}`);
-                    } finally {
-                      setIsSubmittingUpload(false);
-                    }
+              onClick={async () => {
+                if (isSubmittingUpload) return;
+                setIsSubmittingUpload(true);
+                try {
+                  const url = await onUploadLog();
+                  let clipboardSuccess = false;
+                  try {
+                    await writeText(url);
+                    clipboardSuccess = true;
+                  } catch (copyError) {
+                    console.error("Failed to copy URL to clipboard:", copyError);
                   }
-                }}
-                disabled={
-                  isLoading || parsedLogLinesCount === 0 || isSubmittingUpload
-                }
-                variant="secondary"
-                size="sm"
-                icon={
-                  <Icon
-                    icon={
-                      isSubmittingUpload
-                        ? "solar:refresh-circle-bold"
-                        : "solar:upload-bold"
-                    }
-                    className={isSubmittingUpload ? "animate-spin" : ""}
-                  />
-                }
-              />
-            )}
 
-            {onOpenFolder && (
-              <IconButton
-                onClick={onOpenFolder}
-                disabled={isLoading}
-                variant="secondary"
-                size="sm"
-                icon={<Icon icon="solar:folder-bold" />}
-              />
-            )}
-          </div>
-        </div>
-      </div>
+                  const successMessage = clipboardSuccess
+                    ? "Link copied! Click to open."
+                    : "Log uploaded (copy failed)! Click to open.";
 
-      <div
-        className="flex-1 min-h-0 rounded-lg border backdrop-blur-sm overflow-hidden mb-3"
-        style={{
-          backgroundColor: contentBgColor,
-          borderColor: contentBorderColor,
-        }}
-      >
-        <div
-          className="h-full overflow-y-auto custom-scrollbar"
-          ref={scrollableContainerRef}
-        >
-          <div ref={contentRef} className="h-full">
-            {linesForVirtuoso.length === 0 ? (
-              <div className="p-4 h-full flex items-center justify-center">
-                <div className="text-center">
-                  <Icon
-                    icon="solar:filter-bold"
-                    className="w-12 h-12 text-white/30 mx-auto mb-3"
-                  />
-                  <p className="text-white/60  text-xl tracking-wide lowercase select-none">
-                    No log lines match the current filters
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <Virtuoso
-                style={{ height: "100%" }}
-                data={linesForVirtuoso}
-                followOutput={isAutoscrollEnabled ? "smooth" : false}
-                className={cn(
-                  "custom-scrollbar",
-                  "min-h-full bg-black/60 font-mono text-sm whitespace-pre-wrap",
-                  "p-2",
-                  "overflow-x-hidden",
-                )}
-                itemContent={(index, line) => (
-                  <div
-                    key={`${line.id}-${index}`}
-                    className="flex flex-nowrap items-start"
-                  >
-                    {line.timestamp ? (
-                      <>
-                        <span
-                          className={`pr-2 select-none ${getLevelColorClass(line.level)}`}
-                        >
-                          <span className="opacity-80">[{line.timestamp}]</span>
-                          <span className="opacity-80 ml-1">
-                            [{line.thread}/{line.level ?? "-"}]
-                          </span>
-                        </span>
-                        <span
-                          className={`flex-1 min-w-0 break-words ${
-                            line.level === "ERROR" || line.level === "WARN"
-                              ? getLevelColorClass(line.level)
-                              : "text-white/90"
-                          }`}
-                        >
-                          {line.text}
-                        </span>
-                      </>
-                    ) : (
+                  toast.success(
+                    (t) => (
                       <span
-                        className={`flex-1 min-w-0 pl-1 break-words ${
+                        onClick={() => {
+                          if (url && onOpenUploadUrl) onOpenUploadUrl(url);
+                          toast.dismiss(t.id);
+                        }}
+                        className="cursor-pointer hover:underline"
+                      >
+                        {successMessage}
+                      </span>
+                    ),
+                    { duration: 5000 },
+                  );
+                } catch (err: unknown) {
+                  toast.error(`Upload failed: ${String(err)}`);
+                } finally {
+                  setIsSubmittingUpload(false);
+                }
+              }}
+              disabled={isLoading || parsedLogLinesCount === 0 || isSubmittingUpload}
+              title="Upload log"
+              aria-label="Upload log"
+            >
+              <Icon icon="solar:upload-bold" className="h-4 w-4" />
+            </IconButton>
+          )}
+
+          {onOpenFolder && (
+            <IconButton
+              size="sm"
+              onClick={onOpenFolder}
+              disabled={isLoading}
+              title="Open logs folder"
+              aria-label="Open logs folder"
+            >
+              <Icon icon="solar:folder-bold" className="h-4 w-4" />
+            </IconButton>
+          )}
+        </div>
+      </Card>
+
+      <Card className="min-h-0 flex-1 overflow-hidden p-0">
+        <div className="custom-scrollbar h-full overflow-y-auto" ref={scrollableContainerRef}>
+          {linesForVirtuoso.length === 0 ? (
+            <div className="flex h-full items-center justify-center p-6">
+              <EmptyState
+                icon="solar:filter-bold"
+                title="No log lines match the current filters"
+                description="Try adjusting search or level filters."
+              />
+            </div>
+          ) : (
+            <Virtuoso
+              style={{ height: "100%" }}
+              data={linesForVirtuoso}
+              followOutput={isAutoscrollEnabled ? "smooth" : false}
+              className={cn(
+                "custom-scrollbar min-h-full bg-black/60 p-3 font-mono text-sm",
+                isWordWrapEnabled ? "whitespace-pre-wrap" : "whitespace-pre",
+              )}
+              itemContent={(index, line) => (
+                <div key={`${line.id}-${index}`} className="flex flex-nowrap items-start">
+                  {line.timestamp ? (
+                    <>
+                      <span className={`select-none pr-2 ${getLevelColorClass(line.level)}`}>
+                        <span className="opacity-80">[{line.timestamp}]</span>
+                        <span className="ml-1 opacity-80">
+                          [{line.thread}/{line.level ?? "-"}]
+                        </span>
+                      </span>
+                      <span
+                        className={`min-w-0 flex-1 break-words ${
                           line.level === "ERROR" || line.level === "WARN"
                             ? getLevelColorClass(line.level)
                             : "text-white/90"
@@ -430,109 +286,89 @@ export function LogViewerDisplay({
                       >
                         {line.text}
                       </span>
-                    )}
-                  </div>
-                )}
-              />
-            )}
-          </div>
+                    </>
+                  ) : (
+                    <span
+                      className={`min-w-0 flex-1 break-words pl-1 ${
+                        line.level === "ERROR" || line.level === "WARN"
+                          ? getLevelColorClass(line.level)
+                          : "text-white/90"
+                      }`}
+                    >
+                      {line.text}
+                    </span>
+                  )}
+                </div>
+              )}
+            />
+          )}
         </div>
-      </div>
+      </Card>
 
-      <div
-        className="p-3 rounded-lg border backdrop-blur-sm flex justify-between items-center"
-        style={{
-          borderColor: footerBorderColor,
-          backgroundColor: footerBgColor,
-        }}
-      >
-        <div className="text-white/70  text-xs">
+      <Card className="flex flex-shrink-0 flex-wrap items-center justify-between gap-3 p-3">
+        <p className="text-xs text-[var(--text-secondary)]">
           {searchTerm || Object.values(levelFilters).some((v) => !v)
             ? `${linesForVirtuoso.length} of ${parsedLogLinesCount} lines matching filters`
             : `${parsedLogLinesCount} lines`}
-        </div>
+        </p>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {isAutoscrollEnabled !== undefined && onAutoscrollChange && (
-            <Checkbox
-              id="autoscroll-checkbox"
+            <ToggleSwitch
               checked={isAutoscrollEnabled}
-              onChange={(e) => onAutoscrollChange(e.target.checked)}
+              onChange={onAutoscrollChange}
               label="Autoscroll"
-              customSize="sm"
+              size="sm"
             />
           )}
 
           {logFiles.length > 0 && onLogSelect && (
-            <div className="flex items-center gap-2 relative">
-              <Select
-                value={selectedLogPath || ""}
-                onChange={onLogSelect}
-                options={[
-                  {
-                    value: "",
-                    label: "-- Select Log --",
-                    // @ts-ignore
-                    disabled: !!selectedLogPath,
-                  },
-                  ...logFiles.map((path) => ({
-                    value: path,
-                    label: getFilename(path),
-                  })),
-                ]}
-                className="w-64"
-                disabled={isLoading}
-              />
-            </div>
+            <Select
+              value={selectedLogPath || ""}
+              onChange={onLogSelect}
+              options={[
+                { value: "", label: "Select log file" },
+                ...logFiles.map((path) => ({
+                  value: path,
+                  label: getFilename(path),
+                })),
+              ]}
+              className="w-56"
+              disabled={isLoading}
+            />
           )}
 
           {onWordWrapChange && (
-            <IconButton
+            <Button
+              variant={isWordWrapEnabled ? "primary" : "secondary"}
+              size="sm"
               onClick={() => onWordWrapChange(!isWordWrapEnabled)}
               disabled={isLoading}
-              variant={isWordWrapEnabled ? "default" : "secondary"}
-              size="sm"
-              icon={
-                isWordWrapEnabled ? (
-                  <Icon icon="solar:text-bold" className="w-4 h-4" />
-                ) : (
-                  <Icon icon="solar:text-bold" className="w-4 h-4" />
-                )
-              }
-            />
+              icon={<Icon icon="solar:text-bold" className="h-4 w-4" />}
+            >
+              Wrap
+            </Button>
           )}
 
           {scrollToTop && (
-            <IconButton
-              onClick={scrollToTop}
-              disabled={isLoading}
-              variant="secondary"
-              size="sm"
-              icon={
-                <Icon
-                  icon="solar:double-alt-arrow-up-bold-duotone"
-                  className="w-4 h-4"
-                />
-              }
-            />
+            <IconButton size="sm" onClick={scrollToTop} disabled={isLoading} title="Scroll to top" aria-label="Scroll to top">
+              <Icon icon="solar:double-alt-arrow-up-bold" className="h-4 w-4" />
+            </IconButton>
           )}
 
           {scrollToBottom && (
             <IconButton
+              size="sm"
               onClick={scrollToBottom}
               disabled={isLoading}
-              variant="secondary"
-              size="sm"
-              icon={
-                <Icon
-                  icon="solar:double-alt-arrow-down-bold-duotone"
-                  className="w-4 h-4"
-                />
-              }
-            />
+              title="Scroll to bottom"
+              aria-label="Scroll to bottom"
+            >
+              <Icon icon="solar:double-alt-arrow-down-bold" className="h-4 w-4" />
+            </IconButton>
           )}
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

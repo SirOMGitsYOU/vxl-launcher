@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Icon } from "@iconify/react";
-import { invoke, convertFileSrc } from "@tauri-apps/api/core";
+import { invoke } from "@tauri-apps/api/core";
 import { listen, emitTo, type UnlistenFn } from "@tauri-apps/api/event";
 import { useThemeStore } from "../../store/useThemeStore";
 import { useProcessStore, getProcessStatus, ProcessMetrics } from "../../store/useProcessStore";
@@ -9,6 +9,10 @@ import { ProcessMetadata, ProcessState } from "../../types/processState";
 import { EventType } from "../../types/events";
 import * as ProcessService from "../../services/process-service";
 import { useCrafatarAvatar } from "../../hooks/useCrafatarAvatar";
+import {
+  isDisplayableRemoteUrl,
+  localFileToDisplayUrl,
+} from "../../utils/local-file-url";
 
 interface TooltipProps {
   text: string;
@@ -92,14 +96,67 @@ const formatMemory = (bytes: number): string => {
   return `${Math.round(mb)}MB`;
 };
 
-const toAssetUrl = (pathOrUrl: string | undefined): string | undefined => {
-  if (!pathOrUrl) return undefined;
-  if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://") ||
-      pathOrUrl.startsWith("data:") || pathOrUrl.startsWith("asset://")) {
-    return pathOrUrl;
+function ProcessProfileImage({
+  profileImageUrl,
+  alt,
+  className,
+  fallback,
+}: {
+  profileImageUrl?: string;
+  alt: string;
+  className?: string;
+  fallback: React.ReactNode;
+}) {
+  const [displayUrl, setDisplayUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+
+    if (!profileImageUrl) {
+      setDisplayUrl(null);
+      return;
+    }
+
+    if (isDisplayableRemoteUrl(profileImageUrl)) {
+      setDisplayUrl(profileImageUrl);
+      return;
+    }
+
+    let cancelled = false;
+
+    localFileToDisplayUrl(profileImageUrl)
+      .then((url) => {
+        if (!cancelled) {
+          setDisplayUrl(url || null);
+          if (!url) setFailed(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDisplayUrl(null);
+          setFailed(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profileImageUrl]);
+
+  if (!displayUrl || failed) {
+    return <>{fallback}</>;
   }
-  return convertFileSrc(pathOrUrl);
-};
+
+  return (
+    <img
+      src={displayUrl}
+      alt={alt}
+      className={className}
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 const formatElapsedTime = (startTime: number, currentTime: number): string => {
   const elapsed = Math.floor((currentTime - startTime) / 1000);
@@ -232,19 +289,18 @@ function InstanceItem({
               borderColor: isHovered || isSelected ? `${accentColor.value}60` : "transparent",
             }}
           >
-            {instance.profileImageUrl ? (
-              <img
-                src={toAssetUrl(instance.profileImageUrl)}
-                alt={instance.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <Icon
-                icon="mdi:minecraft"
-                className="w-6 h-6"
-                style={{ color: accentColor.value }}
-              />
-            )}
+            <ProcessProfileImage
+              profileImageUrl={instance.profileImageUrl}
+              alt={instance.name}
+              className="w-full h-full object-cover"
+              fallback={
+                <Icon
+                  icon="mdi:minecraft"
+                  className="w-6 h-6"
+                  style={{ color: accentColor.value }}
+                />
+              }
+            />
           </div>
 
           <div className="flex-1 min-w-0">
@@ -361,19 +417,18 @@ function InstanceItem({
             borderColor: isHovered || isSelected ? `${accentColor.value}60` : "transparent",
           }}
         >
-          {instance.profileImageUrl ? (
-            <img
-              src={toAssetUrl(instance.profileImageUrl)}
-              alt={instance.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <Icon
-              icon="mdi:minecraft"
-              className="w-6 h-6"
-              style={{ color: accentColor.value }}
-            />
-          )}
+          <ProcessProfileImage
+            profileImageUrl={instance.profileImageUrl}
+            alt={instance.name}
+            className="w-full h-full object-cover"
+            fallback={
+              <Icon
+                icon="mdi:minecraft"
+                className="w-6 h-6"
+                style={{ color: accentColor.value }}
+              />
+            }
+          />
         </div>
 
         <div className="flex-1 min-w-0">

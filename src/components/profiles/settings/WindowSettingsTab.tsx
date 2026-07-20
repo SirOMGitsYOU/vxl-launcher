@@ -1,13 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import type { Profile } from "../../../types/profile";
-import { useThemeStore } from "../../../store/useThemeStore";
-import { Checkbox } from "../../ui/Checkbox";
 import { Label } from "../../ui/Label";
-import { SearchStyleInput } from "../../ui/Input";
-import { gsap } from "gsap";
 import { cn } from "../../../lib/utils";
+import { Input, SectionHeader, SettingsSection } from "../../ui-v2";
+import { fieldLabelClass, ProfileSettingToggle } from "./profile-settings-ui";
 
 interface WindowSettingsTabProps {
   editedProfile: Profile;
@@ -18,45 +15,12 @@ export function WindowSettingsTab({
   editedProfile,
   updateProfile,
 }: WindowSettingsTabProps) {
-  const accentColor = useThemeStore((state) => state.accentColor);
-  const isBackgroundAnimationEnabled = useThemeStore(
-    (state) => state.isBackgroundAnimationEnabled,
-  );
-  const tabRef = useRef<HTMLDivElement>(null);
-  const resolutionRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (isBackgroundAnimationEnabled) {
-      if (tabRef.current) {
-        gsap.fromTo(
-          tabRef.current,
-          { opacity: 0 },
-          { opacity: 1, duration: 0.4, ease: "power2.out" },
-        );
-      }
-
-      if (resolutionRef.current) {
-        gsap.fromTo(
-          resolutionRef.current,
-          { opacity: 0, y: 20 },
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.4,
-            ease: "power2.out",
-            delay: 0.2,
-          },
-        );
-      }
-    }
-  }, [isBackgroundAnimationEnabled]);
-
   const resolutionPresets = [
     { width: 854, height: 480, label: "Default" },
     { width: 1280, height: 720, label: "720p" },
     { width: 1920, height: 1080, label: "1080p" },
     { width: 2560, height: 1440, label: "1440p" },
-    { width: 3840, height: 2160, label: "4k" },
+    { width: 3840, height: 2160, label: "4K" },
   ];
 
   const handleResolutionChange = (width: number, height: number) => {
@@ -76,116 +40,78 @@ export function WindowSettingsTab({
     updateProfile({ settings: newSettings });
   };
 
-  const handlePresetClick = (preset: { width: number; height: number }) => {
-    if (isBackgroundAnimationEnabled) {
-      gsap.fromTo(
-        `.preset-${preset.width}x${preset.height}`,
-        { scale: 0.95 },
-        {
-          scale: 1,
-          duration: 0.3,
-          ease: "elastic.out(1.2, 0.4)",
-        },
-      );
-    }
-
-    handleResolutionChange(preset.width, preset.height);
-  };
-
   return (
-    <div ref={tabRef} className="space-y-6 select-none">
-      <div>
-        <h3 className="text-3xl  text-white mb-2 lowercase">
-          window settings
-        </h3>
-        <p className="text-xs text-white/70 mb-4  tracking-wide select-none">
-          configure how minecraft's window appears on your screen.
-        </p>
-      </div>
+    <div className="space-y-4 select-none">
+      <SectionHeader
+        icon="solar:widget-bold"
+        title="Window settings"
+        description="Configure how Minecraft's window appears on your screen."
+      />
 
-      <div ref={resolutionRef} className="space-y-4">
-        <div>
-          <h3 className="text-3xl  text-white mb-3 lowercase">
-            resolution
-          </h3>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-xl text-white/70  mb-2 lowercase tracking-wide select-none">
-                  width
-                </label>
-                <SearchStyleInput
-                  type="number"
-                  value={String(
-                    editedProfile.settings?.resolution?.width || 854,
-                  )}
-                  onChange={(e) => {
-                    const width = Number.parseInt(e.target.value) || 854;
-                    handleResolutionChange(
-                      width,
-                      editedProfile.settings?.resolution?.height || 480,
-                    );
-                  }}
-                  className="text-xl"
-                />
-              </div>
-              <div>
-                <label className="block text-xl text-white/70  mb-2 lowercase tracking-wide select-none">
-                  height
-                </label>
-                <SearchStyleInput
-                  type="number"
-                  value={String(
-                    editedProfile.settings?.resolution?.height || 480,
-                  )}
-                  onChange={(e) => {
-                    const height = Number.parseInt(e.target.value) || 480;
-                    handleResolutionChange(
-                      editedProfile.settings?.resolution?.width || 854,
-                      height,
-                    );
-                  }}
-                  className="text-xl"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2 mb-4">
-              {resolutionPresets.map((preset) => (
-                <Label
-                  key={preset.label}
-                  variant={
-                    editedProfile.settings?.resolution?.width ===
-                      preset.width &&
-                    editedProfile.settings?.resolution?.height === preset.height
-                      ? "default"
-                      : "ghost"
-                  }
-                  size="md"
-                  className={cn(
-                    "cursor-pointer text-xl preset-${preset.width}x${preset.height}",
-                    editedProfile.settings?.resolution?.width ===
-                      preset.width &&
-                      editedProfile.settings?.resolution?.height ===
-                        preset.height
-                      ? "bg-accent/20 border-accent text-white"
-                      : "bg-[var(--surface-overlay)] hover:border-[var(--surface-border-strong)] border-white/10 text-white/80",
-                  )}
-                  onClick={() => handlePresetClick(preset)}
-                >
-                  {preset.label}
-                </Label>
-              ))}
-            </div>
-
-          <Checkbox
-            checked={editedProfile.settings?.fullscreen || false}
-            onChange={(e) => handleFullscreenChange(e.target.checked)}
-            label="fullscreen"
-            className="text-2xl"
-            variant="flat"
-          />
+      <SettingsSection>
+        <label className={fieldLabelClass}>Resolution</label>
+        <div className="mb-4 grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1.5 block text-xs text-[var(--text-muted)]">Width</label>
+            <Input
+              type="number"
+              value={String(editedProfile.settings?.resolution?.width || 854)}
+              onChange={(e) => {
+                const width = Number.parseInt(e.target.value) || 854;
+                handleResolutionChange(
+                  width,
+                  editedProfile.settings?.resolution?.height || 480,
+                );
+              }}
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs text-[var(--text-muted)]">Height</label>
+            <Input
+              type="number"
+              value={String(editedProfile.settings?.resolution?.height || 480)}
+              onChange={(e) => {
+                const height = Number.parseInt(e.target.value) || 480;
+                handleResolutionChange(
+                  editedProfile.settings?.resolution?.width || 854,
+                  height,
+                );
+              }}
+            />
+          </div>
         </div>
-      </div>
+
+        <div className="mb-4 flex flex-wrap gap-2">
+          {resolutionPresets.map((preset) => (
+            <Label
+              key={preset.label}
+              variant={
+                editedProfile.settings?.resolution?.width === preset.width &&
+                editedProfile.settings?.resolution?.height === preset.height
+                  ? "default"
+                  : "ghost"
+              }
+              size="md"
+              className={cn(
+                "cursor-pointer text-sm",
+                editedProfile.settings?.resolution?.width === preset.width &&
+                  editedProfile.settings?.resolution?.height === preset.height
+                  ? "bg-accent/20 border-accent text-white"
+                  : "border-[var(--surface-border)] bg-[var(--surface-overlay)] text-[var(--text-secondary)] hover:border-[var(--surface-border-strong)] hover:text-white",
+              )}
+              onClick={() => handleResolutionChange(preset.width, preset.height)}
+            >
+              {preset.label}
+            </Label>
+          ))}
+        </div>
+
+        <ProfileSettingToggle
+          label="Fullscreen"
+          checked={editedProfile.settings?.fullscreen || false}
+          onChange={handleFullscreenChange}
+        />
+      </SettingsSection>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon } from "@iconify/react";
-import { EmptyState } from "./EmptyState";
+import { EmptyState } from "../ui-v2/EmptyState";
 import { ReactNode, useEffect } from "react";
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
@@ -98,12 +98,14 @@ export function GenericList<T>({
         </div>
       );    } else if (items.length === 0) {
       return (
-        <EmptyState
-          icon={emptyStateIcon}
-          message={emptyStateMessage}
-          description={emptyStateDescription}
-          action={emptyStateAction}
-        />
+        <div className="flex h-full flex-col items-center justify-center">
+          <EmptyState
+            icon={emptyStateIcon}
+            title={emptyStateMessage || "Nothing here yet"}
+            description={emptyStateDescription}
+          />
+          {emptyStateAction && <div className="mt-4">{emptyStateAction}</div>}
+        </div>
       );
     }
   }  if (error && errorComponent) {
@@ -111,12 +113,14 @@ export function GenericList<T>({
   }
   if (error && showEmptyState) {
     return (
-      <EmptyState
-        icon={emptyStateIcon || GENERIC_LIST_DEFAULT_ICONS[0]}
-        message={emptyStateMessage || ""}
-        description={emptyStateDescription || error}
-        action={emptyStateAction}
-      />
+      <div className="flex h-full flex-col items-center justify-center">
+        <EmptyState
+          icon={emptyStateIcon || GENERIC_LIST_DEFAULT_ICONS[0]}
+          title={emptyStateMessage || "Something went wrong"}
+          description={emptyStateDescription || error}
+        />
+        {emptyStateAction && <div className="mt-4">{emptyStateAction}</div>}
+      </div>
     );
   } else if (error) {
     return (
@@ -140,12 +144,14 @@ export function GenericList<T>({
 
   if (showEmptyState && isEmpty && !isLoading) {
     return (
-      <EmptyState
-        icon={emptyStateIcon}
-        message={emptyStateMessage || ""}
-        description={emptyStateDescription || (searchQuery ? "Try a different search term." : "")}
-        action={emptyStateAction}
-      />
+      <div className="flex h-full flex-col items-center justify-center">
+        <EmptyState
+          icon={emptyStateIcon}
+          title={emptyStateMessage || (searchQuery ? "No results found" : "Nothing here yet")}
+          description={emptyStateDescription || (searchQuery ? "Try a different search term." : undefined)}
+        />
+        {emptyStateAction && <div className="mt-4">{emptyStateAction}</div>}
+      </div>
     );
   }
   if (isEmpty && !isLoading && !error && !showEmptyState) {

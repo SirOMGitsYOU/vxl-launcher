@@ -1,42 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { Profile } from "../../../types/profile";
 import { Icon } from "@iconify/react";
-import { useThemeStore } from "../../../store/useThemeStore";
-import { Button } from "../../ui/buttons/Button";
-import { gsap } from "gsap";
 import { toast } from "react-hot-toast";
 import * as ProfileService from "../../../services/profile-service";
+import { Button, SectionHeader, SettingsSection } from "../../ui-v2";
 
 interface AdvancedTabProps {
   profile: Profile;
-  editedProfile: Profile;
-  updateProfile: (updates: Partial<Profile>) => void;
-  onRefresh?: () => Promise<Profile>;
 }
 
-export function AdvancedTab({
-  profile,
-  editedProfile,
-  updateProfile,
-  onRefresh,
-}: AdvancedTabProps) {
+export function AdvancedTab({ profile }: AdvancedTabProps) {
   const [isRepairing, setIsRepairing] = useState(false);
-  const isBackgroundAnimationEnabled = useThemeStore(
-    (state) => state.isBackgroundAnimationEnabled,
-  );
-  const tabRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (isBackgroundAnimationEnabled && tabRef.current) {
-      gsap.fromTo(
-        tabRef.current,
-        { opacity: 0 },
-        { opacity: 1, duration: 0.4, ease: "power2.out" },
-      );
-    }
-  }, [isBackgroundAnimationEnabled]);
 
   const handleRepair = async () => {
     try {
@@ -53,39 +29,23 @@ export function AdvancedTab({
   };
 
   return (
-    <div ref={tabRef} className="space-y-6 select-none">
-      <div className="space-y-6">
-        {/* Repair Profile Section */}
-        <div className="space-y-3">
-          <label className="block text-3xl  text-white mb-2 lowercase">
-            repair profile
-          </label>
-          <div className="flex flex-col space-y-2 max-w-xs">
-            <p className="text-xs text-white/60  select-none leading-relaxed whitespace-normal break-words overflow-wrap-anywhere">
-              Repairs the profile installation by redownloading missing or corrupted files.
-            </p>
-            <Button
-              onClick={handleRepair}
-              disabled={isRepairing}
-              variant="secondary"
-              icon={
-                isRepairing ? (
-                  <Icon
-                    icon="solar:refresh-bold"
-                    className="w-4 h-4 animate-spin text-white"
-                  />
-                ) : (
-                  <Icon icon="solar:shield-check-bold" className="w-4 h-4 text-white" />
-                )
-              }
-              size="sm"
-              className="text-xl"
-            >
-              {isRepairing ? "repairing..." : "repair"}
-            </Button>
-          </div>
-        </div>
-      </div>
+    <div className="space-y-4 select-none">
+      <SettingsSection>
+        <SectionHeader
+          icon="solar:shield-check-bold"
+          title="Repair profile"
+          description="Repairs the profile installation by redownloading missing or corrupted files."
+        />
+        <Button
+          onClick={handleRepair}
+          disabled={isRepairing}
+          variant="secondary"
+          size="md"
+          icon={<Icon icon="solar:shield-check-bold" className="h-4 w-4" />}
+        >
+          {isRepairing ? "Repairing..." : "Repair profile"}
+        </Button>
+      </SettingsSection>
     </div>
   );
 }

@@ -1,19 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { Icon } from "@iconify/react";
 import { parseMotdToHtml } from "../../../utils/motd-utils";
-import { Button } from "../../ui/buttons/Button";
-import { IconButton } from "../../ui/buttons/IconButton";
-import { ActionButton } from "../../ui/ActionButton";
-import { ActionButtons } from "../../ui/ActionButtons";
 import { useThemeStore } from "../../../store/useThemeStore";
 import { useProfileStore } from "../../../store/profile-store";
 import { useAppDragDropStore } from "../../../store/appStore";
-import { SearchWithFilters } from "../../ui/SearchWithFilters";
-import { gsap } from "gsap";
 import { TagBadge } from "../../ui/TagBadge";
+import {
+  Alert,
+  Button,
+  Card,
+  EmptyState,
+  IconButton,
+  Input,
+  LoadingState,
+} from "../../ui-v2";
 import { CopyWorldDialog } from "../../modals/CopyWorldDialog";
 import { ConfirmDeleteDialog } from "../../modals/ConfirmDeleteDialog";
 import { useGlobalModal } from "../../../hooks/useGlobalModal";
@@ -21,9 +24,6 @@ import { useProfileLaunch } from "../../../hooks/useProfileLaunch.tsx";
 import { toast } from "react-hot-toast";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { LaunchButton } from "../../ui/buttons/LaunchButton";
-import { GenericList } from "../../ui/GenericList";
-import { GenericListItem } from "../../ui/GenericListItem";
 import { preloadIcons } from "../../../lib/icon-utils";
 // --- Import Real Types ---
 import type {
@@ -68,11 +68,14 @@ const notificationStore = {
   error: (msg: string) => console.error(`[ERROR] ${msg}`),
 };
 
-interface WorldsTabProps {
+export type WorldsTabMode = "worlds" | "servers";
+
+export interface WorldsTabProps {
   profile: Profile;
   onRefresh?: () => void;
   isActive?: boolean;
   searchQuery?: string;
+  mode?: WorldsTabMode;
   onLaunchRequest?: (params: {
     profileId: string;
     quickPlaySingleplayer?: string;
@@ -89,8 +92,50 @@ export function WorldsTab({
   onRefresh,
   isActive = false,
   searchQuery = "",
+  mode = "worlds",
   onLaunchRequest,
 }: WorldsTabProps) {
+  const showWorlds = mode !== "servers";
+  const showServers = mode !== "worlds";
+  const [localSearchQuery, setLocalSearchQuery] = useState("");
+  const effectiveSearchQuery = searchQuery || localSearchQuery;
+  const emptyTitle = showWorlds && showServers
+    ? effectiveSearchQuery
+      ? "No worlds or servers match your search"
+      : "No worlds or servers yet"
+    : showServers
+      ? effectiveSearchQuery
+        ? "No servers match your search"
+        : "No servers yet"
+      : effectiveSearchQuery
+        ? "No worlds match your search"
+        : "No worlds yet";
+  const emptyDescription = showWorlds && showServers
+    ? effectiveSearchQuery
+      ? "Try a different search term."
+      : "Create worlds or add servers in Minecraft."
+    : showServers
+      ? effectiveSearchQuery
+        ? "Try a different search term."
+        : "Add servers in Minecraft to see them here."
+      : effectiveSearchQuery
+        ? "Try a different search term."
+        : "Create a world in Minecraft or import one here.";
+  const loadingMessage = showWorlds && showServers
+    ? "Loading worlds and servers..."
+    : showServers
+      ? "Loading servers..."
+      : "Loading worlds...";
+  const searchPlaceholder = showWorlds && showServers
+    ? "Search worlds and servers..."
+    : showServers
+      ? "Search servers..."
+      : "Search worlds...";
+  const refreshLabel = showWorlds && showServers
+    ? "Refresh worlds and servers"
+    : showServers
+      ? "Refresh servers"
+      : "Refresh worlds";
   const allProfilesFromStore = useProfileStore((state) => state.profiles);
   const isLoadingProfilesFromStore = useProfileStore((state) => state.loading);
   const { showModal, hideModal } = useGlobalModal();
@@ -156,18 +201,21 @@ export function WorldsTab({
   const [deleteLoading, setDeleteLoading] = useState<Record<string, boolean>>(
     {},
   );
-  const [localSearchQuery, setLocalSearchQuery] = useState("");
   const accentColor = useThemeStore((state) => state.accentColor);
-  const isBackgroundAnimationEnabled = useThemeStore(
-    (state) => state.isBackgroundAnimationEnabled,
-  );
-
-  const containerRef = useRef<HTMLDivElement>(null);
 
   // Preload icons when component mounts
   useEffect(() => {
     preloadIcons(WORLDS_TAB_ICONS_TO_PRELOAD);
   }, []);
+
+  useEffect(() => {
+    setWorlds([]);
+    setServers([]);
+    setDisplayItems([]);
+    setError(null);
+    setServerPings({});
+    setPingingServers(new Set());
+  }, [profile.id]);
 
   // Set drag drop context when WorldsTab is active
   useEffect(() => {
@@ -189,27 +237,6 @@ export function WorldsTab({
       setLocalSearchQuery(searchQuery);
     }
   }, [searchQuery]);
-
-  useEffect(() => {
-    if (containerRef.current && isActive && isBackgroundAnimationEnabled) {
-      gsap.fromTo(
-        containerRef.current,
-        { opacity: 0, y: 20 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.4,
-          ease: "power2.out",
-        },
-      );
-    } else if (
-      containerRef.current &&
-      isActive &&
-      !isBackgroundAnimationEnabled
-    ) {
-      gsap.set(containerRef.current, { opacity: 1, y: 0 });
-    }
-  }, [isActive, isBackgroundAnimationEnabled]);
 
   const getWorldDisplayName = useCallback((world: WorldInfo): string => {
     return world.display_name || world.folder_name;
@@ -259,7 +286,10 @@ export function WorldsTab({
 
       let filteredItems: DisplayItem[] = [];
 
-      filteredItems = [...typedWorlds, ...typedServers];
+      filteredItems = [
+        ...(showWorlds ? typedWorlds : []),
+        ...(showServers ? typedServers : []),
+      ];
 
       // Apply search filter
       const effectiveSearchQuery = searchQuery || localSearchQuery;
@@ -299,7 +329,7 @@ export function WorldsTab({
 
       setDisplayItems(filteredItems);
     },
-    [getServerDisplayName, getWorldDisplayName, searchQuery, localSearchQuery],
+    [getServerDisplayName, getWorldDisplayName, searchQuery, localSearchQuery, showWorlds, showServers],
   );
 
   const pingAllServers = useCallback(async (serversToPing: ServerInfo[]) => {
@@ -373,56 +403,60 @@ export function WorldsTab({
       setServerPings({});
       setPingingServers(new Set());
 
-      const [worldsResult, serversResult] = await Promise.allSettled([
-        WorldService.getWorldsForProfile(currentProfileId),
-        WorldService.getServersForProfile(currentProfileId),
-      ]);
-
       let currentWorlds: WorldInfo[] = [];
       let currentServers: ServerInfo[] = [];
       let loadError = false;
       const errorMessages: string[] = [];
 
-      if (worldsResult.status === "fulfilled") {
-        currentWorlds = worldsResult.value;
-        // setWorlds(currentWorlds); // Defer state update slightly
-      } else {
-        console.error("Worlds Error:", worldsResult.reason);
-        errorMessages.push(`Worlds: ${worldsResult.reason}`);
-        loadError = true;
+      if (showWorlds) {
+        try {
+          currentWorlds = await WorldService.getWorldsForProfile(currentProfileId);
+        } catch (err) {
+          console.error("Worlds Error:", err);
+          errorMessages.push(`Worlds: ${err instanceof Error ? err.message : String(err)}`);
+          loadError = true;
+        }
       }
 
-      if (serversResult.status === "fulfilled") {
-        currentServers = serversResult.value;
-        // setServers(currentServers); // Defer state update slightly
-      } else {
-        console.error("Servers Error:", serversResult.reason);
-        errorMessages.push(`Servers: ${serversResult.reason}`);
-        loadError = true;
+      if (showServers) {
+        try {
+          currentServers = await WorldService.getServersForProfile(currentProfileId);
+        } catch (err) {
+          console.error("Servers Error:", err);
+          errorMessages.push(`Servers: ${err instanceof Error ? err.message : String(err)}`);
+          loadError = true;
+        }
       }
 
       if (loadError) {
+        if (profile?.id !== currentProfileId) {
+          return;
+        }
         setError(errorMessages.join("; "));
-        setWorlds([]); // Ensure worlds state is cleared on error
-        setServers([]); // Ensure servers state is cleared on error
-        // setDisplayItems([]); // updateDisplayItems will handle this based on empty worlds/servers
+        setWorlds([]);
+        setServers([]);
       } else {
-        // Set raw data state first
+        if (profile?.id !== currentProfileId) {
+          return;
+        }
         setWorlds(currentWorlds);
         setServers(currentServers);
-        // Then ping. updateDisplayItems will be triggered by the useEffect that watches worlds/servers.
         pingAllServers(currentServers);
       }
     } catch (err) {
+      if (profile?.id !== currentProfileId) {
+        return;
+      }
       console.error("Unexpected load error:", err);
       setError(`Unexpected error: ${err}`);
       setWorlds([]);
       setServers([]);
-      // setDisplayItems([]);
     } finally {
-      setLoading(false); // Set loading to false directly
+      if (profile?.id === currentProfileId) {
+        setLoading(false);
+      }
     }
-  }, [profile?.id, pingAllServers]); // Removed MIN_LOADING_TIME_MS from dependencies
+  }, [profile?.id, pingAllServers, showWorlds, showServers]);
 
   useEffect(() => {
     loadData();
@@ -629,8 +663,6 @@ export function WorldsTab({
     }
   }, [profile.id, loadData]);
 
-  const effectiveSearchQuery = searchQuery || localSearchQuery;
-
   // --- Render Item Function for GenericList ---
   const renderDisplayItem = useCallback(
     (item: DisplayItem) => {
@@ -703,7 +735,7 @@ export function WorldsTab({
         <>
           {/* Top: Title */}
           <h3
-            className=" text-base tracking-wide truncate flex-shrink-0"
+            className="truncate text-sm font-medium text-white"
             title={itemDisplayName}
           >
             {itemDisplayName}
@@ -871,118 +903,66 @@ export function WorldsTab({
         </>
       );
 
-      const playActions = [
-        {
-          id: "play",
-          label: isLaunching ? "STOP" : (isWorld ? "PLAY" : "JOIN"),
-          icon: isLaunching ? "solar:stop-bold" : (isWorld ? "solar:play-bold" : "solar:login-3-bold"),
-          variant: isLaunching ? "destructive" : "secondary",
-          tooltip: isLaunching ? "Stop Launch" : (isWorld ? "Play World" : "Join Server"),
-          disabled: !isWorld && !item.address,
-          onClick: () => handleWorldServerLaunch(item),
-        },
-      ];
-
-      const worldActions = isWorld ? [
-        {
-          id: "copy",
-          label: "",
-          icon: "solar:copy-bold",
-          tooltip: "Copy World",
-          disabled: isCopyingWorld,
-          onClick: () => handleOpenCopyDialog(item),
-        },
-        {
-          id: "folder",
-          label: "",
-          icon: "solar:folder-open-bold-duotone",
-          tooltip: "Open World Folder",
-          onClick: () => handleOpenWorldFolder(item),
-        },
-        {
-          id: "delete",
-          label: "",
-          icon: isActuallyDeleting &&
-            worldToDelete?.folder_name === item.folder_name
-            ? "solar:refresh-circle-bold-duotone"
-            : "solar:trash-bin-trash-bold",
-          tooltip: "Delete World",
-          disabled: isActuallyDeleting &&
-            worldToDelete?.folder_name === item.folder_name,
-          onClick: () => handleDeleteRequest(item),
-        },
-      ] : [];
-
-      const actionsNode = (
-        <div className="flex items-center gap-2">
-          {/* Play/Join Button */}
-          <ActionButton
-            icon={isLaunching ? "solar:stop-bold" : (isWorld ? "solar:play-bold" : "solar:login-3-bold")}
-            label={isLaunching ? "STOP" : (isWorld ? "PLAY" : "JOIN")}
-            variant={isLaunching ? "destructive" : "secondary"}
-            size="sm"
-            tooltip={isLaunching ? "Stop Launch" : (isWorld ? "Play World" : "Join Server")}
-            disabled={!isWorld && !item.address}
-            onClick={() => handleWorldServerLaunch(item)}
-          />
-          
-          {/* World Actions */}
-          {isWorld && (
-            <>
-              <ActionButton
-                icon="solar:copy-bold"
-                variant="icon-only"
-                size="sm"
-                tooltip="Copy World"
-                disabled={isCopyingWorld}
-                onClick={() => handleOpenCopyDialog(item)}
-              />
-              <ActionButton
-                icon="solar:folder-open-bold-duotone"
-                variant="icon-only"
-                size="sm"
-                tooltip="Open World Folder"
-                onClick={() => handleOpenWorldFolder(item)}
-              />
-              <ActionButton
-                icon={isActuallyDeleting &&
-                  worldToDelete?.folder_name === item.folder_name
-                  ? "solar:refresh-circle-bold-duotone"
-                  : "solar:trash-bin-trash-bold"}
-                variant="icon-only"
-                size="sm"
-                tooltip="Delete World"
-                disabled={isActuallyDeleting &&
-                  worldToDelete?.folder_name === item.folder_name}
-                onClick={() => handleDeleteRequest(item)}
-                className={isActuallyDeleting &&
-                  worldToDelete?.folder_name === item.folder_name ? "animate-spin" : ""}
-              />
-            </>
-          )}
-        </div>
-      );
-
       return (
-        <div
-          key={key}
-          className="relative flex items-center gap-4 p-3 rounded-lg bg-[var(--surface-overlay)] border border-[var(--surface-border)] hover:border-[var(--surface-border-strong)] transition-all duration-200"
-        >
-          {/* Icon */}
-          <div className="relative w-16 h-16 flex-shrink-0">
-            {iconNode}
+        <Card key={key} className="flex items-center gap-4 p-3">
+          <div className="relative h-14 w-14 flex-shrink-0">{iconNode}</div>
+          <div className="min-w-0 flex-1">{contentNode}</div>
+          <div className="flex flex-shrink-0 items-center gap-1.5">
+            <Button
+              variant={isLaunching ? "danger" : "primary"}
+              size="sm"
+              disabled={!isWorld && !item.address}
+              onClick={() => handleWorldServerLaunch(item)}
+              icon={
+                <Icon
+                  icon={
+                    isLaunching
+                      ? "solar:stop-bold"
+                      : isWorld
+                        ? "solar:play-bold"
+                        : "solar:login-3-bold"
+                  }
+                  className="h-4 w-4"
+                />
+              }
+            >
+              {isLaunching ? "Stop" : isWorld ? "Play" : "Join"}
+            </Button>
+            {isWorld && (
+              <>
+                <IconButton
+                  size="sm"
+                  title="Copy world"
+                  aria-label="Copy world"
+                  disabled={isCopyingWorld}
+                  onClick={() => handleOpenCopyDialog(item)}
+                >
+                  <Icon icon="solar:copy-bold" className="h-3.5 w-3.5" />
+                </IconButton>
+                <IconButton
+                  size="sm"
+                  title="Open world folder"
+                  aria-label="Open world folder"
+                  onClick={() => handleOpenWorldFolder(item)}
+                >
+                  <Icon icon="solar:folder-open-bold" className="h-3.5 w-3.5" />
+                </IconButton>
+                <IconButton
+                  size="sm"
+                  title="Delete world"
+                  aria-label="Delete world"
+                  disabled={
+                    isActuallyDeleting && worldToDelete?.folder_name === item.folder_name
+                  }
+                  onClick={() => handleDeleteRequest(item)}
+                  className="hover:border-red-500/50 hover:text-red-300"
+                >
+                  <Icon icon="solar:trash-bin-minimalistic-bold" className="h-3.5 w-3.5" />
+                </IconButton>
+              </>
+            )}
           </div>
-
-          {/* Content */}
-          <div className="flex-1 min-w-0">
-            {contentNode}
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-2">
-            {actionsNode}
-          </div>
-        </div>
+        </Card>
       );
     },
     [
@@ -996,6 +976,8 @@ export function WorldsTab({
       handleOpenCopyDialog,
       handleOpenWorldFolder,
       handleDeleteRequest,
+      handleWorldServerLaunch,
+      isLaunching,
       isCopyingWorld,
       isActuallyDeleting,
       worldToDelete,
@@ -1007,68 +989,57 @@ export function WorldsTab({
   );
 
   return (
-    <div ref={containerRef} className="h-full flex flex-col select-none">
-      {/* Action bar without border/background */}
-      <div className="flex items-center justify-between mb-4">
-        {/* Only show search if parent isn't providing it */}
+    <div className="flex h-full flex-col select-none">
+      <div className="mb-4 flex items-center gap-2">
         {!searchQuery && (
-          <SearchWithFilters
-            placeholder="search worlds & servers..."
-            searchValue={localSearchQuery}
-            onSearchChange={setLocalSearchQuery}
-            showSort={false}
-            showFilter={false}
+          <Input
+            value={localSearchQuery}
+            onChange={(e) => setLocalSearchQuery(e.target.value)}
+            placeholder={searchPlaceholder}
             className="flex-1"
           />
         )}
-
-        <div className="flex items-center gap-4 ml-auto">
-          <ActionButton
-            icon="solar:folder-with-files-bold"
-            label="IMPORT"
-            variant="text"
-            size="sm"
+        {showWorlds && (
+          <Button
+            variant="secondary"
+            size="md"
             onClick={handleImportWorld}
             disabled={loading}
-            tooltip="Import world folder"
-          />
-          <ActionButton
-            icon={loading ? "solar:refresh-circle-bold-duotone" : "solar:refresh-bold"}
-            label="REFRESH"
-            variant="text"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={
-              loading ||
-              pingingServers.size > 0 ||
-              (servers.filter((s) => s.address).length === 0 &&
-                displayItems.filter((item) => item.type === "server").length >
-                  0)
-            }
-            tooltip="Refresh worlds and servers"
-            className={loading ? "animate-spin" : ""}
-          />
-        </div>
+            icon={<Icon icon="solar:folder-with-files-bold" className="h-4 w-4" />}
+          >
+            Import
+          </Button>
+        )}
+        <IconButton
+          size="md"
+          onClick={handleRefresh}
+          disabled={loading || pingingServers.size > 0}
+          title={refreshLabel}
+          aria-label={refreshLabel}
+        >
+          <Icon icon="solar:refresh-bold" className="h-4 w-4" />
+        </IconButton>
       </div>
 
-      <GenericList<DisplayItem>
-        items={displayItems}
-        renderItem={renderDisplayItem}
-        isLoading={loading}
-        error={error}
-        searchQuery={effectiveSearchQuery}
-        accentColor={accentColor.value}
-        emptyStateIcon={"solar:planet-bold"}
-        emptyStateMessage={
-          effectiveSearchQuery
-            ? `no worlds or servers match your search`
-            : `no worlds or servers found`
-        }
-        emptyStateDescription={"Create worlds or add servers in Minecraft"}
-        loadingItemCount={0}
-      />
+      <div className="flex min-h-0 flex-1 flex-col">
+        {loading && <LoadingState message={loadingMessage} />}
 
+        {!loading && error && <Alert tone="error">{error}</Alert>}
 
+        {!loading && !error && displayItems.length === 0 && (
+          <EmptyState
+            icon={showServers && !showWorlds ? "solar:server-bold" : "solar:planet-bold"}
+            title={emptyTitle}
+            description={emptyDescription}
+          />
+        )}
+
+        {!loading && !error && displayItems.length > 0 && (
+          <div className="custom-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto">
+            {displayItems.map((item) => renderDisplayItem(item))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

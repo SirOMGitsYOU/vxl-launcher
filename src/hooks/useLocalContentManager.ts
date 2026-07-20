@@ -330,8 +330,8 @@ export function useLocalContentManager<T extends LocalContentItem>({
     onRefreshRequiredRef.current = onRefreshRequired;
   }, [onRefreshRequired]);
 
-  // Load local content in one pass (scan + hashes), then enrich via Modrinth in phase 2.
-  const loadItems = useCallback(async (): Promise<void> => {
+  // Phase 1: Quick list without hashes so the UI can render immediately.
+  const fetchBasicInfo = useCallback(async (): Promise<void> => {
     if (!profile?.id) {
       setItems([]);
       return;
@@ -350,21 +350,64 @@ export function useLocalContentManager<T extends LocalContentItem>({
       const serviceParams: LoadItemsParams = {
         profile_id: profile.id,
         content_type: backendContentType,
-        calculate_hashes: true,
+        calculate_hashes: false,
         fetch_modrinth_data: false,
       };
       const fetchedBackendItems = await getLocalContent(serviceParams) as ProfileLocalContentItem[];
 
       const mappedItemsToFrontend = fetchedBackendItems.map(item => mapBackendItemToFrontendType<T>(item));
-      const processedItems = mappedItemsToFrontend.map(item => ({
+      const processedBasicItems = mappedItemsToFrontend.map(item => ({
         ...item,
         filename: item.filename || getDisplayFileName(item),
+        modrinth_info: null,
+        sha1_hash: null,
       }));
-      setItems(processedItems as T[]);
+      setItems(processedBasicItems as T[]);
       setSelectedItemIds(new Set());
       if (onRefreshRequiredRef.current) onRefreshRequiredRef.current();
+    } catch (err) {
+      console.error(`[${contentType}] Failed to load local content:`, err);
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsInitialLoadingState(false);
+    }
+  }, [profile?.id, contentType, getDisplayFileName]);
 
-      const allKnownHashes = processedItems
+  // Phase 2: Compute hashes in the background and merge into the existing list.
+  const fetchHashesAndUpdateItems = useCallback(async (): Promise<void> => {
+    if (!profile?.id || items.length === 0) return;
+
+    const backendContentType = mapUiContentTypeToBackend(contentType);
+    setIsFetchingHashesState(true);
+    setError(null);
+
+    try {
+      const serviceParams: LoadItemsParams = {
+        profile_id: profile.id,
+        content_type: backendContentType,
+        calculate_hashes: true,
+        fetch_modrinth_data: false,
+      };
+      const fetchedBackendItemsWithHashes = await getLocalContent(serviceParams) as ProfileLocalContentItem[];
+      const mappedItemsToFrontend = fetchedBackendItemsWithHashes.map(item => mapBackendItemToFrontendType<T>(item));
+
+      setItems(currentItems =>
+        currentItems.map(currentItem => {
+          const match = mappedItemsToFrontend.find(fi => fi.path === currentItem.path);
+          if (match) {
+            return {
+              ...currentItem,
+              sha1_hash: match.sha1_hash,
+              file_size: match.file_size,
+              is_disabled: match.is_disabled,
+              is_directory: match.is_directory,
+            } as T;
+          }
+          return currentItem;
+        }),
+      );
+
+      const allKnownHashes = mappedItemsToFrontend
         .map(item => item.sha1_hash)
         .filter(hash => hash != null) as string[];
 
@@ -374,12 +417,12 @@ export function useLocalContentManager<T extends LocalContentItem>({
         setIsInitialLoadProcessComplete(true);
       }
     } catch (err) {
-      console.error(`[${contentType}] Failed to load local content:`, err);
+      console.error(`[${contentType}] Failed to fetch content hashes:`, err);
       setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setIsInitialLoadingState(false);
+      setIsFetchingHashesState(false);
     }
-  }, [profile?.id, contentType, getDisplayFileName]);
+  }, [profile?.id, contentType, items.length]);
 
   const fetchData = useCallback(async (initialFetch = true): Promise<void> => {
     if (initialFetch) {
@@ -389,15 +432,22 @@ export function useLocalContentManager<T extends LocalContentItem>({
       setIsInitialLoadProcessComplete(false);
       setSearchQuery("");
     }
-    await loadItems();
-  }, [loadItems, setSearchQuery]);
+    await fetchBasicInfo();
+  }, [fetchBasicInfo, setSearchQuery]);
 
   useEffect(() => {
-    void loadItems();
+    void fetchBasicInfo();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadItems]);
+  }, [fetchBasicInfo]);
+
+  useEffect(() => {
+    if (!isInitialLoadingState && items.length > 0 && items.some(item => item.sha1_hash === null) && !isFetchingHashesState) {
+      void fetchHashesAndUpdateItems();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, isInitialLoadingState, isFetchingHashesState, fetchHashesAndUpdateItems]);
   
-  // Phase 2: Fetch Modrinth project details based on hashes
+  // Phase 3: Fetch Modrinth project details based on hashes
   useEffect(() => {
     let isMounted = true;
     if (hashesToFetchModrinthDetailsFor && hashesToFetchModrinthDetailsFor.length > 0 && profile?.id && !isFetchingModrinthDetailsState) {
