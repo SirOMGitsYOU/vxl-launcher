@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import { cn } from "../../lib/utils";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
@@ -45,11 +45,15 @@ export function Modal({
     (state) => state.isBackgroundAnimationEnabled,
   );
   const [isClosing, setIsClosing] = useState(false);
-  const handleClose = () => {
-    if (isClosing) return;
-    setIsClosing(true);
-    onClose();
-  };
+  const handleClose = useCallback(() => {
+    setIsClosing((closing) => {
+      if (closing) {
+        return closing;
+      }
+      onClose();
+      return true;
+    });
+  }, [onClose]);
   const dialogRef = useFocusTrap(true, handleClose);
 
   useEffect(() => {

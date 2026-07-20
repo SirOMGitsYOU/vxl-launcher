@@ -34,7 +34,7 @@ export function ProfileWizardV2({ onClose, onSave, defaultGroup }: ProfileWizard
   const [selectedVersionType, setSelectedVersionType] = useState<"release" | "snapshot">("release");
   
   // Step 2 data
-  const [selectedLoader, setSelectedLoader] = useState<ModLoader>("fabric");
+  const [selectedLoader, setSelectedLoader] = useState<ModLoader>("vanilla");
   const [selectedLoaderVersion, setSelectedLoaderVersion] = useState<string | null>(null);
 
   useEffect(() => {

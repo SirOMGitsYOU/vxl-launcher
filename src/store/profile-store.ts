@@ -85,7 +85,10 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     try {
       const profile = await ProfileService.getProfile(id);
       const { profiles } = get();
-      const updatedProfiles = profiles.map((p) => (p.id === id ? profile : p));
+      const exists = profiles.some((p) => p.id === id);
+      const updatedProfiles = exists
+        ? profiles.map((p) => (p.id === id ? profile : p))
+        : [...profiles, profile];
       set({ profiles: updatedProfiles });
       return profile;
     } catch (error) {
@@ -97,7 +100,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   createProfile: async (params: CreateProfileParams) => {
     try {
       const id = await ProfileService.createProfile(params);
-      await get().fetchProfiles();
+      await get().fetchProfiles(true);
       return id;
     } catch (error) {
       console.error("Failed to create profile:", error);

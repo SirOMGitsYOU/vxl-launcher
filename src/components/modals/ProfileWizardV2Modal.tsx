@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useProfileWizardStore } from "../../store/profile-wizard-store";
 import { ProfileWizardV2 } from "../profiles/wizard-v2/ProfileWizardV2";
 import { useProfileStore } from "../../store/profile-store";
+import type { Profile } from "../../types/profile";
 
 export function ProfileWizardV2Modal() {
   const navigate = useNavigate();
@@ -14,12 +15,10 @@ export function ProfileWizardV2Modal() {
     return null;
   }
 
-  const handleSave = async (profile: any) => {
-    // Refresh profiles after creation
-    await fetchProfiles();
+  const handleSave = async (profile: Profile) => {
+    await fetchProfiles(true);
 
-    // Navigate to the newly created profile using V2 route
-    if (profile && profile.id) {
+    if (profile?.id) {
       navigate(`/profiles/${profile.id}`);
     }
 

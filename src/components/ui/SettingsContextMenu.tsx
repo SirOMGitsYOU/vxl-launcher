@@ -2,8 +2,10 @@
 
 import React, { useEffect, useRef } from "react";
 import { Icon } from "@iconify/react";
-import { useThemeStore } from "../../store/useThemeStore";
+import { cn } from "../../lib/utils";
 import type { Profile } from "../../types/profile";
+import { Dropdown } from "./dropdown/Dropdown";
+import { DropdownItem } from "./dropdown/DropdownItem";
 
 export interface ContextMenuItem {
   /** Unique identifier for the menu item */
@@ -27,14 +29,65 @@ export interface SettingsContextMenuProps {
   profile: Profile;
   /** Whether the menu is visible */
   isOpen: boolean;
-  /** Position coordinates */
+  /** Position coordinates (used when no trigger ref is provided) */
   position: { x: number; y: number };
   /** Menu items to display */
   items: ContextMenuItem[];
   /** Close handler */
   onClose: () => void;
-  /** Optional ref to the settings button that triggers this menu */
+  /** Optional ref to the button that triggers this menu */
   triggerButtonRef?: React.RefObject<HTMLElement>;
+}
+
+function ContextMenuPanel({
+  profile,
+  items,
+  onClose,
+}: {
+  profile: Profile;
+  items: ContextMenuItem[];
+  onClose: () => void;
+}) {
+  return (
+    <div className="py-1">
+      {items.map((item) => (
+        <React.Fragment key={item.id}>
+          {item.separator ? (
+            <div className="mx-2 my-1 h-px bg-[var(--surface-border)]" />
+          ) : null}
+
+          <DropdownItem
+            onClick={() => {
+              if (!item.disabled) {
+                item.onClick(profile);
+                onClose();
+              }
+            }}
+            icon={
+              <Icon
+                icon={item.icon}
+                className={cn(
+                  "h-4 w-4",
+                  item.disabled
+                    ? "text-[var(--text-muted)]"
+                    : item.destructive
+                      ? "text-red-400"
+                      : "text-[var(--text-muted)]",
+                )}
+              />
+            }
+            className={cn(
+              "py-2.5 text-sm normal-case tracking-normal",
+              item.disabled && "cursor-not-allowed opacity-50",
+              item.destructive && "text-red-400 hover:bg-red-500/10 hover:text-red-300",
+            )}
+          >
+            {item.label}
+          </DropdownItem>
+        </React.Fragment>
+      ))}
+    </div>
+  );
 }
 
 export function SettingsContextMenu({
@@ -45,45 +98,23 @@ export function SettingsContextMenu({
   onClose,
   triggerButtonRef,
 }: SettingsContextMenuProps) {
-  const accentColor = useThemeStore((state) => state.accentColor);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close menu when clicking outside
   useEffect(() => {
+    if (triggerButtonRef) {
+      return;
+    }
+
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      
-      // Don't close if clicking inside the menu
+
       if (menuRef.current && menuRef.current.contains(target)) {
         return;
       }
-      
-      // Don't close if clicking on the trigger button or any button with data-action="settings" (let the button handle the toggle)
-      if (triggerButtonRef?.current && triggerButtonRef.current.contains(target)) {
-        return;
-      }
-      
-      // Additional check: look for any settings button in the DOM tree (for list mode)
-      const clickedElement = target as Element;
-      const settingsButton = clickedElement.closest('button[data-action="settings"], button[title*="Profile Options"], button[title*="Profil Optionen"]');
-      if (settingsButton) {
-        return;
-      }
-      
-      // Close if clicking anywhere else
+
       onClose();
     };
 
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => {
-        document.removeEventListener("mousedown", handleClickOutside);
-      };
-    }
-  }, [isOpen, onClose]);
-
-  // Close menu on escape key
-  useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         onClose();
@@ -91,73 +122,43 @@ export function SettingsContextMenu({
     };
 
     if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
       document.addEventListener("keydown", handleEscape);
       return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
         document.removeEventListener("keydown", handleEscape);
       };
     }
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, triggerButtonRef]);
 
-  if (!isOpen) return null;
+  if (triggerButtonRef) {
+    return (
+      <Dropdown
+        isOpen={isOpen}
+        onClose={onClose}
+        triggerRef={triggerButtonRef}
+        width={220}
+        ariaLabel="Profile options"
+      >
+        <ContextMenuPanel profile={profile} items={items} onClose={onClose} />
+      </Dropdown>
+    );
+  }
+
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <div
       ref={menuRef}
-      className="absolute bg-black/90 backdrop-blur-sm border border-white/20 rounded-lg shadow-xl z-50 overflow-hidden"
+      className="absolute z-50 min-w-[220px] overflow-hidden rounded-xl border border-[var(--surface-border)] bg-[var(--surface-raised)] shadow-lg"
       style={{
         left: position.x,
         top: position.y,
-        minWidth: "200px",
       }}
     >
-      <div className="py-2">
-        {items.map((item) => (
-          <React.Fragment key={item.id}>
-            {/* Separator */}
-            {item.separator && (
-              <div className="h-px bg-white/10 mx-2 my-2" />
-            )}
-            
-            <button
-              onClick={() => {
-                if (!item.disabled) {
-                  item.onClick(profile);
-                  onClose();
-                }
-              }}
-              className={`w-full flex items-center gap-3 px-4 py-3 text-left  text-sm transition-colors duration-150 ${
-                item.disabled
-                  ? 'text-white/30 cursor-not-allowed opacity-50'
-                  : item.destructive
-                    ? 'text-red-400 hover:bg-red-600/10 hover:text-red-300'
-                    : 'text-white/80 hover:text-white'
-              }`}
-              style={{
-                backgroundColor: item.destructive ? undefined : 'transparent',
-              }}
-              onMouseEnter={!item.destructive && !item.disabled ? (e) => {
-                e.currentTarget.style.backgroundColor = `${accentColor.value}15`;
-              } : undefined}
-              onMouseLeave={!item.destructive && !item.disabled ? (e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              } : undefined}
-              disabled={item.disabled}
-            >
-              <Icon 
-                icon={item.icon} 
-                className={`w-4 h-4 flex-shrink-0 ${
-                  item.disabled
-                    ? 'text-white/30'
-                    : item.destructive 
-                      ? 'text-red-400' 
-                      : 'text-white/70'
-                }`} 
-              />
-              <span className="flex-1">{item.label}</span>
-            </button>
-          </React.Fragment>
-        ))}
-      </div>
+      <ContextMenuPanel profile={profile} items={items} onClose={onClose} />
     </div>
   );
 }

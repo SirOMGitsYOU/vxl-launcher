@@ -2,6 +2,8 @@
 
 import React from "react";
 import { Icon } from "@iconify/react";
+import { Button, IconButton } from "../ui-v2";
+import { cn } from "../../lib/utils";
 
 export interface ActionButton {
   /** Unique identifier for the button */
@@ -10,12 +12,14 @@ export interface ActionButton {
   label: string | null;
   /** Icon to display */
   icon: string;
+  /** Button style variant */
+  variant?: "primary" | "secondary";
   /** Optional tooltip text */
   tooltip?: string;
   /** Whether the button is disabled */
   disabled?: boolean;
   /** Click handler */
-  onClick: () => void;
+  onClick: (event?: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 export interface ActionButtonsProps {
@@ -33,25 +37,40 @@ export function ActionButtons({
   buttonRefs,
 }: ActionButtonsProps) {
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
+    <div className={cn("flex items-center gap-2", className)}>
       {actions.map((action) => {
         const isIconOnly = !action.label || action.label.trim() === "";
+        const variant = action.variant ?? "secondary";
+
+        if (isIconOnly) {
+          return (
+            <IconButton
+              key={action.id}
+              ref={buttonRefs?.[action.id]}
+              size="sm"
+              onClick={(event) => action.onClick(event)}
+              disabled={action.disabled}
+              title={action.tooltip}
+              aria-label={action.tooltip ?? action.id}
+            >
+              <Icon icon={action.icon} className="h-4 w-4" />
+            </IconButton>
+          );
+        }
+
         return (
-          <button
+          <Button
             key={action.id}
             ref={buttonRefs?.[action.id]}
-            onClick={action.onClick}
-            className={`flex items-center ${isIconOnly ? 'justify-center w-8 h-8 p-[1em]' : 'gap-2 px-4 py-2'} bg-[var(--surface-overlay)] text-[var(--text-secondary)] hover:text-white border border-[var(--surface-border)] hover:border-[var(--surface-border-strong)] rounded-lg text-sm font-medium transition-all duration-200`}
-            title={action.tooltip}
+            variant={variant}
+            size="sm"
+            onClick={(event) => action.onClick(event)}
             disabled={action.disabled}
+            title={action.tooltip}
+            icon={<Icon icon={action.icon} className="h-4 w-4" />}
           >
-            <div className="w-4 h-4 flex items-center justify-center">
-              <Icon icon={action.icon} className="w-4 h-4" />
-            </div>
-            {!isIconOnly && (
-              <span style={{ transform: 'translateY(-0.075em)' }}>{action.label}</span>
-            )}
-          </button>
+            {action.label}
+          </Button>
         );
       })}
     </div>

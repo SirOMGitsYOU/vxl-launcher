@@ -17,6 +17,14 @@ pub struct QuiltLoaderVersion {
     pub stable: bool,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct QuiltMappingsArtifact {
+    pub maven: String,
+    pub version: String,
+    #[serde(default)]
+    pub stable: bool,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QuiltInstallerVersion {
     pub url: String,
@@ -32,13 +40,8 @@ pub struct QuiltVersionManifest {
     pub installer: QuiltInstallerVersion,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct QuiltIntermediary {
-    pub maven: String,
-    pub version: String,
-    #[serde(default)]
-    pub stable: bool,
-}
+pub type QuiltIntermediary = QuiltMappingsArtifact;
+pub type QuiltHashed = QuiltMappingsArtifact;
 
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct QuiltLibrary {
@@ -110,7 +113,88 @@ pub struct QuiltLauncherMeta {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QuiltVersionInfo {
     pub loader: QuiltLoaderVersion,
-    pub intermediary: QuiltIntermediary,
+    #[serde(default)]
+    pub intermediary: Option<QuiltMappingsArtifact>,
+    #[serde(default)]
+    pub hashed: Option<QuiltMappingsArtifact>,
     #[serde(rename = "launcherMeta")]
     pub launcher_meta: QuiltLauncherMeta,
+}
+
+impl QuiltVersionInfo {
+    /// Intermediary or hashed mappings artifact, depending on Quilt meta API version.
+    pub fn mappings_artifact(&self) -> Option<&QuiltMappingsArtifact> {
+        self.intermediary.as_ref().or(self.hashed.as_ref())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn deserialize_quilt_loader_versions_for_snapshot_without_intermediary() {
+        let json = r#"[
+          {
+            "loader": {
+              "maven": "org.quiltmc:quilt-loader:0.20.0-beta.9",
+              "version": "0.20.0-beta.9",
+              "build": 9,
+              "separator": "."
+            },
+            "launcherMeta": {
+              "version": 1,
+              "libraries": { "client": [], "common": [], "server": [] },
+              "mainClass": {
+                "client": "org.quiltmc.loader.impl.launch.knot.KnotClient",
+                "server": "org.quiltmc.loader.impl.launch.knot.KnotServer",
+                "serverLauncher": "org.quiltmc.loader.impl.launch.server.QuiltServerLauncher"
+              }
+            }
+          }
+        ]"#;
+
+        let versions: Vec<QuiltVersionInfo> = serde_json::from_str(json).expect("parse quilt 26.x");
+        assert_eq!(versions.len(), 1);
+        assert_eq!(versions[0].loader.version, "0.20.0-beta.9");
+        assert!(versions[0].intermediary.is_none());
+        assert!(versions[0].hashed.is_none());
+        assert!(versions[0].mappings_artifact().is_none());
+    }
+
+    #[test]
+    fn deserialize_quilt_loader_versions_with_intermediary_and_hashed() {
+        let json = r#"[
+          {
+            "loader": {
+              "maven": "org.quiltmc:quilt-loader:0.20.0-beta.9",
+              "version": "0.20.0-beta.9",
+              "build": 9,
+              "separator": "."
+            },
+            "hashed": {
+              "maven": "org.quiltmc:hashed:1.21.4",
+              "version": "1.21.4"
+            },
+            "intermediary": {
+              "maven": "net.fabricmc:intermediary:1.21.4",
+              "version": "1.21.4"
+            },
+            "launcherMeta": {
+              "version": 1,
+              "libraries": { "client": [], "common": [], "server": [] },
+              "mainClass": {
+                "client": "org.quiltmc.loader.impl.launch.knot.KnotClient",
+                "server": "org.quiltmc.loader.impl.launch.knot.KnotServer"
+              }
+            }
+          }
+        ]"#;
+
+        let versions: Vec<QuiltVersionInfo> = serde_json::from_str(json).expect("parse quilt 1.21.4");
+        assert_eq!(
+            versions[0].mappings_artifact().map(|m| m.maven.as_str()),
+            Some("net.fabricmc:intermediary:1.21.4")
+        );
+    }
 }

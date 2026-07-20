@@ -43,7 +43,7 @@ export function ProfileWizardV2Step2({
 }: ProfileWizardV2Step2Props) {
   const [loading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedLoader, setSelectedLoader] = useState<ModLoader>("fabric");
+  const [selectedLoader, setSelectedLoader] = useState<ModLoader>("vanilla");
   const [selectedLoaderVersion, setSelectedLoaderVersion] = useState<string | null>(null);
   const [loaderVersions, setLoaderVersions] = useState<string[]>([]);
   const [loadingVersions, setLoadingVersions] = useState(false);

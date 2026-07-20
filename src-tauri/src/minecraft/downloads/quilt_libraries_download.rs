@@ -35,10 +35,14 @@ impl QuiltLibrariesDownloadService {
         info!("  - Stable: {}", version.loader.stable);
         info!("  - Separator: {}", version.loader.separator);
 
-        info!("\nIntermediary:");
-        info!("  - Version: {}", version.intermediary.version);
-        info!("  - Maven: {}", version.intermediary.maven);
-        info!("  - Stable: {}", version.intermediary.stable);
+        info!("\nIntermediary / Hashed:");
+        if let Some(mappings) = version.mappings_artifact() {
+            info!("  - Version: {}", mappings.version);
+            info!("  - Maven: {}", mappings.maven);
+            info!("  - Stable: {}", mappings.stable);
+        } else {
+            info!("  - (none — loader-only meta entry)");
+        }
 
         info!("\nLauncher Meta:");
         info!("  - Version: {}", version.launcher_meta.version);
@@ -144,12 +148,13 @@ impl QuiltLibrariesDownloadService {
 
         let mut all_libraries = Vec::new();
         all_libraries.push(self.create_library_from_maven(&version.loader.maven));
-        
-        // Use Fabric Maven for net.fabricmc:intermediary, otherwise use Quilt Maven
-        if version.intermediary.maven.starts_with("net.fabricmc:") {
-            all_libraries.push(self.create_library_from_fabric_maven(&version.intermediary.maven));
-        } else {
-            all_libraries.push(self.create_library_from_maven(&version.intermediary.maven));
+
+        if let Some(mappings) = version.mappings_artifact() {
+            if mappings.maven.starts_with("net.fabricmc:") {
+                all_libraries.push(self.create_library_from_fabric_maven(&mappings.maven));
+            } else {
+                all_libraries.push(self.create_library_from_maven(&mappings.maven));
+            }
         }
         all_libraries.extend_from_slice(&version.launcher_meta.libraries.common);
         all_libraries.extend_from_slice(&version.launcher_meta.libraries.client);
@@ -237,7 +242,9 @@ impl QuiltLibrariesDownloadService {
         let mut paths = Vec::new();
 
         self.add_maven_library_path(&version.loader.maven, &mut paths)?;
-        self.add_maven_library_path(&version.intermediary.maven, &mut paths)?;
+        if let Some(mappings) = version.mappings_artifact() {
+            self.add_maven_library_path(&mappings.maven, &mut paths)?;
+        }
 
         for lib in &version.launcher_meta.libraries.common {
             self.add_library_path(lib, &mut paths)?;

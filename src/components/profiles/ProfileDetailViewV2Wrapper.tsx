@@ -12,25 +12,59 @@ import { useProfileSettingsStore } from "../../store/profile-settings-store";
 export function ProfileDetailViewV2Wrapper() {
   const { profileId } = useParams<{ profileId: string }>();
   const navigate = useNavigate();
-  const { profiles, loading, fetchProfiles, profilesLoaded } = useProfileStore();
+  const { profiles, loading, fetchProfiles, profilesLoaded, getProfile } = useProfileStore();
   const [profile, setProfile] = useState<Profile | null>(null);
-
-  // Profile settings store for edit modal
-  const { openModal } = useProfileSettingsStore();
+  const [profileLoading, setProfileLoading] = useState(false);
 
   // Only fetch profiles once on initial mount if not already loaded
   useEffect(() => {
     if (!profilesLoaded && !loading) {
-      fetchProfiles();
+      void fetchProfiles();
     }
   }, [profilesLoaded, loading, fetchProfiles]);
 
   useEffect(() => {
-    if (profileId && profiles.length > 0) {
-      const foundProfile = profiles.find(p => p.id === profileId);
-      setProfile(foundProfile || null);
+    if (!profileId) {
+      setProfile(null);
+      return;
     }
-  }, [profileId, profiles]);
+
+    const foundProfile = profiles.find((p) => p.id === profileId);
+    if (foundProfile) {
+      setProfile(foundProfile);
+      return;
+    }
+
+    if (!profilesLoaded || loading) {
+      return;
+    }
+
+    let cancelled = false;
+    setProfileLoading(true);
+
+    void getProfile(profileId)
+      .then((loadedProfile) => {
+        if (!cancelled) {
+          setProfile(loadedProfile);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setProfile(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setProfileLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profileId, profiles, profilesLoaded, loading, getProfile]);
+
+  const { openModal } = useProfileSettingsStore();
 
   const handleClose = () => {
     navigate("/profiles");
@@ -42,7 +76,7 @@ export function ProfileDetailViewV2Wrapper() {
     }
   };
 
-  if (loading) {
+  if (loading || profileLoading) {
     return <LoadingState message="Loading profile..." />;
   }
 

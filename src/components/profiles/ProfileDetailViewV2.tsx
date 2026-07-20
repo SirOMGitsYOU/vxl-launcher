@@ -411,28 +411,13 @@ export function ProfileDetailViewV2({
         event?.preventDefault();
         event?.stopPropagation();
 
-        // Close any other open context menus first
         if (openContextMenuId && openContextMenuId !== contextMenuId) {
           setOpenContextMenuId(null);
         }
 
-        // Simple toggle like CustomDropdown
         const newState = !isContextMenuOpen;
         setIsContextMenuOpen(newState);
         setOpenContextMenuId(newState ? contextMenuId : null);
-
-        // Calculate position when opening
-        if (!isContextMenuOpen && event?.currentTarget) {
-          const buttonRect = event.currentTarget.getBoundingClientRect();
-          const containerRect = event.currentTarget.closest('.relative')?.getBoundingClientRect();
-
-          if (containerRect) {
-            setContextMenuPosition({
-              x: buttonRect.right - containerRect.left - 200, // Position menu to the left of the button
-              y: buttonRect.bottom - containerRect.top + 4,   // Position below the button
-            });
-          }
-        }
       },
     },
   ];
