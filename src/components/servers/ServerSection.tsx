@@ -196,6 +196,53 @@ export function ServerSection({ className }: ServerSectionProps) {
   const [error, setError] = useState<string | null>(null);
   const [connectingAddress, setConnectingAddress] = useState<string | null>(null);
 
+  const pingUserServers = useCallback(async (servers: ServerInfo[]) => {
+    for (const srv of servers) {
+      if (!srv.address) continue;
+
+      let pingInfo: ServerPingInfo = {};
+
+      try {
+        pingInfo = (await invoke("ping_minecraft_server", {
+          address: srv.address,
+        })) as ServerPingInfo;
+      } catch (e) {
+        console.warn("local ping failed", e);
+      }
+
+      try {
+        const response = await fetch(`https://eu.mc-api.net/v3/server/ping/${srv.address}`);
+        if (response.ok) {
+          const data = (await response.json()) as Record<string, unknown>;
+          const rawMotd = extractMotd(data);
+          if (rawMotd) {
+            pingInfo.motd_plain = stripMotdFormatting(rawMotd);
+          }
+          const version = data.version as { name?: string } | undefined;
+          if (version?.name) pingInfo.version_name = version.name;
+          const players = data.players as { online?: number; max?: number } | undefined;
+          if (typeof players?.online === "number") pingInfo.players_online = players.online;
+          if (typeof players?.max === "number") pingInfo.players_max = players.max;
+          const favicon = data.favicon_base64;
+          if (typeof favicon === "string") {
+            pingInfo.favicon_base64 = favicon.replace("data:image/png;base64,", "");
+          }
+        }
+      } catch (e) {
+        console.warn("eu.mc-api.net fetch failed", e);
+      }
+
+      if (pingInfo.description && !pingInfo.motd_plain) {
+        pingInfo.motd_plain = stripMotdFormatting(pingInfo.description);
+      }
+
+      setServerDetails((prev) => ({
+        ...prev,
+        [srv.address!]: { ...prev[srv.address!], ...pingInfo },
+      }));
+    }
+  }, []);
+
   const loadUserServers = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -208,7 +255,6 @@ export function ServerSection({ className }: ServerSectionProps) {
 
       if (!Array.isArray(profiles) || profiles.length === 0) {
         setUserServers([]);
-        setServerDetails({});
         return;
       }
 
@@ -244,50 +290,6 @@ export function ServerSection({ className }: ServerSectionProps) {
       });
 
       setUserServers(dedup);
-
-      dedup.forEach(async (srv) => {
-        if (!srv.address) return;
-        let pingInfo: ServerPingInfo = {};
-
-        try {
-          pingInfo = (await invoke("ping_minecraft_server", {
-            address: srv.address,
-          })) as ServerPingInfo;
-        } catch (e) {
-          console.warn("local ping failed", e);
-        }
-
-        try {
-          const response = await fetch(`https://eu.mc-api.net/v3/server/ping/${srv.address}`);
-          if (response.ok) {
-            const data = (await response.json()) as Record<string, unknown>;
-            const rawMotd = extractMotd(data);
-            if (rawMotd) {
-              pingInfo.motd_plain = stripMotdFormatting(rawMotd);
-            }
-            const version = data.version as { name?: string } | undefined;
-            if (version?.name) pingInfo.version_name = version.name;
-            const players = data.players as { online?: number; max?: number } | undefined;
-            if (typeof players?.online === "number") pingInfo.players_online = players.online;
-            if (typeof players?.max === "number") pingInfo.players_max = players.max;
-            const favicon = data.favicon_base64;
-            if (typeof favicon === "string") {
-              pingInfo.favicon_base64 = favicon.replace("data:image/png;base64,", "");
-            }
-          }
-        } catch (e) {
-          console.warn("eu.mc-api.net fetch failed", e);
-        }
-
-        if (pingInfo.description && !pingInfo.motd_plain) {
-          pingInfo.motd_plain = stripMotdFormatting(pingInfo.description);
-        }
-
-        setServerDetails((prev) => ({
-          ...prev,
-          [srv.address!]: { ...prev[srv.address!], ...pingInfo },
-        }));
-      });
     } catch (err) {
       console.error("Failed to load user servers:", err);
       setError(err instanceof Error ? err.message : "Failed to load servers");
@@ -340,6 +342,14 @@ export function ServerSection({ className }: ServerSectionProps) {
   useEffect(() => {
     loadUserServers();
   }, [loadUserServers]);
+
+  useEffect(() => {
+    if (isCollapsed || userServers.length === 0) {
+      return;
+    }
+
+    void pingUserServers(userServers);
+  }, [isCollapsed, userServers, pingUserServers]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => handleResizeMove(e);

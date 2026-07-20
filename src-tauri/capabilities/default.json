@@ -24,8 +24,6 @@
     "clipboard-manager:allow-write-image",
     "dialog:allow-open",
     "updater:default",
-    "fs:default",
-    "process:default",
     "fs:allow-read-file",
     "fs:allow-write-file",
     "fs:allow-read-dir",
@@ -37,41 +35,36 @@
     "fs:allow-exists",
     "fs:allow-watch",
     "fs:allow-unwatch",
-    "fs:read-all",
-    "fs:write-all",
-    "fs:read-dirs",
-    "fs:write-files",
+    "process:default",
     {
       "identifier": "fs:scope",
       "allow": [
-        { "path": "$APPDATA" },
-        { "path": "$APPDATA/**" },
-        { "path": "$APPCONFIG" },
-        { "path": "$APPCONFIG/**" },
-        { "path": "$APPLOCALDATA" },
-        { "path": "$APPLOCALDATA/**" },
-        { "path": "$APPCACHE" },
-        { "path": "$APPCACHE/**" },
-        { "path": "$APPLOG" },
-        { "path": "$APPLOG/**" },
-        { "path": "$HOME" },
-        { "path": "$HOME/**" },
-        { "path": "$DESKTOP" },
-        { "path": "$DESKTOP/**" },
-        { "path": "$DOCUMENT" },
+        { "path": "$APPDATA/vxl/**" },
+        { "path": "$APPDATA/com.vxl.VXLLauncher/**" },
+        { "path": "$APPCONFIG/vxl/**" },
+        { "path": "$APPCONFIG/com.vxl.VXLLauncher/**" },
+        { "path": "$APPLOCALDATA/vxl/**" },
+        { "path": "$APPLOCALDATA/com.vxl.VXLLauncher/**" },
+        { "path": "$APPCACHE/vxl/**" },
+        { "path": "$APPCACHE/com.vxl.VXLLauncher/**" },
+        { "path": "$APPLOG/vxl/**" },
+        { "path": "$APPLOG/com.vxl.VXLLauncher/**" },
         { "path": "$DOCUMENT/**" },
-        { "path": "$DOWNLOAD" },
         { "path": "$DOWNLOAD/**" },
-        { "path": "$TEMP" },
         { "path": "$TEMP/**" }
       ]
     },
     {
       "identifier": "opener:allow-open-path",
       "allow": [
-        {
-          "path": "**/*"
-        }
+        { "path": "$APPDATA/vxl/**" },
+        { "path": "$APPDATA/com.vxl.VXLLauncher/**" },
+        { "path": "$APPCONFIG/vxl/**" },
+        { "path": "$APPCONFIG/com.vxl.VXLLauncher/**" },
+        { "path": "$APPLOCALDATA/vxl/**" },
+        { "path": "$APPLOCALDATA/com.vxl.VXLLauncher/**" },
+        { "path": "$DOCUMENT/**" },
+        { "path": "$DOWNLOAD/**" }
       ]
     }
   ]

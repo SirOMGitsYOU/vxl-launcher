@@ -11,16 +11,7 @@ import type { ModPackSource } from "../../types/profile";
 import UnifiedService from "../../services/unified-service";
 import * as ProfileService from "../../services/profile-service";
 import { toast } from "react-hot-toast";
-
-// HTML sanitizer for CurseForge HTML content
-const sanitizeHtml = (html: string) => {
-  // Basic HTML sanitization - remove potentially dangerous tags
-  return html
-    .replace(/<script[^>]*>.*?<\/script>/gi, '')
-    .replace(/<style[^>]*>.*?<\/style>/gi, '')
-    .replace(/javascript:/gi, '')
-    .replace(/on\w+="[^"]*"/gi, '');
-};
+import { sanitizeHtml } from "../../utils/motd-utils";
 
 interface ModpackVersionsModalProps {
   isOpen: boolean;

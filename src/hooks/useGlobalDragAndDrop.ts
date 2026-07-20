@@ -89,7 +89,7 @@ export function useGlobalDragAndDrop() {
                 useProfileStore.getState().fetchProfiles(); // Fetch profiles after successful import
 
                 // Navigate to the new profile
-                navigate(`/profilesv2/${newProfileId}`);
+                navigate(`/profiles/${newProfileId}`);
               } catch (err) {
                 console.error(`[DragDrop Hook ${instanceId}] Profile import ERROR (OpID: ${operationId}) for: ${profilePackPath} at ${new Date().toISOString()}:`, err);
                 toast.error(

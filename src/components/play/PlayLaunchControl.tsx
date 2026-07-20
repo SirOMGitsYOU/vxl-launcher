@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { LaunchState } from "../../store/launch-state-store";
 import { useVersionSelectionStore } from "../../store/version-selection-store";
 import { useProfileLaunch } from "../../hooks/useProfileLaunch";
@@ -31,7 +30,6 @@ export function PlayLaunchControl({
 }: PlayLaunchControlProps) {
   const [transientSuccessActive, setTransientSuccessActive] = useState(false);
   const { selectedVersion, setSelectedVersion } = useVersionSelectionStore();
-  const navigate = useNavigate();
 
   const { handleLaunch, isLaunching, statusMessage, launchState } = useProfileLaunch({
     profileId: selectedVersion,
@@ -74,11 +72,6 @@ export function PlayLaunchControl({
     await handleLaunch();
   };
 
-  const handleOpenPicker = () => {
-    if (isLaunching) return;
-    navigate("/profiles");
-  };
-
   let sublabel = selectedVersionLabel;
   if (transientSuccessActive && statusMessage === "STARTING!") {
     sublabel = statusMessage;
@@ -99,7 +92,6 @@ export function PlayLaunchControl({
       label="Play"
       sublabel={sublabel}
       onLaunch={handleLaunchClick}
-      onOpenPicker={handleOpenPicker}
       isLaunching={isLaunching}
       disabled={disabled}
     />

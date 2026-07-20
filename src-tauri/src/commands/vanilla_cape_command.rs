@@ -133,21 +133,7 @@ pub async fn get_owned_vanilla_capes() -> Result<Vec<VanillaCape>, CommandError>
             CommandError::from(e)
         })?;
 
-    let equipped_cape = cape_api
-        .get_currently_equipped_cape(&active_account.access_token)
-        .await
-        .map_err(|e| {
-            debug!("Failed to get currently equipped vanilla cape: {:?}", e);
-            CommandError::from(e)
-        })?;
-
-    // Mark the equipped cape in the owned capes list
-    let mut result_capes = owned_capes;
-    if let Some(equipped) = equipped_cape {
-        if let Some(cape) = result_capes.iter_mut().find(|c| c.id == equipped.id) {
-            cape.equipped = true;
-        }
-    }
+    let result_capes = owned_capes;
 
     // Cache the result
     let mut cache = state.vanilla_capes_cache.write().await;
@@ -164,7 +150,19 @@ pub async fn get_currently_equipped_vanilla_cape() -> Result<Option<VanillaCape>
     debug!("Command called: get_currently_equipped_vanilla_cape");
 
     let state = State::get().await?;
-    
+
+    {
+        let cache = state.vanilla_capes_cache.read().await;
+        if !cache.is_empty() {
+            let equipped = cache.iter().find(|cape| cape.equipped).cloned();
+            debug!(
+                "Returning equipped cape from cache: {:?}",
+                equipped.as_ref().map(|cape| &cape.id)
+            );
+            return Ok(equipped);
+        }
+    }
+
     let active_account = state
         .minecraft_account_manager_v2
         .get_active_account()

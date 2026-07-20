@@ -16,6 +16,8 @@ export function SelectTab({ active, icon, children, onClick, className }: Select
   return (
     <button
       type="button"
+      role="tab"
+      aria-selected={!!active}
       onClick={onClick}
       className={cn(selectTabBase, active ? selectTabActive : selectTabInactive, className)}
     >

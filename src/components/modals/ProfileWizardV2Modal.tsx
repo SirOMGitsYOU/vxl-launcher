@@ -20,7 +20,7 @@ export function ProfileWizardV2Modal() {
 
     // Navigate to the newly created profile using V2 route
     if (profile && profile.id) {
-      navigate(`/profilesv2/${profile.id}`);
+      navigate(`/profiles/${profile.id}`);
     }
 
     closeModal();

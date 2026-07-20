@@ -31,6 +31,8 @@ import {
 import { useGlobalDragAndDrop } from './hooks/useGlobalDragAndDrop';
 import { loadIcons } from '@iconify/react';
 import { invoke } from '@tauri-apps/api/core';
+import { useProfileStore } from "./store/profile-store";
+import { useMinecraftAuthStore } from "./store/minecraft-auth-store";
 
 export type ProfilesTabContext = {
   currentGroupingCriterion: string;
@@ -144,7 +146,7 @@ export function App() {
       (event) => {
         const { profileId } = event.payload;
         console.log("[App.tsx] Navigate to profile:", profileId);
-        navigate(`/profilesv2/${profileId}`);
+        navigate(`/profiles/${profileId}`);
       },
     );
 
@@ -273,6 +275,14 @@ export function App() {
   };
 
   useGlobalDragAndDrop();
+
+  const fetchProfiles = useProfileStore((state) => state.fetchProfiles);
+  const initializeAccounts = useMinecraftAuthStore((state) => state.initializeAccounts);
+
+  useEffect(() => {
+    void fetchProfiles();
+    void initializeAccounts();
+  }, [fetchProfiles, initializeAccounts]);
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden">

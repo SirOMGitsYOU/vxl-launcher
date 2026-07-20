@@ -7,6 +7,7 @@ pub mod hash_utils;
 pub mod java_detector; // Java detector to find Java installations
 pub mod mc_utils; // Utilities for Minecraft-related operations
 pub mod migration_utils; // Migration utilities for profile and config updates
+pub mod path_security; // Path validation for IPC file operations
 pub mod path_utils; // Deklariert das neue Modul und macht seinen Inhalt (wenn `pub`) nutzbar
 pub mod profile_utils; // Utility-Funktionen für Profilinhalte wie das Installieren von Modrinth-Content
 pub mod repair_utils; // Repair utilities for fixing profile issues

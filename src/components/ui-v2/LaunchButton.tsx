@@ -32,7 +32,7 @@ export function LaunchButton({
         size="lg"
         onClick={onLaunch}
         disabled={disabled}
-        className="flex-1 rounded-r-none min-h-[52px]"
+        className={cn("flex-1 min-h-[52px]", onOpenPicker ? "rounded-r-none" : undefined)}
         icon={
           <Icon
             icon={isLaunching ? "solar:stop-bold" : "solar:play-bold"}
@@ -43,7 +43,7 @@ export function LaunchButton({
         <span className="flex flex-col items-start leading-tight">
           <span>{isLaunching ? "Stop" : label}</span>
           {sublabel && (
-            <span className="text-xs font-normal opacity-90 truncate max-w-[220px]">
+            <span className="text-xs font-normal opacity-90 truncate max-w-full">
               {sublabel}
             </span>
           )}

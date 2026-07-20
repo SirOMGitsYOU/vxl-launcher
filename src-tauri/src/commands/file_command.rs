@@ -1,5 +1,6 @@
 use crate::error::{AppError, CommandError};
 use crate::utils::file_utils;
+use crate::utils::path_security;
 use crate::utils::path_utils;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use image::ImageEncoder;
@@ -29,7 +30,7 @@ use std::io::Cursor; // For writing encoded image to a byte vector
 /// Sets a file as enabled or disabled by adding or removing the .disabled extension
 #[tauri::command]
 pub async fn set_file_enabled(file_path: String, enabled: bool) -> Result<(), CommandError> {
-    let input_path = PathBuf::from(&file_path);
+    let input_path = path_security::validate_path(&file_path).map_err(CommandError::from)?;
 
     let input_filename_cow = input_path.file_name().unwrap_or_default().to_string_lossy();
     let input_filename = input_filename_cow.as_ref();
@@ -143,7 +144,7 @@ pub async fn set_file_enabled(file_path: String, enabled: bool) -> Result<(), Co
 /// already have a .disabled extension, and will attempt to delete the corresponding file.
 #[tauri::command]
 pub async fn delete_file(file_path: String) -> Result<(), CommandError> {
-    let input_path = PathBuf::from(&file_path);
+    let input_path = path_security::validate_path(&file_path).map_err(CommandError::from)?;
 
     // Determine the parent directory and the effective base file name (without .disabled potentially)
     let parent_dir = input_path.parent().unwrap_or_else(|| Path::new("."));
@@ -219,7 +220,7 @@ pub async fn open_file_directory(
     app_handle: tauri::AppHandle,
     file_path: String,
 ) -> Result<(), CommandError> {
-    let path = PathBuf::from(&file_path);
+    let path = path_security::validate_path(&file_path).map_err(CommandError::from)?;
     info!("Opening directory for file: {}", path.display());
 
     if !path.exists() {
@@ -320,7 +321,7 @@ pub async fn open_file(
     app_handle: tauri::AppHandle,
     file_path: String,
 ) -> Result<(), CommandError> {
-    let path = PathBuf::from(&file_path);
+    let path = path_security::validate_path(&file_path).map_err(CommandError::from)?;
     info!("Attempting to open file: {}", path.display());
 
     // Check if the path exists and is a file
@@ -361,7 +362,7 @@ pub async fn open_file(
 /// Reads the content of a file as raw bytes.
 #[tauri::command]
 pub async fn read_file_bytes(file_path: String) -> Result<Vec<u8>, CommandError> {
-    let path = PathBuf::from(&file_path);
+    let path = path_security::validate_path(&file_path).map_err(CommandError::from)?;
     debug!("Reading bytes from file: {}", path.display());
 
     if !path.exists() {
@@ -409,7 +410,7 @@ pub async fn get_image_preview(
         payload.path, payload.width, payload.height, payload.quality
     );
 
-    let image_path = PathBuf::from(&payload.path);
+    let image_path = path_security::validate_path(&payload.path).map_err(CommandError::from)?;
 
     if !image_path.exists() {
         let error_msg = format!("Image file not found: {}", image_path.display());

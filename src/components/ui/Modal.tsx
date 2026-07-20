@@ -4,6 +4,7 @@ import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import { cn } from "../../lib/utils";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useThemeStore } from "../../store/useThemeStore";
 import { IconButton } from "../ui-v2/IconButton";
 
@@ -44,6 +45,13 @@ export function Modal({
     (state) => state.isBackgroundAnimationEnabled,
   );
   const [isClosing, setIsClosing] = useState(false);
+  const handleClose = () => {
+    if (isClosing) return;
+    setIsClosing(true);
+    onClose();
+  };
+  const dialogRef = useFocusTrap(true, handleClose);
+
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !isClosing) {
@@ -72,12 +80,6 @@ export function Modal({
       mouseDownTargetRef.current = null;
     };
   }, []);
-
-  const handleClose = () => {
-    if (isClosing) return;
-    setIsClosing(true);
-    onClose();
-  };
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (
@@ -119,6 +121,10 @@ export function Modal({
       onClick={handleBackdropClick}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
         className={cn(
           "relative flex flex-col w-full rounded-xl overflow-hidden max-h-[90vh] border border-[var(--surface-border)] bg-[var(--surface-raised)] shadow-lg",
           widthClasses[width],
@@ -143,7 +149,7 @@ export function Modal({
               </span>
             )}
             <div className="flex flex-col">
-              <h2 className="text-lg font-semibold text-white">
+              <h2 id="modal-title" className="text-lg font-semibold text-white">
                 {title}
               </h2>
               {titleSubtitle && <div className="mt-0.5">{titleSubtitle}</div>}

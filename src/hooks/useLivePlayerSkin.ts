@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { MinecraftSkinService } from "../services/minecraft-skin-service";
 import type { MinecraftAccount } from "../types/minecraft";
 import type { TexturesData } from "../types/minecraft";
+import { getSkinUrl, normalizeMinecraftTextureUrl } from "../lib/avatar-utils";
 
 export type PlayerSkinVariant = "classic" | "slim";
 
@@ -71,20 +72,21 @@ export function useLivePlayerSkin(
     setError(null);
 
     try {
-      const profileData = await MinecraftSkinService.getUserSkinData(
-        activeAccount.id,
-        activeAccount.access_token,
-      );
+      const profileData = await MinecraftSkinService.getUserSkinData(activeAccount.id);
 
       const parsed = parseLiveSkinFromProfile(profileData.properties);
-      setSkinUrl(parsed.skinUrl);
+      const resolvedUrl = parsed.skinUrl
+        ? normalizeMinecraftTextureUrl(parsed.skinUrl)
+        : getSkinUrl(activeAccount.id);
+
+      setSkinUrl(resolvedUrl);
       setVariant(parsed.variant);
     } catch (fetchError) {
       console.error("[useLivePlayerSkin] Failed to fetch live player skin:", fetchError);
       setError(
         fetchError instanceof Error ? fetchError.message : "Failed to fetch player skin",
       );
-      setSkinUrl(undefined);
+      setSkinUrl(getSkinUrl(activeAccount.id));
     } finally {
       setIsLoading(false);
     }

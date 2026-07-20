@@ -66,10 +66,7 @@ export const AddSkinModal = memo(
 
       setImportingCurrentSkin(true);
       try {
-        const skinData = await MinecraftSkinService.getUserSkinData(
-          activeAccount.id,
-          activeAccount.access_token,
-        );
+        const skinData = await MinecraftSkinService.getUserSkinData(activeAccount.id);
 
         if (skinData?.properties) {
           const texturesProp = skinData.properties.find(

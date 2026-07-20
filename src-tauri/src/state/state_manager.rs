@@ -133,6 +133,11 @@ impl State {
             while !LAUNCHER_STATE.initialized() {
                 tokio::time::sleep(std::time::Duration::from_millis(100)).await;
                 wait_count += 1;
+                if wait_count >= 600 {
+                    return Err(AppError::Other(
+                        "Timed out waiting for application state initialization".to_string(),
+                    ));
+                }
                 if wait_count % 10 == 0 {
                     // Log every second
                     log::warn!("Still waiting for state initialization in State::get() after {} attempts...", wait_count);

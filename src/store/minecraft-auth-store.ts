@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { localFileToDisplayUrl } from "../utils/local-file-url";
 import { MinecraftAuthService } from "../services/minecraft-auth-service";
 import { MinecraftSkinService } from "../services/minecraft-skin-service";
 import { populateAvatarCache, AVATAR_FETCH_SIZE } from "../hooks/useCrafatarAvatar";
@@ -36,8 +36,8 @@ async function prefetchAccountAvatars(accounts: MinecraftAccount[]) {
       size: AVATAR_FETCH_SIZE,
       overlay: true,
     })
-      .then((path) => {
-        const url = convertFileSrc(path);
+      .then(async (path) => {
+        const url = await localFileToDisplayUrl(path);
         populateAvatarCache(uuid, url, true);
         return url;
       })

@@ -5,13 +5,9 @@ import { ServerSection } from "../servers/ServerSection";
 import { ErrorMessage } from "../ui/ErrorMessage";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
 import { useProfileStore } from "../../store/profile-store";
-import { useThemeStore } from "../../store/useThemeStore";
 import { PlayHero } from "../play/PlayHero";
-import { RetroGridEffect } from "../effects/RetroGridEffect";
-import {
-  BACKGROUND_EFFECTS,
-  useBackgroundEffectStore,
-} from "../../store/background-effect-store";
+import { PlayBackgroundEffect } from "../play/PlayBackgroundEffect";
+import { LoadingState } from "../ui-v2";
 
 export function PlayTab() {
   const {
@@ -23,8 +19,6 @@ export function PlayTab() {
   } = useProfileStore();
 
   const { activeAccount } = useMinecraftAuthStore();
-  const { staticBackground, accentColor } = useThemeStore();
-  const { currentEffect } = useBackgroundEffectStore();
 
   useEffect(() => {
     if (!storeSelectedProfile && profiles.length > 0) {
@@ -37,9 +31,6 @@ export function PlayTab() {
     setSelectedProfile(profileToSelect);
   };
 
-  const currentDisplayProfile =
-    storeSelectedProfile || (profiles.length > 0 ? profiles[0] : null);
-
   const versions = profiles.map((profile) => ({
     id: profile.id,
     label: `${profile.name}`,
@@ -50,37 +41,34 @@ export function PlayTab() {
 
   return (
     <div className="flex h-full relative">
-      <div className="flex-grow flex flex-col items-center justify-center p-8 relative z-15">
-        {currentEffect === BACKGROUND_EFFECTS.RETRO_GRID && (
-          <RetroGridEffect
-            renderMode="both"
-            isAnimationEnabled={!staticBackground}
-            customGridLineColor={`${accentColor.value}80`}
-          />
-        )}
-
-        {/* <VersionInfo
-          profileId={currentDisplayProfile?.id || ""}
-          className="absolute top-6 left-6 z-10"
-        /> */}
+      <div className="flex-grow flex flex-col items-center justify-center p-8 relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none z-0">
+          <PlayBackgroundEffect />
+        </div>
 
         <div className="relative z-10">
-          {profilesError && !loading && (
-            <ErrorMessage
-              message={profilesError || "An unknown error occurred"}
-            />
-          )}
+          {loading ? (
+            <LoadingState message="Loading profiles..." />
+          ) : (
+            <>
+              {profilesError && (
+                <ErrorMessage
+                  message={profilesError || "An unknown error occurred"}
+                />
+              )}
 
-          <PlayHero
-            playerName={
-              activeAccount?.minecraft_username || activeAccount?.username
-            }
-            launchButtonDefaultVersion={
-              storeSelectedProfile?.id || versions[0]?.id || ""
-            }
-            onLaunchVersionChange={handleVersionChange}
-            launchButtonVersions={versions}
-          />
+              <PlayHero
+                playerName={
+                  activeAccount?.minecraft_username || activeAccount?.username
+                }
+                launchButtonDefaultVersion={
+                  storeSelectedProfile?.id || versions[0]?.id || ""
+                }
+                onLaunchVersionChange={handleVersionChange}
+                launchButtonVersions={versions}
+              />
+            </>
+          )}
         </div>
       </div>
 

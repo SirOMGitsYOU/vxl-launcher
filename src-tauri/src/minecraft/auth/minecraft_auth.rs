@@ -27,6 +27,10 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use crate::config::{ProjectDirsExt, HTTP_CLIENT, LAUNCHER_DIRECTORY};
+use crate::minecraft::auth::token_storage::{
+    self, load_account_secrets, store_account_secrets, AccountSecrets,
+};
+use crate::utils::backup_utils::{self, safe_write_with_backup, BackupConfig};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Credentials {
@@ -36,6 +40,29 @@ pub struct Credentials {
     pub refresh_token: String,
     pub expires: DateTime<Utc>,
     pub active: bool,
+}
+
+/// Account metadata exposed to the frontend — never includes tokens.
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct PublicAccount {
+    pub id: Uuid,
+    pub username: String,
+    pub minecraft_username: String,
+    pub active: bool,
+    pub expires_at: DateTime<Utc>,
+}
+
+impl From<&Credentials> for PublicAccount {
+    fn from(credentials: &Credentials) -> Self {
+        Self {
+            id: credentials.id,
+            username: credentials.username.clone(),
+            minecraft_username: credentials.username.clone(),
+            active: credentials.active,
+            expires_at: credentials.expires,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -125,11 +152,25 @@ pub struct MinecraftAuthStore {
     accounts: Arc<RwLock<Vec<Credentials>>>,
     store_path: PathBuf,
     token: Arc<RwLock<Option<SaveDeviceToken>>>,
+    backup_config: BackupConfig,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct PersistedAccount {
+    id: Uuid,
+    username: String,
+    expires: DateTime<Utc>,
+    active: bool,
+    #[serde(default, skip_serializing)]
+    access_token: Option<String>,
+    #[serde(default, skip_serializing)]
+    refresh_token: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct AccountStore {
-    accounts: Vec<Credentials>,
+    accounts: Vec<PersistedAccount>,
+    #[serde(default, skip_serializing)]
     token: Option<SaveDeviceToken>,
 }
 
@@ -146,10 +187,51 @@ impl MinecraftAuthStore {
             accounts: Arc::new(RwLock::new(Vec::new())),
             store_path: store_path,
             token: Arc::new(RwLock::new(None)),
+            backup_config: BackupConfig::default(),
         };
 
         manager.load().await?;
         Ok(manager)
+    }
+
+    async fn migrate_legacy_account(
+        persisted: &mut PersistedAccount,
+    ) -> Result<(String, String)> {
+        if let (Some(access_token), Some(refresh_token)) = (
+            persisted.access_token.take(),
+            persisted.refresh_token.take(),
+        ) {
+            store_account_secrets(
+                persisted.id,
+                &AccountSecrets {
+                    access_token: access_token.clone(),
+                    refresh_token: refresh_token.clone(),
+                },
+            )?;
+            return Ok((access_token, refresh_token));
+        }
+
+        let secrets = load_account_secrets(persisted.id)?;
+        Ok((secrets.access_token, secrets.refresh_token))
+    }
+
+    async fn migrate_legacy_device_token(token: &mut Option<SaveDeviceToken>) -> Result<()> {
+        if let Some(device_token) = token.take() {
+            let json = serde_json::to_string(&device_token)?;
+            token_storage::store_device_token_json(&json)?;
+        }
+        Ok(())
+    }
+
+    async fn load_device_token_from_keychain(&self) -> Result<Option<SaveDeviceToken>> {
+        if let Some(json) = token_storage::load_device_token_json()? {
+            let device_token: SaveDeviceToken = serde_json::from_str(&json).map_err(|e| {
+                AppError::AccountError(format!("Failed to parse stored device token: {}", e))
+            })?;
+            Ok(Some(device_token))
+        } else {
+            Ok(None)
+        }
     }
 
     pub async fn load(&self) -> Result<()> {
@@ -160,52 +242,88 @@ impl MinecraftAuthStore {
                 "[Storage] Account file exists at: {}",
                 self.store_path.display()
             );
-            info!("[Storage] Reading account data");
             let data = fs::read_to_string(&self.store_path).await?;
-            info!(
-                "[Storage] Successfully read data, length: {} bytes",
-                data.len()
-            );
 
-            info!("[Storage] Deserializing account data");
-            let store: AccountStore = match serde_json::from_str(&data) {
-                Ok(store) => {
-                    info!("[Storage] Successfully deserialized data");
-                    store
-                }
+            let mut store: AccountStore = match serde_json::from_str(&data) {
+                Ok(store) => store,
                 Err(e) => {
                     error!(
-                        "[Storage] Failed to deserialize account data: {}. The accounts.json file appears to be corrupted. Resetting to empty state.",
+                        "[Storage] Failed to deserialize account data: {}. Attempting backup restore.",
                         e
                     );
-
-                    // Create new empty store - no backup needed as corrupted data is useless
-                    info!("[Storage] Creating new empty account store");
-                    AccountStore {
-                        accounts: Vec::new(),
-                        token: None,
+                    if backup_utils::restore_from_backup(&self.store_path, Some("accounts"))
+                        .await
+                        .is_ok()
+                    {
+                        let restored = fs::read_to_string(&self.store_path).await?;
+                        serde_json::from_str(&restored).unwrap_or(AccountStore {
+                            accounts: Vec::new(),
+                            token: None,
+                        })
+                    } else {
+                        AccountStore {
+                            accounts: Vec::new(),
+                            token: None,
+                        }
                     }
                 }
             };
 
-            info!("[Storage] Acquiring write lock to update accounts");
-            let mut accounts = self.accounts.write().await;
-            info!("[Storage] Successfully acquired write lock");
+            let mut credentials = Vec::new();
+            let mut migrated = false;
 
-            info!(
-                "[Storage] Loading {} accounts into memory",
-                store.accounts.len()
-            );
-            *accounts = store.accounts;
-            info!("[Storage] Successfully loaded accounts");
+            for mut persisted in store.accounts {
+                let had_legacy_tokens = persisted.access_token.is_some();
+                let (access_token, refresh_token) =
+                    match Self::migrate_legacy_account(&mut persisted).await {
+                        Ok(tokens) => tokens,
+                        Err(e) => {
+                            error!(
+                                "[Storage] Skipping account {} — could not load secrets: {}",
+                                persisted.id, e
+                            );
+                            continue;
+                        }
+                    };
 
-            // Also restore saved device token
-            info!("[Storage] Restoring saved device token (if any)");
+                if had_legacy_tokens {
+                    migrated = true;
+                }
+
+                credentials.push(Credentials {
+                    id: persisted.id,
+                    username: persisted.username,
+                    access_token,
+                    refresh_token,
+                    expires: persisted.expires,
+                    active: persisted.active,
+                });
+            }
+
+            if store.token.is_some() {
+                migrated = true;
+            }
+            Self::migrate_legacy_device_token(&mut store.token).await?;
+
+            let device_token = if let Some(token) = store.token {
+                Some(token)
+            } else {
+                self.load_device_token_from_keychain().await?
+            };
+
+            {
+                let mut accounts = self.accounts.write().await;
+                *accounts = credentials;
+            }
             {
                 let mut token_guard = self.token.write().await;
-                *token_guard = store.token;
+                *token_guard = device_token;
             }
-            info!("[Storage] Device token restored");
+
+            if migrated {
+                info!("[Storage] Migrated legacy account tokens to OS keychain");
+                self.save().await?;
+            }
         } else {
             info!("[Storage] No account file found, starting with empty accounts");
         }
@@ -216,33 +334,48 @@ impl MinecraftAuthStore {
 
     async fn save(&self) -> Result<()> {
         info!("[Storage] Starting save operation");
-        info!("[Storage] Acquiring read locks for accounts and device token");
 
         let accounts = self.accounts.read().await;
-        info!("[Storage] Successfully acquired accounts read lock");
-
         let device_token = self.token.read().await;
-        info!("[Storage] Successfully acquired device token read lock");
 
-        info!(
-            "[Storage] Creating AccountStore with {} accounts",
-            accounts.len()
-        );
+        for account in accounts.iter() {
+            store_account_secrets(
+                account.id,
+                &AccountSecrets {
+                    access_token: account.access_token.clone(),
+                    refresh_token: account.refresh_token.clone(),
+                },
+            )?;
+        }
+
+        if let Some(device_token) = device_token.as_ref() {
+            let json = serde_json::to_string(device_token)?;
+            token_storage::store_device_token_json(&json)?;
+        }
+
         let store = AccountStore {
-            accounts: accounts.clone(),
-            token: device_token.clone(),
+            accounts: accounts
+                .iter()
+                .map(|account| PersistedAccount {
+                    id: account.id,
+                    username: account.username.clone(),
+                    expires: account.expires,
+                    active: account.active,
+                    access_token: None,
+                    refresh_token: None,
+                })
+                .collect(),
+            token: None,
         };
 
-        info!("[Storage] Serializing data to JSON");
         let data = serde_json::to_string_pretty(&store)?;
-        info!("[Storage] Successfully serialized data");
-
-        info!(
-            "[Storage] Writing data to file: {}",
-            self.store_path.display()
-        );
-        fs::write(&self.store_path, data).await?;
-        info!("[Storage] Successfully wrote data to file");
+        safe_write_with_backup(
+            &self.store_path,
+            data.as_bytes(),
+            Some("accounts"),
+            &self.backup_config,
+        )
+        .await?;
 
         info!("[Storage] Save operation completed successfully");
         Ok(())
@@ -957,10 +1090,16 @@ impl MinecraftAuthStore {
         } // Write-Lock wird hier freigegeben
 
         info!("[Account Manager] Saving changes after account removal");
+        token_storage::delete_account_secrets(id)?;
         self.save().await?;
         info!("[Account Manager] Successfully saved changes");
 
         Ok(())
+    }
+
+    pub async fn get_all_public_accounts(&self) -> Result<Vec<PublicAccount>> {
+        let accounts = self.accounts.read().await;
+        Ok(accounts.iter().map(PublicAccount::from).collect())
     }
 
     pub async fn get_all_accounts(&self) -> Result<Vec<Credentials>> {
@@ -1874,7 +2013,7 @@ pub async fn start_oauth_callback_server(
     port: u16,
     success_html: String,
     error_html: String,
-) -> Result<(tokio::task::JoinHandle<()>, tokio::sync::oneshot::Receiver<std::result::Result<String, String>>)> {
+) -> Result<(tokio::task::JoinHandle<()>, tokio::sync::oneshot::Receiver<std::result::Result<(String, String), String>>)> {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     
     let (tx, rx) = tokio::sync::oneshot::channel();
@@ -1889,20 +2028,11 @@ pub async fn start_oauth_callback_server(
                     let request = String::from_utf8_lossy(&buffer[..n]);
                     log::debug!("[OAuth Server] Received request");
                     
-                    // Extract the authorization code from the query string
-                    if let Some(code_start) = request.find("code=") {
-                        let code_start = code_start + 5;
-                        let code_end = request[code_start..]
-                            .find('&')
-                            .map(|i| code_start + i)
-                            .unwrap_or_else(|| {
-                                request[code_start..]
-                                    .find(' ')
-                                    .map(|i| code_start + i)
-                                    .unwrap_or(request.len())
-                            });
-                        
-                        let code = request[code_start..code_end].to_string();
+                    // Extract the authorization code and state from the query string
+                    let code = extract_query_param(&request, "code");
+                    let state = extract_query_param(&request, "state");
+
+                    if let (Some(code), Some(state)) = (code, state) {
                         log::info!("[OAuth Server] Extracted authorization code");
                         
                         // Send success response
@@ -1910,10 +2040,13 @@ pub async fn start_oauth_callback_server(
                             success_html.len(), success_html);
                         let _ = socket.write_all(response.as_bytes()).await;
                         
-                        // Send the code through the channel
-                        let _ = tx.send(Ok(code));
+                        let _ = tx.send(Ok((code, state)));
+                    } else if request.contains("code=") {
+                        let response = format!("HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\nContent-Length: {}\r\n\r\n{}", 
+                            error_html.len(), error_html);
+                        let _ = socket.write_all(response.as_bytes()).await;
+                        let _ = tx.send(Err("OAuth state parameter missing or invalid".to_string()));
                     } else {
-                        // Send error response
                         let response = format!("HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\nContent-Length: {}\r\n\r\n{}", 
                             error_html.len(), error_html);
                         let _ = socket.write_all(response.as_bytes()).await;
@@ -1925,4 +2058,14 @@ pub async fn start_oauth_callback_server(
     });
     
     Ok((handle, rx))
+}
+
+fn extract_query_param(request: &str, key: &str) -> Option<String> {
+    let needle = format!("{}=", key);
+    let start = request.find(&needle)? + needle.len();
+    let end = request[start..]
+        .find('&')
+        .map(|i| start + i)
+        .unwrap_or_else(|| request[start..].find(' ').map(|i| start + i).unwrap_or(request.len()));
+    Some(request[start..end].to_string())
 }

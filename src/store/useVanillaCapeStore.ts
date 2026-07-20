@@ -8,14 +8,16 @@ interface VanillaCapeState {
   ownedCapes: VanillaCape[];
   equippedCape: VanillaCape | null;
   capeInfo: VanillaCapeInfo[];
+  /** In-memory only: which account the session cape list belongs to */
+  cachedAccountId: string | null;
   isLoading: boolean;
   error: string | null;
   lastFetchTime: number | null;
 
-  fetchOwnedCapes: (options?: { force?: boolean }) => Promise<void>;
+  fetchOwnedCapes: (options?: { force?: boolean; accountId?: string }) => Promise<void>;
   fetchCapeInfo: () => Promise<void>;
   equipCape: (capeId: string | null) => Promise<void>;
-  refreshData: () => Promise<void>;
+  refreshData: (accountId?: string) => Promise<void>;
   clearData: () => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
@@ -32,6 +34,7 @@ function syncCapeTexturesInBackground(capes: VanillaCape[]): void {
     return;
   }
 
+  // Disk cache: only downloads textures that are missing or outdated.
   VanillaCapeService.syncCapeTextureCache(refs).catch((error) => {
     console.warn("Failed to sync cape texture cache:", error);
   });
@@ -43,34 +46,42 @@ export const useVanillaCapeStore = create<VanillaCapeState>()(
       ownedCapes: [],
       equippedCape: null,
       capeInfo: [],
+      cachedAccountId: null,
       isLoading: false,
       error: null,
       lastFetchTime: null,
 
       fetchOwnedCapes: async (options) => {
         const force = options?.force ?? false;
-        const now = Date.now();
-        const lastFetch = get().lastFetchTime;
+        const accountId = options?.accountId ?? get().cachedAccountId;
+        const state = get();
 
-        if (!force && lastFetch && now - lastFetch < 5000) {
-          console.log("Skipping fetch - too soon since last call");
+        // Session cache: skip Mojang if we already have the list for this account.
+        if (
+          !force &&
+          accountId &&
+          state.cachedAccountId === accountId &&
+          state.ownedCapes.length > 0
+        ) {
+          syncCapeTexturesInBackground(state.ownedCapes);
           return;
         }
 
-        if (get().isLoading) {
-          console.log("Skipping fetch - already loading");
+        if (state.isLoading) {
           return;
         }
 
-        set({ isLoading: true, error: null, lastFetchTime: now });
+        set({ isLoading: true, error: null });
         try {
           const ownedCapes = await VanillaCapeService.getOwnedVanillaCapes();
-          const equippedCape = await VanillaCapeService.getCurrentlyEquippedVanillaCape();
+          const equippedCape = ownedCapes.find((cape) => cape.equipped) ?? null;
 
           set({
             ownedCapes,
             equippedCape,
+            cachedAccountId: accountId ?? null,
             isLoading: false,
+            lastFetchTime: Date.now(),
           });
           syncCapeTexturesInBackground(ownedCapes);
         } catch (error) {
@@ -94,12 +105,12 @@ export const useVanillaCapeStore = create<VanillaCapeState>()(
 
       equipCape: async (capeId: string | null) => {
         const previousEquipped = get().equippedCape;
-        
+
         try {
           if (capeId === null) {
             set({ equippedCape: null });
           } else {
-            const cape = get().ownedCapes.find(c => c.id === capeId);
+            const cape = get().ownedCapes.find((c) => c.id === capeId);
             if (cape) {
               set({ equippedCape: { ...cape, equipped: true } });
             }
@@ -107,11 +118,11 @@ export const useVanillaCapeStore = create<VanillaCapeState>()(
 
           await VanillaCapeService.equipVanillaCape(capeId);
 
-          set(state => ({
-            ownedCapes: state.ownedCapes.map(cape => ({
+          set((state) => ({
+            ownedCapes: state.ownedCapes.map((cape) => ({
               ...cape,
-              equipped: cape.id === capeId
-            }))
+              equipped: cape.id === capeId,
+            })),
           }));
         } catch (error) {
           set({ equippedCape: previousEquipped });
@@ -119,24 +130,18 @@ export const useVanillaCapeStore = create<VanillaCapeState>()(
           const errorMessage = error instanceof Error ? error.message : "Failed to equip cape";
           set({ error: errorMessage });
           console.error("Failed to equip vanilla cape:", error);
-          throw error; // Re-throw so the calling code can handle the error
+          throw error;
         }
       },
 
-      refreshData: async () => {
-        set({ isLoading: true, error: null, lastFetchTime: null }); 
+      refreshData: async (accountId?: string) => {
+        set({ isLoading: true, error: null });
         try {
           await VanillaCapeService.refreshVanillaCapeData();
-          const ownedCapes = await VanillaCapeService.getOwnedVanillaCapes();
-          const equippedCape = await VanillaCapeService.getCurrentlyEquippedVanillaCape();
-          
-          set({ 
-            ownedCapes, 
-            equippedCape,
-            isLoading: false,
-            lastFetchTime: Date.now()
+          await get().fetchOwnedCapes({
+            force: true,
+            accountId: accountId ?? get().cachedAccountId ?? undefined,
           });
-          syncCapeTexturesInBackground(ownedCapes);
           toast.success("Cape data refreshed!");
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : "Failed to refresh cape data";
@@ -150,7 +155,7 @@ export const useVanillaCapeStore = create<VanillaCapeState>()(
         set({
           ownedCapes: [],
           equippedCape: null,
-          capeInfo: [],
+          cachedAccountId: null,
           isLoading: false,
           error: null,
           lastFetchTime: null,
@@ -167,6 +172,7 @@ export const useVanillaCapeStore = create<VanillaCapeState>()(
     }),
     {
       name: STORAGE_KEY,
+      // Cape list is session-only; only static metadata persists across restarts.
       partialize: (state) => ({
         capeInfo: state.capeInfo,
       }),
@@ -174,6 +180,7 @@ export const useVanillaCapeStore = create<VanillaCapeState>()(
         if (state) {
           state.ownedCapes = [];
           state.equippedCape = null;
+          state.cachedAccountId = null;
           state.isLoading = false;
           state.error = null;
           state.lastFetchTime = null;

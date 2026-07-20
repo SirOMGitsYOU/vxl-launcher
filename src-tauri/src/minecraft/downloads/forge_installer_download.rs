@@ -10,6 +10,13 @@ use tokio::fs;
 use tokio::io::AsyncWriteExt;
 use tokio::io::BufReader;
 
+fn validated_zip_entry_name(file_name: &str) -> Result<&str> {
+    crate::utils::path_security::validate_zip_entry_path(file_name).map_err(|e| {
+        AppError::Download(format!("Unsafe path in installer JAR: {}", e))
+    })?;
+    Ok(file_name)
+}
+
 const LIBRARIES_DIR: &str = "libraries";
 
 pub struct ForgeInstallerDownloadService {
@@ -117,6 +124,7 @@ impl ForgeInstallerDownloadService {
                 .filename()
                 .as_str()
                 .map_err(|e| AppError::Download(format!("Failed to get filename: {}", e)))?;
+            let file_name = validated_zip_entry_name(file_name)?;
 
             if file_name == "version.json" {
                 info!("Found version.json");

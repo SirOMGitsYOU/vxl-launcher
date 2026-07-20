@@ -27,7 +27,12 @@ function mapUV(area: number[]) {
 }
 
 function shouldUseCrossOrigin(url: string): boolean {
-  return /^https?:\/\//i.test(url) && !url.includes('asset.localhost') && !url.startsWith('asset://');
+  return (
+    /^https?:\/\//i.test(url) &&
+    !url.includes('asset.localhost') &&
+    !url.startsWith('asset://') &&
+    !url.startsWith('blob:')
+  );
 }
 
 function loadTexture(imageUrl: string): Promise<THREE.Texture> {
@@ -162,7 +167,7 @@ export async function getOrCreateStaticCapePreview(
   textureImageUrl: string,
   getExistingPreviewPath: (id: string) => Promise<string | null>,
   savePreview: (id: string, pngBase64: string) => Promise<string>,
-  toDisplayUrl: (path: string) => string,
+  toDisplayUrl: (path: string) => Promise<string> | string,
 ): Promise<string> {
   const cached = memoryPreviewCache.get(capeId);
   if (cached) {
@@ -171,15 +176,15 @@ export async function getOrCreateStaticCapePreview(
 
   const existingPath = await getExistingPreviewPath(capeId);
   if (existingPath) {
-    const displayUrl = toDisplayUrl(existingPath);
+    const displayUrl = await Promise.resolve(toDisplayUrl(existingPath));
     memoryPreviewCache.set(capeId, displayUrl);
     return displayUrl;
   }
 
   const blob = await renderCapePreviewBlob(textureImageUrl);
   const pngBase64 = await blobToBase64(blob);
-  const savedPath = await savePreview(capeId, pngBase64);
-  const displayUrl = toDisplayUrl(savedPath);
+  await savePreview(capeId, pngBase64);
+  const displayUrl = `data:image/png;base64,${pngBase64}`;
   memoryPreviewCache.set(capeId, displayUrl);
   return displayUrl;
 }

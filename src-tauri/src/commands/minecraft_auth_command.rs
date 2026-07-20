@@ -1,39 +1,23 @@
 use crate::commands::oauth_error_html::ERROR_HTML;
 use crate::commands::oauth_success_html::SUCCESS_HTML;
 use crate::error::{AppError, CommandError};
-use crate::minecraft::minecraft_auth::Credentials;
+use crate::minecraft::minecraft_auth::PublicAccount;
 use crate::state::event_state::{EventPayload, EventType};
 use crate::state::state_manager::State;
 use crate::utils::updater_utils;
 use chrono::{Duration, Utc};
 use log::{error, info, warn};
-use tauri::plugin::TauriPlugin;
-use tauri::Manager;
-use tauri::{Runtime, UserAttentionType};
+use tauri::{Manager, Runtime, UserAttentionType};
 use tauri_plugin_opener::OpenerExt;
 use uuid::Uuid;
 
 //TODO das wäre geiler aber habs noch nicht hinbekommen
 //Error during login: minecraft_auth.begin_login not allowed. Plugin not found
-pub fn init<R: Runtime>() -> TauriPlugin<R> {
-    tauri::plugin::Builder::<R>::new("minecraft_auth")
-        .invoke_handler(tauri::generate_handler![
-            begin_login,
-            cancel_login,
-            remove_account,
-            get_active_account,
-            set_active_account,
-            get_accounts,
-        ])
-        .build()
-}
-
-/// Begin the Minecraft login flow
 /// Returns a URL that the user needs to visit to sign in
 #[tauri::command]
 pub async fn begin_login<R: Runtime>(
     app: tauri::AppHandle<R>,
-) -> Result<Option<Credentials>, CommandError> {
+) -> Result<Option<PublicAccount>, CommandError> {
     let state = State::get().await?;
     let config = state.config_manager.get_config().await;
     let use_browser_based_login = updater_utils::is_flatpak() || config.use_browser_based_login;
@@ -131,7 +115,22 @@ pub async fn begin_login<R: Runtime>(
 
             // Check if we received the code
             match code_rx.try_recv() {
-                Ok(Ok(code)) => {
+                Ok(Ok((code, returned_state))) => {
+                    if returned_state != flow.state {
+                        let error_msg = "OAuth state mismatch — possible CSRF attempt".to_string();
+                        state.emit_event(EventPayload {
+                            event_id: login_event_id,
+                            event_type: EventType::Error,
+                            target_id: None,
+                            message: error_msg.clone(),
+                            progress: None,
+                            error: Some(error_msg),
+                        }).await?;
+                        return Err(CommandError::from(AppError::AccountError(
+                            "OAuth state validation failed".to_string(),
+                        )));
+                    }
+
                     info!("[Login] Received authorization code");
                     // Abort server via state
                     if let Some(handle) = state.login_server_handle.write().await.take() {
@@ -166,7 +165,7 @@ pub async fn begin_login<R: Runtime>(
                                 error: None,
                             }).await?;
 
-                            return Ok(Some(account));
+                            return Ok(Some(PublicAccount::from(&account)));
                         }
                         Err(e) => {
                             error!("[Login] Error during login flow: {:?}", e);
@@ -284,7 +283,7 @@ pub async fn begin_login<R: Runtime>(
                             .login_finish(&code, flow)
                             .await?;
 
-                        return Ok(Some(account));
+                        return Ok(Some(PublicAccount::from(&account)));
                     }
                 }
             }
@@ -323,13 +322,13 @@ pub async fn remove_account(account_id: Uuid) -> Result<(), CommandError> {
 
 /// Get the currently active Minecraft account
 #[tauri::command]
-pub async fn get_active_account() -> Result<Option<Credentials>, CommandError> {
+pub async fn get_active_account() -> Result<Option<PublicAccount>, CommandError> {
     let state = State::get().await?;
     let account = state
         .minecraft_account_manager_v2
         .get_active_account()
         .await?;
-    Ok(account)
+    Ok(account.as_ref().map(PublicAccount::from))
 }
 
 /// Set the active Minecraft account
@@ -349,11 +348,11 @@ pub async fn set_active_account(account_id: Uuid) -> Result<(), CommandError> {
 
 /// Get all Minecraft accounts
 #[tauri::command]
-pub async fn get_accounts() -> Result<Vec<Credentials>, CommandError> {
+pub async fn get_accounts() -> Result<Vec<PublicAccount>, CommandError> {
     let state = State::get().await?;
     let accounts = state
         .minecraft_account_manager_v2
-        .get_all_accounts()
+        .get_all_public_accounts()
         .await?;
     Ok(accounts)
 }

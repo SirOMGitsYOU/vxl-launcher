@@ -2,6 +2,7 @@ use crate::config::{ProjectDirsExt, LAUNCHER_DIRECTORY};
 use crate::error::AppError;
 use crate::state::profile_state::ProfileManager;
 use crate::state::state_manager::State;
+use crate::utils::path_security;
 use chrono::Utc;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
@@ -271,7 +272,15 @@ pub async fn check_profile_file_exists(profile_id: String, file_name: String) ->
         .await
         .map_err(|e| format!("Failed to get profile: {}", e))?;
 
-    let file_path = PathBuf::from(&profile.path).join(&file_name);
+    let profile_path = state
+        .profile_manager
+        .calculate_instance_path_for_profile(&profile)
+        .map_err(|e| format!("Failed to calculate profile path: {}", e))?;
+
+    path_security::validate_relative_segment(&file_name)
+        .map_err(|e| format!("Invalid file name: {}", e))?;
+
+    let file_path = profile_path.join(&file_name);
     Ok(file_path.exists())
 }
 
@@ -322,8 +331,13 @@ pub async fn pull_from_hub(
 
     // Pull each file/folder from sharedFiles to profile
     for file_name in &files_to_sync {
-        let shared_file = shared_files_dir.join(file_name);
-        let profile_file = profile_path.join(file_name);
+        path_security::validate_relative_segment(file_name)
+            .map_err(|e| format!("Invalid file name '{}': {}", file_name, e))?;
+
+        let shared_file = path_security::join_validated_segment(&shared_files_dir, file_name)
+            .map_err(|e| format!("Invalid shared file path: {}", e))?;
+        let profile_file = path_security::join_validated_segment(&profile_path, file_name)
+            .map_err(|e| format!("Invalid profile file path: {}", e))?;
 
         // Skip if shared file/folder doesn't exist
         if !shared_file.exists() {
@@ -401,8 +415,13 @@ pub async fn push_to_hub(
 
     // Push each file/folder from profile to sharedFiles
     for file_name in &files_to_sync {
-        let profile_file = profile_path.join(file_name);
-        let shared_file = shared_files_dir.join(file_name);
+        path_security::validate_relative_segment(file_name)
+            .map_err(|e| format!("Invalid file name '{}': {}", file_name, e))?;
+
+        let profile_file = path_security::join_validated_segment(&profile_path, file_name)
+            .map_err(|e| format!("Invalid profile file path: {}", e))?;
+        let shared_file = path_security::join_validated_segment(&shared_files_dir, file_name)
+            .map_err(|e| format!("Invalid shared file path: {}", e))?;
 
         // Skip if profile file/folder doesn't exist
         if !profile_file.exists() {

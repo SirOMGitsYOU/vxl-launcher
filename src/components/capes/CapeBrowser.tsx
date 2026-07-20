@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { localFileToDisplayUrl } from "../../utils/local-file-url";
 import { Icon } from "@iconify/react";
 import { Button } from "../ui-v2";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
@@ -69,7 +69,8 @@ export function CapeBrowser(): JSX.Element {
     preloadIcons(["solar:add-square-bold-duotone"]);
   }, []);
 
-  // Fetch vanilla capes on mount and when account changes
+  // First open per session (or account change) pulls the cape list from Mojang.
+  // Revisiting the tab reuses the in-memory session cache; refresh forces a new pull.
   useEffect(() => {
     if (!activeAccountId) {
       clearData();
@@ -77,9 +78,7 @@ export function CapeBrowser(): JSX.Element {
       return;
     }
 
-    clearData();
-    setSelectedCape(null);
-    fetchOwnedCapes({ force: true });
+    fetchOwnedCapes({ accountId: activeAccountId });
   }, [activeAccountId, clearData, fetchOwnedCapes]);
 
   useEffect(() => {
@@ -94,7 +93,7 @@ export function CapeBrowser(): JSX.Element {
       try {
         const localPath = await getCachedCapeTexturePath(selectedCape.id, selectedCape.url);
         if (!cancelled) {
-          setCachedSelectedCapeUrl(convertFileSrc(localPath));
+          setCachedSelectedCapeUrl(await localFileToDisplayUrl(localPath));
         }
       } catch (error) {
         console.warn("[CapeBrowser] Failed to resolve cached cape texture, using remote URL:", error);
@@ -127,14 +126,15 @@ export function CapeBrowser(): JSX.Element {
   }, [equipCape]);
 
   const handleRefresh = useCallback(async () => {
+    if (!activeAccountId) return;
     try {
-      await refreshData();
+      await refreshData(activeAccountId);
       toast.success("Capes refreshed!");
     } catch (error) {
       console.error("Error refreshing capes:", error);
       toast.error("Failed to refresh capes");
     }
-  }, [refreshData]);
+  }, [activeAccountId, refreshData]);
 
   return (
     <BrowseDetailLayout
@@ -166,10 +166,12 @@ export function CapeBrowser(): JSX.Element {
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-3">
             {visibleCapes.map((cape) => (
-              <div
+              <button
+                type="button"
                 key={cape.id}
                 onClick={() => handleSelectCape(cape)}
-                className={`p-3 rounded-xl cursor-pointer transition-all border ${
+                aria-pressed={selectedCape?.id === cape.id}
+                className={`p-3 rounded-xl cursor-pointer transition-all border text-left ${
                   selectedCape?.id === cape.id
                     ? "border-[var(--accent)] bg-[rgba(var(--accent-rgb),0.06)] vxl-accent-glow"
                     : "border-[var(--surface-border)] bg-[var(--surface-overlay)] hover:border-[var(--surface-border-strong)]"
@@ -191,7 +193,7 @@ export function CapeBrowser(): JSX.Element {
                     </span>
                   </div>
                 )}
-              </div>
+              </button>
             ))}
           </div>
         )
@@ -203,6 +205,7 @@ export function CapeBrowser(): JSX.Element {
               <div className="w-full h-full min-h-64 flex items-center justify-center bg-[var(--surface-base)]">
                 <SkinView3DWrapper
                   skinUrl={showPlayer ? playerSkin : null}
+                  playerUuid={activeAccount?.id}
                   skinVariant={playerSkinVariant}
                   capeUrl={
                     selectedCape.id === "no-cape"

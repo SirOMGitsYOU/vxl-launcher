@@ -36,7 +36,7 @@ export function EnchantmentParticlesEffect({
   forceEnable = false,
 }: EnchantmentParticlesEffectProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { accentColor, isBackgroundAnimationEnabled } = useThemeStore();
+  const { accentColor, staticBackground } = useThemeStore();
   const particlesRef = useRef<Particle[]>([]);
   const mouseRef = useRef<{ x: number | null; y: number | null }>({
     x: null,
@@ -47,7 +47,6 @@ export function EnchantmentParticlesEffect({
   const { qualityLevel } = useQualitySettingsStore();
   const visibleRef = useRef<boolean>(true);
   const isWindowFocused = useWindowFocus();
-  const shouldRender = forceEnable || isBackgroundAnimationEnabled;
   
   // Animation timing state management
   const pausedTimeRef = useRef<number>(0);
@@ -59,7 +58,8 @@ export function EnchantmentParticlesEffect({
   const justResumedRef = useRef<boolean>(false);
   
   // Animation should only run if both window is focused AND background animations are enabled (or forced)
-  const shouldAnimate = isWindowFocused && shouldRender;
+  const shouldAnimate =
+    isWindowFocused && (forceEnable || !staticBackground);
 
   const hexToRgba = (hex: string, alpha: number) => {
     const r = Number.parseInt(hex.slice(1, 3), 16);
@@ -69,8 +69,6 @@ export function EnchantmentParticlesEffect({
   };
 
   useEffect(() => {
-    if (!shouldRender) return;
-
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -127,19 +125,77 @@ export function EnchantmentParticlesEffect({
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
-      context.scale(dpr, dpr);
+      context.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      if (particlesRef.current.length === 0) {
+      staticFrameRenderedRef.current = false;
+
+      if (shouldAnimate && particlesRef.current.length === 0) {
         initParticles();
+      }
+
+      if (!shouldAnimate) {
+        requestAnimationFrame(() => {
+          renderStaticFrame();
+        });
       }
     };
 
+    const renderStaticFrame = () => {
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) {
+        return false;
+      }
+
+      context.clearRect(0, 0, rect.width, rect.height);
+      context.fillStyle = `rgba(0, 0, 0, ${opacity / 2})`;
+      context.fillRect(0, 0, rect.width, rect.height);
+
+      if (pausedParticleStatesRef.current.length === 0) {
+        pausedParticleStatesRef.current = [];
+        for (let i = 0; i < Math.floor(adjustedParticleCount * 0.6); i++) {
+          const char =
+            enchantmentChars[Math.floor(Math.random() * enchantmentChars.length)];
+          pausedParticleStatesRef.current.push({
+            x: Math.random() * rect.width,
+            y: Math.random() * rect.height,
+            vx: 0,
+            vy: 0,
+            size: Math.random() * 12 + 8,
+            alpha: Math.random() * 0.6 + 0.2,
+            color: hexToRgba(accentColor.value, 1),
+            life: 20,
+            maxLife: 999999,
+            character: char,
+          });
+        }
+      }
+
+      pausedParticleStatesRef.current.forEach((particle) => {
+        const fadeInFactor = Math.min(1, particle.life / 20);
+        const fadeOutFactor = Math.max(
+          0,
+          1 - (particle.life - (particle.maxLife - 20)) / 20,
+        );
+        const currentAlpha = particle.alpha * fadeInFactor * fadeOutFactor;
+
+        context.font = `${particle.size}px "Times New Roman", serif`;
+        context.fillStyle = hexToRgba(accentColor.value, currentAlpha * opacity);
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillText(particle.character, particle.x, particle.y);
+      });
+
+      staticFrameRenderedRef.current = true;
+      return true;
+    };
+
     const initParticles = () => {
+      const rect = canvas.getBoundingClientRect();
       particlesRef.current = [];
       for (let i = 0; i < adjustedParticleCount; i++) {
         createParticle(
-          Math.random() * canvas.width,
-          Math.random() * canvas.height,
+          Math.random() * rect.width,
+          Math.random() * rect.height,
           true,
         );
       }
@@ -201,78 +257,41 @@ export function EnchantmentParticlesEffect({
       // Don't render if element is not visible
       if (!visibleRef.current) return;
       
-      // If animations are disabled, pause timing and render static frame only once
+      // If animations are disabled, render a static frame
       if (!shouldAnimate) {
-        // Record pause start time if not already paused
         if (lastPauseStartRef.current === 0) {
           lastPauseStartRef.current = timestamp;
-          // Store current animation time when pausing
-          const currentAnimationTime = timestamp - animationStartTimeRef.current - totalPausedDurationRef.current;
-          pausedTimeRef.current = currentAnimationTime;
-          // Deep copy current particle states for static frame
-          pausedParticleStatesRef.current = JSON.parse(JSON.stringify(particlesRef.current));
-        }
-        
-        if (!staticFrameRenderedRef.current) {
-          context.clearRect(0, 0, canvas.width, canvas.height);
-          context.fillStyle = `rgba(0, 0, 0, ${opacity / 2})`;
-          context.fillRect(0, 0, canvas.width, canvas.height);
-          
-          // Create/maintain static particles if they don't exist
-          if (pausedParticleStatesRef.current.length === 0) {
-            pausedParticleStatesRef.current = [];
-            for (let i = 0; i < Math.floor(adjustedParticleCount * 0.3); i++) {
-              const char = enchantmentChars[Math.floor(Math.random() * enchantmentChars.length)];
-              pausedParticleStatesRef.current.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                vx: 0,
-                vy: 0,
-                size: Math.random() * 12 + 8,
-                alpha: Math.random() * 0.6 + 0.2,
-                color: hexToRgba(accentColor.value, 1),
-                life: 20,
-                maxLife: 999999,
-                character: char,
-              });
-            }
+          if (particlesRef.current.length > 0) {
+            pausedParticleStatesRef.current = JSON.parse(
+              JSON.stringify(particlesRef.current),
+            );
           }
-          
-          // Render static particles showing paused animation state
-          pausedParticleStatesRef.current.forEach((particle) => {
-            const fadeInFactor = Math.min(1, particle.life / 20);
-            const fadeOutFactor = Math.max(0, 1 - (particle.life - (particle.maxLife - 20)) / 20);
-            const currentAlpha = particle.alpha * fadeInFactor * fadeOutFactor;
+        }
 
-            context.font = `${particle.size}px "Times New Roman", serif`;
-            context.fillStyle = hexToRgba(accentColor.value, currentAlpha * opacity);
-            context.textAlign = "center";
-            context.textBaseline = "middle";
-            context.fillText(particle.character, particle.x, particle.y);
-          });
-          
-          staticFrameRenderedRef.current = true;
+        if (!staticFrameRenderedRef.current) {
+          renderStaticFrame();
         }
         return;
       }
 
       // Reset static frame flag and handle resume when animations are enabled again
       if (staticFrameRenderedRef.current) {
-        // Calculate total paused duration and reset pause tracking BEFORE resetting flag
         if (lastPauseStartRef.current > 0) {
           const pauseDuration = timestamp - lastPauseStartRef.current;
           totalPausedDurationRef.current += pauseDuration;
           lastPauseStartRef.current = 0;
           lastFrameTimeRef.current = timestamp;
-          justResumedRef.current = true; // Mark that we just resumed
-          
-          // Restore particle states from pause
+          justResumedRef.current = true;
+
           if (pausedParticleStatesRef.current.length > 0) {
-            particlesRef.current = JSON.parse(JSON.stringify(pausedParticleStatesRef.current));
+            particlesRef.current = JSON.parse(
+              JSON.stringify(pausedParticleStatesRef.current),
+            );
           }
         }
-        
+
         staticFrameRenderedRef.current = false;
+        pausedParticleStatesRef.current = [];
       }
 
       // Ensure particles are initialized for normal animation
@@ -291,9 +310,10 @@ export function EnchantmentParticlesEffect({
 
       lastFrameTimeRef.current = timestamp - (elapsed % frameInterval);
 
-      context.clearRect(0, 0, canvas.width, canvas.height);
+      const rect = canvas.getBoundingClientRect();
+      context.clearRect(0, 0, rect.width, rect.height);
       context.fillStyle = `rgba(0, 0, 0, ${opacity / 2})`;
-      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillRect(0, 0, rect.width, rect.height);
 
       particlesRef.current = particlesRef.current.filter((particle) => {
         particle.life++;
@@ -323,9 +343,10 @@ export function EnchantmentParticlesEffect({
       });
 
       if (Math.random() > 0.9) {
+        const rect = canvas.getBoundingClientRect();
         createParticle(
-          Math.random() * canvas.width,
-          Math.random() * canvas.height,
+          Math.random() * rect.width,
+          Math.random() * rect.height,
         );
       }
     };
@@ -335,8 +356,17 @@ export function EnchantmentParticlesEffect({
     canvas.addEventListener("mousemove", handleMouseMove);
     canvas.addEventListener("mouseleave", handleMouseLeave);
 
-    // Start animation or render static frame
-    animationFrameRef.current = requestAnimationFrame(animate);
+    const startLoop = () => {
+      if (shouldAnimate) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        animationFrameRef.current = requestAnimationFrame(() => {
+          renderStaticFrame();
+        });
+      }
+    };
+
+    startLoop();
 
     return () => {
       observer.disconnect();
@@ -354,28 +384,9 @@ export function EnchantmentParticlesEffect({
     interactive,
     speed,
     qualityLevel,
-    shouldRender,
     shouldAnimate,
+    staticBackground,
   ]);
-
-
-
-  if (!shouldRender) {
-    return (
-      <div
-        className={className}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          zIndex: 0,
-          backgroundColor: "rgba(0, 0, 0, 0.5)",
-        }}
-      />
-    );
-  }
 
   return (
     <canvas

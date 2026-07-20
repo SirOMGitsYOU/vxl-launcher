@@ -2,6 +2,7 @@ use crate::config::{ProjectDirsExt, HTTP_CLIENT, LAUNCHER_DIRECTORY};
 use crate::error::{AppError, CommandError};
 use crate::state::profile_state::{ImageSource, ProfileBanner};
 use crate::state::state_manager::State;
+use crate::utils::path_security;
 use log::{debug, error, info, warn};
 use serde::Deserialize;
 use std::path::PathBuf;
@@ -62,7 +63,9 @@ pub async fn resolve_image_path(
         // RelativePath: Relative to launcher directory
         ImageSource::RelativePath { path } => {
             let launcher_dir = LAUNCHER_DIRECTORY.root_dir();
-            let full_path = launcher_dir.join(path);
+            let full_path =
+                path_security::join_relative_path(&launcher_dir, &path).map_err(CommandError::from)?;
+            let full_path = path_security::validate_path(&full_path).map_err(CommandError::from)?;
 
             debug!("Resolved relative path to: {:?}", full_path);
             if !full_path.exists() {
@@ -105,7 +108,11 @@ pub async fn resolve_image_path(
             let profile_path = profile_manager
                 .get_profile_instance_path(profile_uuid)
                 .await?;
-            let full_path = profile_path.join(path);
+            let full_path =
+                path_security::join_relative_path(&profile_path, &path).map_err(CommandError::from)?;
+            let full_path =
+                path_security::validate_path_under_base(&full_path, &profile_path)
+                    .map_err(CommandError::from)?;
 
             debug!("Resolved profile-relative path to: {:?}", full_path);
             if !full_path.exists() {
@@ -120,7 +127,7 @@ pub async fn resolve_image_path(
 
         // AbsolutePath: Already a complete path, just convert to URL
         ImageSource::AbsolutePath { path } => {
-            let path_buf = PathBuf::from(path);
+            let path_buf = path_security::validate_path(&path).map_err(CommandError::from)?;
 
             debug!("Using absolute path: {:?}", path_buf);
             if !path_buf.exists() {
@@ -190,7 +197,9 @@ pub async fn upload_profile_images(payload: UploadProfileImagesPayload) -> Resul
     // Determine the source path: either from local path, downloaded URL, or None
     let mut temp_file_to_delete: Option<PathBuf> = None;
     let effective_src_path: Option<PathBuf> = if let Some(local_path_str) = payload.path {
-        Some(PathBuf::from(local_path_str))
+        Some(
+            path_security::validate_path(&local_path_str).map_err(CommandError::from)?,
+        )
     } else if let Some(url_str) = payload.icon_url {
         info!("Downloading image from URL: {}", url_str);
         let response = HTTP_CLIENT.get(&url_str).send().await.map_err(|e| {
@@ -305,7 +314,7 @@ pub async fn upload_profile_images(payload: UploadProfileImagesPayload) -> Resul
     let relative_image_path_str = PathBuf::from(target_sub_dir_name)
         .join(&target_image_filename) // Use new filename
         .to_string_lossy()
-        .to_string();
+        .replace('\\', "/");
 
     // Update the profile to use this new image path
     let mut profile = profile_manager.get_profile(profile_uuid).await?;

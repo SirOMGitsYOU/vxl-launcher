@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, memo } from "react";
 import { Icon } from "@iconify/react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { localFileToDisplayUrl } from "../../utils/local-file-url";
 import type {
   ProfileBanner,
   ImageSourceAbsolutePath,
@@ -48,13 +48,14 @@ const ProfileIcon = memo(function ProfileIcon({
   const [isUpdating, setIsUpdating] = useState(false);
   const [showLoading, setShowLoading] = useState(false);
   const [hasLoadedImage, setHasLoadedImage] = useState(false);
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
   const [imageOpacity, setImageOpacity] = useState(0);
 
   useEffect(() => {
     const resolveImageUrlWithService = async () => {
       if (banner?.source) {
         setIsLoading(true);
-        
+        setImageLoadFailed(false);
         // Verzögerte Anzeige der Loading-Animation um Flackern zu vermeiden
         const loadingTimeout = setTimeout(() => {
           setShowLoading(true);
@@ -72,14 +73,15 @@ const ProfileIcon = memo(function ProfileIcon({
             banner.source.type === "relativeProfile"
           ) {
             if (resolvedPathOrUrl) { 
-              const assetUrl = await convertFileSrc(resolvedPathOrUrl);
-              setImageUrl(assetUrl);
+              const displayUrl = await localFileToDisplayUrl(resolvedPathOrUrl);
+              setImageUrl(displayUrl);
               setHasLoadedImage(true);
-              // Fade-in mit kleiner Verzögerung für smooth transition
+              setImageLoadFailed(false);
               setTimeout(() => setImageOpacity(1), 50);
             } else {
                 setImageUrl(null);
                 setHasLoadedImage(false);
+                setImageLoadFailed(true);
                 setImageOpacity(0);
             }
           } else {
@@ -101,6 +103,7 @@ const ProfileIcon = memo(function ProfileIcon({
           );
           setImageUrl(null);
           setHasLoadedImage(false);
+          setImageLoadFailed(true);
           setImageOpacity(0);
         } finally {
           clearTimeout(loadingTimeout);
@@ -112,6 +115,7 @@ const ProfileIcon = memo(function ProfileIcon({
         setIsLoading(false);
         setShowLoading(false);
         setHasLoadedImage(false);
+        setImageLoadFailed(false);
         setImageOpacity(0);
       }
     };
@@ -170,8 +174,8 @@ const ProfileIcon = memo(function ProfileIcon({
 
   const effectiveIconClassName = cn(iconClassName, displaySpinner && "opacity-50");
   const displayPlaceholderIcon = displaySpinner ? "eos-icons:loading" : placeholderIcon;
-  const hasImage = imageUrl && hasLoadedImage && !isLoading;
-  const shouldShowPlaceholder = !banner?.source && !isLoading;
+  const hasImage = imageUrl && hasLoadedImage && !isLoading && !imageLoadFailed;
+  const shouldShowPlaceholder = (!banner?.source || imageLoadFailed) && !isLoading;
   
   const baseContainerClasses = "flex items-center justify-center flex-shrink-0 transition-all duration-200 ease-in-out relative group overflow-hidden";
 
@@ -181,8 +185,16 @@ const ProfileIcon = memo(function ProfileIcon({
     borderColor: `${accentColor}${borderColorOpacity}`,
   } : {};
 
-  const placeholderIconStyle = variant === "bare" && !hasImage ? { color: accentColor } : {};
-  const placeholderFinalIconClassName = variant === "bare" && !hasImage ? cn(iconClassName, "text-transparent") : iconClassName;
+  const placeholderIconStyle =
+    variant === "bare" && !hasImage && !shouldShowPlaceholder
+      ? { color: accentColor }
+      : variant === "bare" && shouldShowPlaceholder
+        ? { color: `${accentColor}99` }
+        : {};
+  const placeholderFinalIconClassName =
+    variant === "bare" && !hasImage && !shouldShowPlaceholder
+      ? cn(iconClassName, "text-transparent")
+      : iconClassName;
 
   return (
     <div
@@ -222,6 +234,15 @@ const ProfileIcon = memo(function ProfileIcon({
                 canBeClicked && "group-hover:opacity-60"
             )}
             style={{ opacity: imageOpacity }}
+            onLoad={() => {
+              setImageLoadFailed(false);
+              setImageOpacity(1);
+            }}
+            onError={() => {
+              setHasLoadedImage(false);
+              setImageLoadFailed(true);
+              setImageOpacity(0);
+            }}
           />
           {canBeClicked && (
              <div className={cn(

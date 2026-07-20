@@ -7,12 +7,14 @@ import { MainLaunchButton } from './MainLaunchButton';
 import { useThemeStore } from '../../store/useThemeStore';
 import { MinecraftSkinService } from '../../services/minecraft-skin-service';
 import type { GetStarlightSkinRenderPayload } from '../../types/localSkin';
-import { convertFileSrc } from '@tauri-apps/api/core';
+import { localFileToDisplayUrl } from '../../utils/local-file-url';
 import { Icon } from '@iconify/react';
 import { ProfileCardV2 } from '../profiles/ProfileCardV2';
 import { useProfileStore } from '../../store/profile-store';
 
-const DEFAULT_FALLBACK_SKIN_URL = "/skins/default_steve_full.png"; // Defined constant for fallback URL
+import { getDefaultFullbodyRenderUrl, getFullbodyRenderUrl } from '../../lib/avatar-utils';
+
+const DEFAULT_FALLBACK_SKIN_URL = getDefaultFullbodyRenderUrl();
 
 // Featured profile ID - can be null or a UUID string
 const FEATURED_PROFILE_ID: string | null = "d2332f66-9117-4cf3-b35b-6bac4262f984"; // Set to a valid profile UUID to enable feature toggle, or null to disable
@@ -44,6 +46,7 @@ export function PlayerActionsDisplay({
   const featureMode = useThemeStore((state) => state.featureMode);
   const setFeatureMode = useThemeStore((state) => state.setFeatureMode);
   const [resolvedSkinUrl, setResolvedSkinUrl] = useState<string>(DEFAULT_FALLBACK_SKIN_URL);
+  const [fallbackSkinUrl, setFallbackSkinUrl] = useState<string>(DEFAULT_FALLBACK_SKIN_URL);
 
   const { profiles } = useProfileStore();
   const featuredProfile = FEATURED_PROFILE_ID ? profiles.find(p => p.id === FEATURED_PROFILE_ID) : null;
@@ -60,6 +63,11 @@ export function PlayerActionsDisplay({
 
   useEffect(() => {
     const fetchAndSetSkin = async () => {
+      const remoteFallback = playerName
+        ? getFullbodyRenderUrl(playerName)
+        : DEFAULT_FALLBACK_SKIN_URL;
+      setFallbackSkinUrl(remoteFallback);
+
       if (playerName) {
         try {
           const payload: GetStarlightSkinRenderPayload = {
@@ -70,15 +78,15 @@ export function PlayerActionsDisplay({
           console.log("[PlayerActionsDisplay] Fetching skin for:", playerName, "Payload:", payload);
           const localPath = await MinecraftSkinService.getStarlightSkinRender(payload);
           console.log("[PlayerActionsDisplay] Fetched local path:", localPath);
-          if (localPath) { // Check if path is not empty or null
-            setResolvedSkinUrl(convertFileSrc(localPath));
+          if (localPath) {
+            setResolvedSkinUrl(await localFileToDisplayUrl(localPath));
           } else {
             console.warn("[PlayerActionsDisplay] Received empty path from service, using fallback.");
-            setResolvedSkinUrl(DEFAULT_FALLBACK_SKIN_URL);
+            setResolvedSkinUrl(remoteFallback);
           }
         } catch (error) {
           console.error("[PlayerActionsDisplay] Failed to fetch starlight skin render:", error);
-          setResolvedSkinUrl(DEFAULT_FALLBACK_SKIN_URL); // Fallback on error
+          setResolvedSkinUrl(remoteFallback);
         }
       } else {
         console.log("[PlayerActionsDisplay] No player name, using default fallback skin.");
@@ -133,7 +141,8 @@ export function PlayerActionsDisplay({
         displayMode === 'logo' && "z-10"
       )}>
         <SkinViewer
-          skinUrl={resolvedSkinUrl} 
+          skinUrl={resolvedSkinUrl}
+          fallbackSkinUrl={fallbackSkinUrl}
           playerName={playerName?.toString()} 
           width={skinViewerMaxDisplayWidth} 
           height={skinViewerDisplayHeight} 

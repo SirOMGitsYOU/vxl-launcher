@@ -14,7 +14,7 @@ import { LaunchButton } from "../ui/buttons/LaunchButton";
 import { Card } from "../ui/Card";
 import { useNavigate } from "react-router-dom";
 import ProfileIcon from "./ProfileIcon";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { localFileToDisplayUrl } from "../../utils/local-file-url";
 import { cn } from "../../lib/utils";
 import { useLaunchStateStore } from "../../store/launch-state-store";
 
@@ -67,7 +67,7 @@ export function ProfileCard({
 
   const handleSettingsClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(`/profilesv2/${profile.id}`);
+    navigate(`/profiles/${profile.id}`);
     if (onSettingsNavigation) {
       setTimeout(() => {
         onSettingsNavigation();
@@ -92,8 +92,8 @@ export function ProfileCard({
             profile.background.source.type === "relativeProfile"
           ) {
             if (resolvedPathOrUrl) {
-              const assetUrl = await convertFileSrc(resolvedPathOrUrl);
-              setResolvedBackgroundImageUrl(assetUrl + "?v=" + Date.now());
+              const displayUrl = await localFileToDisplayUrl(resolvedPathOrUrl);
+              setResolvedBackgroundImageUrl(displayUrl);
             } else {
               setResolvedBackgroundImageUrl(null);
             }

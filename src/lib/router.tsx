@@ -1,4 +1,4 @@
-import { createHashRouter, Navigate } from "react-router-dom";
+import { createHashRouter, Navigate, useParams } from "react-router-dom";
 import { App } from "../App";
 import { PlayTab } from "../components/tabs/PlayTab";
 import { ProfileDetailViewV2Wrapper } from "../components/profiles/ProfileDetailViewV2Wrapper";
@@ -11,6 +11,22 @@ import { BrowseTab } from "../components/profiles/detail/BrowseTab";
 import { BrowseTabWrapper } from "../components/profiles/BrowseTabWrapper";
 import { ProfilesTabV2 } from "../components/tabs/ProfilesTabV2";
 import { ModDetailPage } from "../components/mods/ModDetailPage";
+
+function LegacyProfileRedirect() {
+  const { profileId } = useParams();
+  return <Navigate to={`/profiles/${profileId ?? ""}`} replace />;
+}
+
+function LegacyBrowseRedirect() {
+  const { profileId, contentType } = useParams();
+  return (
+    <Navigate
+      to={`/profiles/${profileId ?? ""}/browse/${contentType ?? ""}`}
+      replace
+    />
+  );
+}
+
 export const router = createHashRouter([
   {
     path: "/",
@@ -30,11 +46,11 @@ export const router = createHashRouter([
       },
       {
         path: "profilesv2/:profileId",
-        element: <ProfileDetailViewV2Wrapper />,
+        element: <LegacyProfileRedirect />,
       },
       {
         path: "profilesv2/:profileId/browse/:contentType",
-        element: <BrowseTabWrapper />,
+        element: <LegacyBrowseRedirect />,
       },
       {
         path: "profiles",

@@ -35,7 +35,7 @@ export function BrowseTabWrapper() {
   const handleClose = () => {
     // Navigate back to the profile detail view
     if (profileId) {
-      navigate(`/profilesv2/${profileId}`);
+      navigate(`/profiles/${profileId}`);
     } else {
       navigate("/profiles");
     }

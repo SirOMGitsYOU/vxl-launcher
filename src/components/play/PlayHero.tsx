@@ -6,12 +6,14 @@ import { SkinViewer } from "../launcher/SkinViewer";
 import { useThemeStore } from "../../store/useThemeStore";
 import { MinecraftSkinService } from "../../services/minecraft-skin-service";
 import type { GetStarlightSkinRenderPayload } from "../../types/localSkin";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { localFileToDisplayUrl } from "../../utils/local-file-url";
 import { useProfileStore } from "../../store/profile-store";
 import { ProfileCardV2 } from "../profiles/ProfileCardV2";
 import { PlayLaunchControl } from "./PlayLaunchControl";
 
-const DEFAULT_FALLBACK_SKIN_URL = "/skins/default_steve_full.png";
+import { getDefaultFullbodyRenderUrl, getFullbodyRenderUrl } from "../../lib/avatar-utils";
+
+const DEFAULT_FALLBACK_SKIN_URL = getDefaultFullbodyRenderUrl();
 const FEATURED_PROFILE_ID: string | null = "d2332f66-9117-4cf3-b35b-6bac4262f984";
 
 interface PlayHeroProps {
@@ -38,6 +40,7 @@ export function PlayHero({
   const featureMode = useThemeStore((state) => state.featureMode);
   const setFeatureMode = useThemeStore((state) => state.setFeatureMode);
   const [resolvedSkinUrl, setResolvedSkinUrl] = useState<string>(DEFAULT_FALLBACK_SKIN_URL);
+  const [fallbackSkinUrl, setFallbackSkinUrl] = useState<string>(DEFAULT_FALLBACK_SKIN_URL);
 
   const { profiles } = useProfileStore();
   const featuredProfile = FEATURED_PROFILE_ID
@@ -53,6 +56,11 @@ export function PlayHero({
 
   useEffect(() => {
     const fetchAndSetSkin = async () => {
+      const remoteFallback = playerName
+        ? getFullbodyRenderUrl(playerName)
+        : DEFAULT_FALLBACK_SKIN_URL;
+      setFallbackSkinUrl(remoteFallback);
+
       if (playerName) {
         try {
           const payload: GetStarlightSkinRenderPayload = {
@@ -62,12 +70,12 @@ export function PlayHero({
           };
           const localPath = await MinecraftSkinService.getStarlightSkinRender(payload);
           if (localPath) {
-            setResolvedSkinUrl(convertFileSrc(localPath));
+            setResolvedSkinUrl(await localFileToDisplayUrl(localPath));
           } else {
-            setResolvedSkinUrl(DEFAULT_FALLBACK_SKIN_URL);
+            setResolvedSkinUrl(remoteFallback);
           }
         } catch {
-          setResolvedSkinUrl(DEFAULT_FALLBACK_SKIN_URL);
+          setResolvedSkinUrl(remoteFallback);
         }
       } else {
         setResolvedSkinUrl(DEFAULT_FALLBACK_SKIN_URL);
@@ -104,6 +112,7 @@ export function PlayHero({
       <div className="relative w-full flex flex-col items-center">
         <SkinViewer
           skinUrl={resolvedSkinUrl}
+          fallbackSkinUrl={fallbackSkinUrl}
           playerName={playerName?.toString()}
           width={skinViewerMaxDisplayWidth}
           height={skinViewerDisplayHeight}

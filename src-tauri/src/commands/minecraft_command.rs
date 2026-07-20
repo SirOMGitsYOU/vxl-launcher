@@ -21,6 +21,17 @@ use std::sync::Arc;
 use tauri_plugin_dialog::DialogExt;
 use uuid::Uuid;
 
+async fn resolve_active_access_token() -> Result<String, CommandError> {
+    let state = State::get().await?;
+    let account = state
+        .minecraft_account_manager_v2
+        .get_active_account()
+        .await?;
+    account
+        .map(|credentials| credentials.access_token)
+        .ok_or_else(|| CommandError::from(AppError::NoCredentialsError))
+}
+
 // --- New Imports for add_skin_locally ---
 use crate::minecraft::dto::skin_payloads::{
     AddLocalSkinCommandPayload, SkinSource,
@@ -147,10 +158,7 @@ pub async fn get_profile_by_name_or_uuid(
 
 /// Get the current user skin data
 #[tauri::command]
-pub async fn get_user_skin_data(
-    uuid: String,
-    access_token: Option<String>,
-) -> Result<MinecraftProfile, CommandError> {
+pub async fn get_user_skin_data(uuid: String) -> Result<MinecraftProfile, CommandError> {
     debug!("Command called: get_user_skin_data for UUID: {}", uuid);
     let api_service = MinecraftApiService::new();
 
@@ -173,10 +181,10 @@ pub async fn get_user_skin_data(
 #[tauri::command]
 pub async fn upload_skin<R: tauri::Runtime>(
     uuid: String,
-    access_token: String,
     skin_variant: String,
     app: tauri::AppHandle<R>,
 ) -> Result<(), CommandError> {
+    let access_token = resolve_active_access_token().await?;
     debug!(
         "Command called: upload_skin for UUID: {} with variant: {}",
         uuid, skin_variant
@@ -325,7 +333,8 @@ pub async fn upload_skin<R: tauri::Runtime>(
 
 /// Reset skin to default
 #[tauri::command]
-pub async fn reset_skin(uuid: String, access_token: String) -> Result<(), CommandError> {
+pub async fn reset_skin(uuid: String) -> Result<(), CommandError> {
+    let access_token = resolve_active_access_token().await?;
     debug!("Command called: reset_skin for UUID: {}", uuid);
 
     // Create a new API service instance
@@ -482,10 +491,10 @@ pub async fn remove_skin(id: String) -> Result<bool, CommandError> {
 #[tauri::command]
 pub async fn apply_skin_from_base64(
     uuid: String,
-    access_token: String,
     base64_data: String,
     skin_variant: String,
 ) -> Result<(), CommandError> {
+    let access_token = resolve_active_access_token().await?;
     debug!(
         "Command called: apply_skin_from_base64 for UUID: {} with variant: {}",
         uuid, skin_variant

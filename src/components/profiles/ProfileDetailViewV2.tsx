@@ -24,9 +24,9 @@ import { useProfileDuplicateStore } from "../../store/profile-duplicate-store";
 import { useProfileLaunch } from "../../hooks/useProfileLaunch.tsx";
 import { useAppDragDropStore } from "../../store/appStore";
 
-import { WorldsTab } from "./detail/WorldsTab";
-import { ScreenshotsTab } from "./detail/ScreenshotsTab";
-import { LogsTab } from "./detail/LogsTab";
+import { WorldsTabV2 } from "./detail/v2/WorldsTabV2";
+import { ScreenshotsTabV2 } from "./detail/v2/ScreenshotsTabV2";
+import { LogsTabV2 } from "./detail/v2/LogsTabV2";
 import type { LocalContentItem } from "../../hooks/useLocalContentManager";
 import { ModpackDebugInfo } from "../../debug";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
@@ -147,7 +147,7 @@ export function ProfileDetailViewV2({
   const handleBrowseContent = useCallback((contentType: string) => {
     console.log("Browse content requested for:", contentType);
     // Navigate to the browse route instead of just changing the tab
-    navigate(`/profilesv2/${profile.id}/browse/${contentType}`);
+    navigate(`/profiles/${profile.id}/browse/${contentType}`);
   }, [navigate, profile.id]);
 
   // Handler for deleting profile
@@ -760,7 +760,7 @@ export function ProfileDetailViewV2({
 
           {activeMainTab === "worlds" && (
             <div className="h-full">
-              <WorldsTab
+              <WorldsTabV2
                 profile={currentProfile}
                 onRefresh={handleRefresh}
                 isActive={true}
@@ -771,7 +771,7 @@ export function ProfileDetailViewV2({
 
           {activeMainTab === "screenshots" && (
             <div className="h-full">
-              <ScreenshotsTab
+              <ScreenshotsTabV2
                 profile={currentProfile}
                 isActive={true}
                 onOpenScreenshotModal={(screenshot) => {
@@ -784,7 +784,7 @@ export function ProfileDetailViewV2({
 
           {activeMainTab === "logs" && (
             <div className="h-full">
-              <LogsTab
+              <LogsTabV2
                 profile={currentProfile}
                 isActive={true}
                 onRefresh={handleRefresh}

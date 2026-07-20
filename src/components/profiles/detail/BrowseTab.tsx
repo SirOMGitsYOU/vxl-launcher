@@ -109,7 +109,7 @@ export function BrowseTab({
   // Handle back navigation
   const handleBack = () => {
     if (profileId) {
-      navigate(`/profilesv2/${profileId}`);
+      navigate(`/profiles/${profileId}`);
     } else {
       navigate("/profiles");
     }

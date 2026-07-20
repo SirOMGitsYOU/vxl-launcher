@@ -65,7 +65,7 @@ export function ProfileImport({
         onImportComplete();
 
         // Navigate to the new profile
-        navigate(`/profilesv2/${newProfileId}`);
+        navigate(`/profiles/${newProfileId}`);
 
       } else {
         if (selectedPath === null) {

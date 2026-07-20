@@ -58,7 +58,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     }
 
     try {
-      set({ error: null });
+      set({ error: null, loading: true });
       const response = await ProfileService.getAllProfilesAndLastPlayed();
       const { all_profiles, last_played_profile_id } = response;
 

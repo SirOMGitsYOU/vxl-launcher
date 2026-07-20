@@ -9,18 +9,6 @@ import { VerticalNavbar } from ".././navigation/VerticalNavbar";
 import { UserProfileBar } from ".././header/UserProfileBar";
 import { useThemeStore } from "../../store/useThemeStore";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
-import {
-  BACKGROUND_EFFECTS,
-  useBackgroundEffectStore,
-} from "../../store/background-effect-store";
-import { useQualitySettingsStore } from "../../store/quality-settings-store";
-import { EnchantmentParticlesEffect } from ".././effects/EnchantmentParticlesEffect";
-import { NebulaGrid } from ".././effects/NebulaGrid";
-import { NebulaVoxels } from ".././effects/NebulaVoxels";
-import { RetroGridEffect } from "../effects/RetroGridEffect";
-import { VoxelGrid } from ".././effects/VoxelGrid";
-import { RetroVoxelGrid } from ".././effects/RetroVoxelGrid";
-import PlainBackground from "../effects/PlainBackground";
 import { checkUpdateAvailable, downloadAndInstallUpdate } from "../../services/nrc-service";
 import type { UpdateInfo } from "../../types/updater";
 import { ProfileWizardV2Modal } from "../modals/ProfileWizardV2Modal";
@@ -61,24 +49,8 @@ export function AppLayout({
   const minimizeRef = useRef<HTMLDivElement>(null);
   const maximizeRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLDivElement>(null);
-  const { currentEffect } = useBackgroundEffectStore();
-  const { qualityLevel } = useQualitySettingsStore();
-  const { isBackgroundAnimationEnabled, accentColor: themeAccentColor } = useThemeStore();
   const { accounts } = useMinecraftAuthStore();
   const hasAccount = accounts && accounts.length > 0;
-
-  const getQualityParams = () => {
-    switch (qualityLevel) {
-      case "low":
-        return { particleCount: 30, opacity: 0.2, speed: 0.5 };
-      case "high":
-        return { particleCount: 80, opacity: 0.4, speed: 1.5 };
-      default:
-        return { particleCount: 50, opacity: 0.3, speed: 1 };
-    }
-  };
-
-  const qualityParams = getQualityParams();
 
   useEffect(() => {
     let cancelled = false;
@@ -164,74 +136,6 @@ export function AppLayout({
     return () => ctx.revert();
   }, []);
 
-  const renderBackgroundEffect = () => {
-    switch (currentEffect) {
-      case BACKGROUND_EFFECTS.ENCHANTMENT_PARTICLES:
-        return (
-          <EnchantmentParticlesEffect
-            opacity={qualityParams.opacity}
-            particleCount={qualityParams.particleCount}
-            speed={qualityParams.speed}
-            forceEnable={false}
-          />
-        );
-      case BACKGROUND_EFFECTS.NEBULA_GRID:
-        return (
-          <NebulaGrid
-            opacity={qualityParams.opacity}
-            speed={qualityParams.speed}
-            gridSize={30}
-          />
-        );
-      case BACKGROUND_EFFECTS.NEBULA_VOXELS:
-        return (
-          <NebulaVoxels
-            opacity={qualityParams.opacity}
-            cubeCount={qualityParams.particleCount}
-            speed={qualityParams.speed}
-          />
-        );
-      case BACKGROUND_EFFECTS.RETRO_GRID:
-        const hexToRgbaWithLowOpacity = (hex: string) => {
-          const r = parseInt(hex.slice(1, 3), 16);
-          const g = parseInt(hex.slice(3, 5), 16);
-          const b = parseInt(hex.slice(5, 7), 16);
-          return `rgba(${r}, ${g}, ${b}, 0.05)`;
-        };
-        return (
-          <div 
-            className="absolute inset-0"
-            style={{ backgroundColor: hexToRgbaWithLowOpacity(themeAccentColor.value) }}
-          ></div>
-        );
-      case BACKGROUND_EFFECTS.VOXEL_GRID:
-        return (
-          <VoxelGrid
-            opacity={qualityParams.opacity}
-            cubeCount={qualityParams.particleCount}
-            speed={qualityParams.speed}
-            gridSize={30}
-          />
-        );
-      case BACKGROUND_EFFECTS.RETRO_VOXEL_GRID:
-        return (
-          <RetroVoxelGrid
-            opacity={qualityParams.opacity}
-            cubeCount={qualityParams.particleCount}
-            speed={qualityParams.speed}
-          />
-        );
-      case BACKGROUND_EFFECTS.PLAIN_BACKGROUND:
-        return <PlainBackground accentColorValue={themeAccentColor.value} />;
-      default:
-        return (
-          <div className="absolute inset-0 bg-red-500/20">
-            Unknown effect: {currentEffect}
-          </div>
-        );
-    }
-  };
-
   return (
     <div
       ref={launcherRef}
@@ -252,9 +156,7 @@ export function AppLayout({
           closeRef={closeRef}
         />
 
-        <div className="flex-1 relative overflow-hidden bg-[var(--surface-base)]">
-          {activeTab === "play" && isBackgroundAnimationEnabled && renderBackgroundEffect()}
-
+        <div className="flex-1 relative overflow-hidden">
           <div className="relative z-10 h-full overflow-hidden custom-scrollbar">
             {children}
           </div>

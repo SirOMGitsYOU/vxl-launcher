@@ -560,7 +560,7 @@ export function ProfileCardV2({
                 onMods(profile);
               } else {
                 // Navigate to specific profile detail view for mod management
-                navigate(`/profilesv2/${profile.id}`);
+                navigate(`/profiles/${profile.id}`);
               }
             }}
             className={`${variant === "3d" ? (isCompact ? 'w-auto px-2 h-8' : 'w-auto px-3 h-10') : (isCompact ? 'w-8 h-8' : 'w-10 h-10')} flex items-center justify-center gap-1 rounded transition-all duration-200 ${variant === "3d" ? "" : "bg-black/30 hover:bg-black/50 text-white/70 hover:text-white border border-white/10 hover:border-white/20"}`}

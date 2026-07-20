@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { localFileToDisplayUrl } from "../utils/local-file-url";
 import { MinecraftSkinService } from "../services/minecraft-skin-service";
 import { getAvatarUrl, getFallbackAvatarUrl } from "../lib/avatar-utils";
 
@@ -79,7 +79,7 @@ export function useCrafatarAvatar({
         loadingPromises.set(cacheKey, loadingPromise);
 
         const localPath = await loadingPromise;
-        const url = convertFileSrc(localPath);
+        const url = await localFileToDisplayUrl(localPath);
 
         avatarCache.set(cacheKey, url);
         setAvatarUrl(url);

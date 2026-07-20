@@ -4,7 +4,8 @@ import React, { useEffect, useState } from "react";
 import { cn } from "../../lib/utils";
 
 interface SkinViewerProps {
-  skinUrl: string; // This will now be the direct URL (file:// or http:// or /path)
+  skinUrl: string;
+  fallbackSkinUrl?: string;
   playerName?: string;
   width?: number;
   height?: number;
@@ -13,26 +14,38 @@ interface SkinViewerProps {
 }
 
 export function SkinViewer({
-  skinUrl, // Directly use this prop
+  skinUrl,
+  fallbackSkinUrl,
   playerName,
   width = 300,
   height = 400,
   className,
   style,
 }: SkinViewerProps) {
+  const [displayUrl, setDisplayUrl] = useState(skinUrl);
   const [hasError, setHasError] = useState(false);
+  const [usedFallback, setUsedFallback] = useState(false);
 
-  // Reset error state if skinUrl changes, to allow retrying if a new valid URL is provided
   useEffect(() => {
+    setDisplayUrl(skinUrl);
     setHasError(false);
-  }, [skinUrl]);
+    setUsedFallback(false);
+  }, [skinUrl, fallbackSkinUrl]);
 
   const handleError = () => {
-    console.warn(`[SkinViewer] Error loading image from skinUrl: ${skinUrl}`);
+    if (fallbackSkinUrl && !usedFallback) {
+      console.warn(
+        `[SkinViewer] Primary skin failed, trying fallback: ${fallbackSkinUrl}`,
+      );
+      setUsedFallback(true);
+      setDisplayUrl(fallbackSkinUrl);
+      return;
+    }
+    console.warn(`[SkinViewer] Error loading image from skinUrl: ${displayUrl}`);
     setHasError(true);
   };
 
-  if (hasError || !skinUrl) {
+  if (hasError || !displayUrl) {
     // Show fallback if error or no skinUrl provided
     return (
       <div
@@ -49,7 +62,7 @@ export function SkinViewer({
 
   return (
     <img
-      src={skinUrl}
+      src={displayUrl}
       alt={playerName ? `${playerName}'s Skin` : "Minecraft Skin"}
       width={width}
       height={height}

@@ -1,5 +1,3 @@
-import React, { memo, useEffect, useRef, useState } from "react";
-import { convertFileSrc } from "@tauri-apps/api/core";
 import { LoadingSpinner } from "../ui/LoadingSpinner";
 import { SkinViewer } from "../launcher/SkinViewer";
 import { MinecraftSkinService } from "../../services/minecraft-skin-service";
@@ -8,6 +6,8 @@ import {
   buildSkinPreviewCacheKey,
   getOrCreateStaticSkinPreview,
 } from "../../utils/skin-static-preview";
+import React, { memo, useEffect, useRef, useState } from "react";
+import { localFileToDisplayUrl } from "../../utils/local-file-url";
 
 const NMSR_TIMEOUT_MS = 8000;
 const NMSR_RENDER_TYPE = "fullbody";
@@ -73,7 +73,7 @@ export const SkinPreview = memo(function SkinPreview({
         skin.variant,
         MinecraftSkinService.getSkinPreviewPath,
         MinecraftSkinService.saveSkinPreview,
-        convertFileSrc,
+        localFileToDisplayUrl,
       );
 
       if (isMounted) {
@@ -116,7 +116,7 @@ export const SkinPreview = memo(function SkinPreview({
             );
 
             if (isMounted) {
-              setRenderUrl(convertFileSrc(localPath));
+              setRenderUrl(await localFileToDisplayUrl(localPath));
               setIsRenderLoading(false);
               setCanShowSpinner(false);
             }

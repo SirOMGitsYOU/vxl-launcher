@@ -242,10 +242,7 @@ export function SkinsTab() {
     setLoading(true);
 
     try {
-      const data = await MinecraftSkinService.getUserSkinData(
-        activeAccount.id,
-        activeAccount.access_token,
-      );
+      const data = await MinecraftSkinService.getUserSkinData(activeAccount.id);
       setSkinData(data);
 
       const parsed = parseLiveSkinFromProfile(data?.properties);
@@ -423,7 +420,6 @@ export function SkinsTab() {
     try {
       await MinecraftSkinService.applySkinFromBase64(
         activeAccount.id,
-        activeAccount.access_token,
         skin.base64_data,
         skin.variant,
       );
@@ -566,6 +562,7 @@ export function SkinsTab() {
                       ? `data:image/png;base64,${selectedLocalSkin.base64_data}`
                       : playerCurrentSkin
                   }
+                  playerUuid={selectedLocalSkin ? undefined : activeAccount?.id}
                   skinVariant={
                     selectedLocalSkin
                       ? selectedLocalSkin.variant === "slim"

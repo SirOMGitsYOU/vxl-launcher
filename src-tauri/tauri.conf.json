@@ -60,6 +60,7 @@
           "'self'",
           "asset:",
           "http://asset.localhost",
+          "blob:",
           "https://*.modrinth.com",
           "https://cdn.modrinth.com",
           "https://textures.minecraft.net",
@@ -73,13 +74,26 @@
           "https://laby.net",
           "https://crafty.gg",
           "data:"
-        ]
+        ],
+        "style-src": ["'self'", "'unsafe-inline'"],
+        "script-src": ["'self'"],
+        "object-src": ["'none'"],
+        "base-uri": ["'self'"],
+        "frame-ancestors": ["'none'"]
       },
       "assetProtocol": {
         "enable": true,
         "scope": {
           "requireLiteralLeadingDot": false,
-          "allow": ["**/*"]
+          "allow": [
+            "$APPDATA/vxl/**",
+            "$APPDATA/com.vxl.VXLLauncher/**",
+            "$APPLOCALDATA/vxl/**",
+            "$APPLOCALDATA/com.vxl.VXLLauncher/**",
+            "$APPCONFIG/vxl/**",
+            "$APPCONFIG/com.vxl.VXLLauncher/**",
+            "$TEMP/**"
+          ]
         }
       }
     }

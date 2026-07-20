@@ -1421,13 +1421,14 @@ impl ProcessManager {
 
         // Convert bytes to string, replacing invalid sequences
         let log_content = String::from_utf8_lossy(&log_bytes).to_string();
+        let masked_content = crate::utils::security_utils::mask_sensitive_data(&log_content);
 
         log::info!(
             "Successfully read {} bytes (lossy converted to string) from log file for process {}",
             log_bytes.len(),
             process_id
         );
-        Ok(log_content)
+        Ok(masked_content)
     }
 
     /// Fetches the latest crash report for a given profile.

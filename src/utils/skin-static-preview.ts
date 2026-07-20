@@ -93,7 +93,7 @@ export async function getOrCreateStaticSkinPreview(
   variant: SkinVariant,
   getExistingPreviewPath: (key: string) => Promise<string | null>,
   savePreview: (key: string, pngBase64: string) => Promise<string>,
-  toDisplayUrl: (path: string) => string,
+  toDisplayUrl: (path: string) => Promise<string> | string,
 ): Promise<string> {
   const cached = memoryPreviewCache.get(cacheKey);
   if (cached) {
@@ -102,15 +102,15 @@ export async function getOrCreateStaticSkinPreview(
 
   const existingPath = await getExistingPreviewPath(cacheKey);
   if (existingPath) {
-    const displayUrl = toDisplayUrl(existingPath);
+    const displayUrl = await Promise.resolve(toDisplayUrl(existingPath));
     memoryPreviewCache.set(cacheKey, displayUrl);
     return displayUrl;
   }
 
   const blob = await renderSkinPreviewBlob(base64Data, variant);
   const pngBase64 = await blobToBase64(blob);
-  const savedPath = await savePreview(cacheKey, pngBase64);
-  const displayUrl = toDisplayUrl(savedPath);
+  await savePreview(cacheKey, pngBase64);
+  const displayUrl = `data:image/png;base64,${pngBase64}`;
   memoryPreviewCache.set(cacheKey, displayUrl);
   return displayUrl;
 }

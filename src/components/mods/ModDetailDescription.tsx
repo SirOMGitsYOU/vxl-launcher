@@ -6,19 +6,12 @@ import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 import { Icon } from "@iconify/react";
 import { ModPlatform } from "../../types/unified";
+import { sanitizeHtml } from "../../utils/motd-utils";
 
 interface ModDetailDescriptionProps {
   body: string;
   source: ModPlatform;
 }
-
-const sanitizeHtml = (html: string) => {
-  return html
-    .replace(/<script[^>]*>.*?<\/script>/gi, "")
-    .replace(/<style[^>]*>.*?<\/style>/gi, "")
-    .replace(/javascript:/gi, "")
-    .replace(/on\w+="[^"]*"/gi, "");
-};
 
 export function ModDetailDescription({ body, source }: ModDetailDescriptionProps) {
   if (!body || body.trim().length === 0) {
