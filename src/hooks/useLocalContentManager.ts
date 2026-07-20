@@ -1058,9 +1058,15 @@ export function useLocalContentManager<T extends LocalContentItem>({
       isUpdateOperation?: boolean;
     } = {}
   ): Promise<T> => {
+    if (!profile?.id) {
+      throw new Error("Cannot switch version: Missing profile.");
+    }
+
+    const profileId = profile.id;
+
     // Use the unified service method - backend handles all platform logic
     await UnifiedService.switchContentVersion(
-      profile.id,
+      profileId,
       mapUiContentTypeToBackend(contentType),
       item,
       newVersion
@@ -1329,13 +1335,15 @@ export function useLocalContentManager<T extends LocalContentItem>({
       return;
     }
 
+    const profileId = profile.id;
+    const modId = item.id;
     const currentUpdatesEnabled = item.updates_enabled ?? true; // Default to true if null
     const newUpdatesEnabled = !currentUpdatesEnabled;
 
     const promiseAction = async () => {
       await toggleModUpdates({
-        profile_id: profile.id,
-        mod_id: item.id,
+        profile_id: profileId,
+        mod_id: modId,
         updates_enabled: newUpdatesEnabled,
       });
 
@@ -1385,20 +1393,24 @@ export function useLocalContentManager<T extends LocalContentItem>({
       return;
     }
 
+    const profileId = profile.id;
+
     const promiseAction = async () => {
       // Filter out items without valid IDs and prepare bulk update payload
-      const validItems = selectedItems.filter(item => item.id);
+      const validItems = selectedItems.filter(
+        (item): item is T & { id: string } => Boolean(item.id),
+      );
       if (validItems.length === 0) {
         throw new Error("No valid items found with IDs for update check toggle");
       }
 
-      const modUpdates = validItems.map(item => ({
+      const modUpdates = validItems.map((item) => ({
         mod_id: item.id,
         updates_enabled: updatesEnabled,
       }));
 
       await bulkToggleModUpdates({
-        profile_id: profile.id,
+        profile_id: profileId,
         mod_updates: modUpdates,
       });
 
