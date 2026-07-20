@@ -70,6 +70,7 @@ export function useLivePlayerSkin(
 
     setIsLoading(true);
     setError(null);
+    setSkinUrl(undefined);
 
     try {
       const profileData = await MinecraftSkinService.getUserSkinData(activeAccount.id);

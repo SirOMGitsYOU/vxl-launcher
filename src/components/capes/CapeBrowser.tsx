@@ -27,9 +27,11 @@ export function CapeBrowser(): JSX.Element {
   const [selectedCape, setSelectedCape] = useState<VanillaCape | null>(null);
   const { query: searchQuery } = useShellSearch();
   useShellSearchTab("Search capes...");
-  const { skinUrl: playerSkin, variant: playerSkinVariant } = useLivePlayerSkin(activeAccount);
+  const { skinUrl: playerSkin, variant: playerSkinVariant, isLoading: isPlayerSkinLoading } = useLivePlayerSkin(activeAccount);
   const [cachedSelectedCapeUrl, setCachedSelectedCapeUrl] = useState<string | undefined>(undefined);
   const activeAccountId = activeAccount?.id;
+
+  const canShowPlayerSkin = Boolean(playerSkin) && !isPlayerSkinLoading;
 
   // Get equipped cape
   const equippedCape = vanillaCapes.find(cape => cape.equipped);
@@ -203,24 +205,36 @@ export function CapeBrowser(): JSX.Element {
           <>
             <DetailPanelHero className="flex-1 min-h-64">
               <div className="w-full h-full min-h-64 flex items-center justify-center bg-[var(--surface-base)]">
-                <SkinView3DWrapper
-                  skinUrl={showPlayer ? playerSkin : null}
-                  playerUuid={activeAccount?.id}
-                  skinVariant={playerSkinVariant}
-                  capeUrl={
-                    selectedCape.id === "no-cape"
-                      ? undefined
-                      : cachedSelectedCapeUrl ?? selectedCape.url
-                  }
-                  enableAutoRotate
-                  autoRotateSpeed={0.3}
-                  displayAsElytra={showElytra}
-                  zoom={0.9}
-                  enableRotate
-                  enableZoom={false}
-                  enablePan={false}
-                  horizontalRotationOnly
-                />
+                {showPlayer && !canShowPlayerSkin ? (
+                  <Icon
+                    icon="solar:refresh-bold"
+                    className="w-6 h-6 animate-spin text-[var(--text-secondary)]"
+                  />
+                ) : (
+                  <SkinView3DWrapper
+                    key={
+                      showPlayer
+                        ? `${activeAccountId ?? "none"}-${playerSkinVariant}-${playerSkin}`
+                        : "cape-only"
+                    }
+                    skinUrl={showPlayer ? playerSkin : null}
+                    playerUuid={activeAccount?.id}
+                    skinVariant={playerSkinVariant}
+                    capeUrl={
+                      selectedCape.id === "no-cape"
+                        ? undefined
+                        : cachedSelectedCapeUrl ?? selectedCape.url
+                    }
+                    enableAutoRotate
+                    autoRotateSpeed={0.3}
+                    displayAsElytra={showElytra}
+                    zoom={0.9}
+                    enableRotate
+                    enableZoom={false}
+                    enablePan={false}
+                    horizontalRotationOnly
+                  />
+                )}
               </div>
             </DetailPanelHero>
             <DetailPanelBody>

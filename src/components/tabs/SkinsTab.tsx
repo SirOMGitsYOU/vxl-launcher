@@ -151,6 +151,7 @@ export function SkinsTab() {
   const {
     skinUrl: playerCurrentSkin,
     variant: playerCurrentSkinVariant,
+    isLoading: isPlayerSkinLoading,
     refresh: refreshLivePlayerSkin,
   } = useLivePlayerSkin(activeAccount);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -471,7 +472,7 @@ export function SkinsTab() {
       subtitle="Browse and manage your character skins"
       icon="temaki:clothes-hanger"
       toolbarExtra={activeAccount ? addSkinButton : undefined}
-      detailEmpty={!selectedLocalSkin && !playerCurrentSkin}
+      detailEmpty={!selectedLocalSkin && !playerCurrentSkin && !isPlayerSkinLoading}
       detailEmptyMessage="Select a skin to preview"
       browseContent={
         accountLoading ? (
@@ -555,21 +556,31 @@ export function SkinsTab() {
         <>
           <DetailPanelHero className="flex-1 min-h-64">
             <div className="w-full h-full min-h-64 flex items-center justify-center bg-[var(--surface-base)]">
-              {selectedLocalSkin || playerCurrentSkin ? (
+              {selectedLocalSkin ? (
                 <SkinView3DWrapper
-                  skinUrl={
-                    selectedLocalSkin
-                      ? `data:image/png;base64,${selectedLocalSkin.base64_data}`
-                      : playerCurrentSkin
-                  }
-                  playerUuid={selectedLocalSkin ? undefined : activeAccount?.id}
+                  skinUrl={`data:image/png;base64,${selectedLocalSkin.base64_data}`}
                   skinVariant={
-                    selectedLocalSkin
-                      ? selectedLocalSkin.variant === "slim"
-                        ? "slim"
-                        : "classic"
-                      : playerCurrentSkinVariant
+                    selectedLocalSkin.variant === "slim" ? "slim" : "classic"
                   }
+                  enableAutoRotate
+                  autoRotateSpeed={0.3}
+                  zoom={0.9}
+                  enableRotate
+                  enableZoom={false}
+                  enablePan={false}
+                  horizontalRotationOnly
+                />
+              ) : isPlayerSkinLoading || (activeAccount && !playerCurrentSkin) ? (
+                <Icon
+                  icon="solar:refresh-bold"
+                  className="w-6 h-6 animate-spin text-[var(--text-secondary)]"
+                />
+              ) : playerCurrentSkin ? (
+                <SkinView3DWrapper
+                  key={`${activeAccount?.id}-${playerCurrentSkinVariant}-${playerCurrentSkin}`}
+                  skinUrl={playerCurrentSkin}
+                  playerUuid={activeAccount?.id}
+                  skinVariant={playerCurrentSkinVariant}
                   enableAutoRotate
                   autoRotateSpeed={0.3}
                   zoom={0.9}
