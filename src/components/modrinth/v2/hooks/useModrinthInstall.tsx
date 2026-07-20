@@ -1298,7 +1298,6 @@ export function useModrinthInstall({
         }
       } else {
         // Handle both cases: with version and without version
-      let versionToInstall: any = null; // Will be set below
 
         if (version) {
           // Version is available - use it
@@ -1341,7 +1340,7 @@ export function useModrinthInstall({
           // Step 2: Apply loader filter if active
           if (currentSelectedLoaders && currentSelectedLoaders.length > 0) {
             filteredVersions = filteredVersions.filter(version =>
-              version.loaders && version.loaders.some(l =>
+              version.loaders && version.loaders.some((l: string) =>
                 currentSelectedLoaders.some(filterL => filterL.toLowerCase() === l.toLowerCase())
               )
             );
@@ -1356,7 +1355,7 @@ export function useModrinthInstall({
 
           // Step 4: FABRIC-FIRST within filtered versions
           const fabricVersions = filteredVersions.filter(version =>
-            version.loaders && version.loaders.some(l => l.toLowerCase() === 'fabric')
+            version.loaders && version.loaders.some((l: string) => l.toLowerCase() === 'fabric')
           );
 
           debugLog(`✅ Found ${fabricVersions.length} Fabric-compatible versions out of ${filteredVersions.length} filtered versions`);
@@ -1364,21 +1363,23 @@ export function useModrinthInstall({
           if (fabricVersions.length > 0) {
             // Use Fabric version with highest MC version
             const sortedFabricVersions = fabricVersions.sort((a, b) => {
-              const aMaxMC = a.game_versions.sort((x, y) => y.localeCompare(x, undefined, { numeric: true }))[0];
-              const bMaxMC = b.game_versions.sort((x, y) => y.localeCompare(x, undefined, { numeric: true }))[0];
+              const aMaxMC = a.game_versions.sort((x: string, y: string) => y.localeCompare(x, undefined, { numeric: true }))[0];
+              const bMaxMC = b.game_versions.sort((x: string, y: string) => y.localeCompare(x, undefined, { numeric: true }))[0];
               return bMaxMC.localeCompare(aMaxMC, undefined, { numeric: true });
             });
 
             versionToInstall = sortedFabricVersions[0];
             loader = 'fabric';
 
-            // Get highest MC version supported by this Fabric version
-            const sortedMCVersions = [...versionToInstall.game_versions].sort((a, b) => {
-              return b.localeCompare(a, undefined, { numeric: true });
-            });
-            gameVersion = sortedMCVersions[0] || '1.21.1';
+            if (versionToInstall) {
+              // Get highest MC version supported by this Fabric version
+              const sortedMCVersions = [...versionToInstall.game_versions].sort((a, b) => {
+                return b.localeCompare(a, undefined, { numeric: true });
+              });
+              gameVersion = sortedMCVersions[0] || '1.21.1';
 
-            debugLog('🎉 FABRIC SUCCESS: Using Fabric version', versionToInstall.version_number, 'for MC', gameVersion);
+              debugLog('🎉 FABRIC SUCCESS: Using Fabric version', versionToInstall.version_number, 'for MC', gameVersion);
+            }
           } else {
             // No Fabric versions found in filtered results, use best available
             debugLog('⚠️ No Fabric versions found in filtered results, using best available');
@@ -1386,7 +1387,7 @@ export function useModrinthInstall({
             // Try to find any version that matches loader filter
             if (currentSelectedLoaders && currentSelectedLoaders.length > 0) {
               const loaderMatchingVersions = filteredVersions.filter(version =>
-                version.loaders && version.loaders.some(l =>
+                version.loaders && version.loaders.some((l: string) =>
                   currentSelectedLoaders.some(filterL => filterL.toLowerCase() === l.toLowerCase())
                 )
               );
@@ -1394,43 +1395,49 @@ export function useModrinthInstall({
               if (loaderMatchingVersions.length > 0) {
                 // Sort by MC version and pick highest
                 const sortedLoaderVersions = loaderMatchingVersions.sort((a, b) => {
-                  const aMaxMC = a.game_versions.sort((x, y) => y.localeCompare(x, undefined, { numeric: true }))[0];
-                  const bMaxMC = b.game_versions.sort((x, y) => y.localeCompare(x, undefined, { numeric: true }))[0];
+                  const aMaxMC = a.game_versions.sort((x: string, y: string) => y.localeCompare(x, undefined, { numeric: true }))[0];
+                  const bMaxMC = b.game_versions.sort((x: string, y: string) => y.localeCompare(x, undefined, { numeric: true }))[0];
                   return bMaxMC.localeCompare(aMaxMC, undefined, { numeric: true });
                 });
 
                 versionToInstall = sortedLoaderVersions[0] as any;
                 loader = currentSelectedLoaders[0].toLowerCase(); // Use filtered loader
 
-                const sortedMCVersions = [...versionToInstall.game_versions].sort((a, b) => {
-                  return b.localeCompare(a, undefined, { numeric: true });
-                });
-                gameVersion = sortedMCVersions[0] || '1.21.1';
+                if (versionToInstall) {
+                  const sortedMCVersions = [...versionToInstall.game_versions].sort((a, b) => {
+                    return b.localeCompare(a, undefined, { numeric: true });
+                  });
+                  gameVersion = sortedMCVersions[0] || '1.21.1';
 
-                debugLog('🎯 FILTER MATCH: Using filtered loader', loader, 'version', versionToInstall.version_number, 'for MC', gameVersion);
+                  debugLog('🎯 FILTER MATCH: Using filtered loader', loader, 'version', versionToInstall.version_number, 'for MC', gameVersion);
+                }
               } else {
                 // No loader match, use latest from filtered
                 versionToInstall = filteredVersions[0] as any;
                 loader = 'fabric'; // Default fallback
 
-                const sortedMCVersions = [...versionToInstall.game_versions].sort((a, b) => {
-                  return b.localeCompare(a, undefined, { numeric: true });
-                });
-                gameVersion = sortedMCVersions[0] || '1.21.1';
+                if (versionToInstall) {
+                  const sortedMCVersions = [...versionToInstall.game_versions].sort((a, b) => {
+                    return b.localeCompare(a, undefined, { numeric: true });
+                  });
+                  gameVersion = sortedMCVersions[0] || '1.21.1';
 
-                debugLog('📦 FILTERED FALLBACK: Using latest filtered version with fabric loader');
+                  debugLog('📦 FILTERED FALLBACK: Using latest filtered version with fabric loader');
+                }
               }
             } else {
               // No loader filter, use latest from filtered
               versionToInstall = filteredVersions[0] as any;
               loader = 'fabric'; // Default to fabric
 
-              const sortedMCVersions = [...versionToInstall.game_versions].sort((a, b) => {
-                return b.localeCompare(a, undefined, { numeric: true });
-              });
-              gameVersion = sortedMCVersions[0] || '1.21.1';
+              if (versionToInstall) {
+                const sortedMCVersions = [...versionToInstall.game_versions].sort((a, b) => {
+                  return b.localeCompare(a, undefined, { numeric: true });
+                });
+                gameVersion = sortedMCVersions[0] || '1.21.1';
 
-              debugLog('📦 SIMPLE FALLBACK: Using latest filtered version with fabric loader');
+                debugLog('📦 SIMPLE FALLBACK: Using latest filtered version with fabric loader');
+              }
             }
           }
 
@@ -1453,7 +1460,7 @@ export function useModrinthInstall({
 
           // Set the loader based on the version to install (with Fabric priority)
           if (versionToInstall && versionToInstall.loaders && versionToInstall.loaders.length > 0) {
-            const versionLoaders = versionToInstall.loaders.map(l => l.toLowerCase());
+            const versionLoaders = versionToInstall.loaders.map((l: string) => l.toLowerCase());
             debugLog('🔧 Available loaders in selected version:', versionLoaders);
             debugLog('🔧 Version details:', {
               version: versionToInstall.version_number,
@@ -1577,19 +1584,22 @@ export function useModrinthInstall({
           debugLog('⚠️ No version was selected by the complex logic, falling back to first available version');
           // Fallback: use the first version from the versions array
           if (versions && versions.length > 0) {
-            versionToInstall = versions[0] as any;
+            versionToInstall = versions[0];
             debugLog('✅ Using fallback version:', versionToInstall.version_number);
           } else {
             throw new Error(`No versions available for ${project.title}`);
           }
         }
 
+        const selectedVersion = versionToInstall;
+        let installVersion = selectedVersion;
+
         // Handle different possible file structures
         let primaryFile = null;
 
-        if (versionToInstall.files && Array.isArray(versionToInstall.files) && versionToInstall.files.length > 0) {
+        if (installVersion.files && Array.isArray(installVersion.files) && installVersion.files.length > 0) {
           // Standard case: files array is available
-          primaryFile = versionToInstall.files.find((f) => f.primary) || versionToInstall.files[0];
+          primaryFile = installVersion.files.find((f) => f.primary) || installVersion.files[0];
         } else {
           // Fallback: try to find another version that has files
           console.warn('⚠️ No files array found for selected version, looking for alternative version');
@@ -1606,16 +1616,16 @@ export function useModrinthInstall({
 
           if (versionWithFiles) {
             debugLog('✅ Found alternative version with files:', versionWithFiles.version_number);
-            versionToInstall = versionWithFiles as any;
-            primaryFile = versionToInstall.files.find((f) => f.primary) || versionToInstall.files[0];
+            installVersion = versionWithFiles;
+            primaryFile = installVersion.files.find((f) => f.primary) || installVersion.files[0];
           } else {
             throw new Error(`No downloadable versions found for ${project.title}. This may be a temporary API issue.`);
           }
         }
 
         if (!primaryFile) {
-          console.error('❌ No primary file found. Available files:', versionToInstall.files);
-          throw new Error(`No suitable download file found for ${project.title} version ${versionToInstall.version_number}`);
+          console.error('❌ No primary file found. Available files:', installVersion.files);
+          throw new Error(`No suitable download file found for ${project.title} version ${installVersion.version_number}`);
         }
 
         debugLog('✅ Using file:', primaryFile.filename, 'from URL:', primaryFile.url);
@@ -1633,19 +1643,19 @@ export function useModrinthInstall({
         const payload = {
           profile_id: newProfileId,
           project_id: project.project_id,
-          version_id: versionToInstall.id,
+          version_id: installVersion.id,
           download_url: primaryFile.url,
           file_name: primaryFile.filename,
-          version_number: versionToInstall.version_number,
+          version_number: installVersion.version_number,
           content_type: mappedContentType,
-          loaders: versionToInstall.loaders,
-          game_versions: versionToInstall.game_versions,
+          loaders: installVersion.loaders,
+          game_versions: installVersion.game_versions,
           source: project.source,
         };
 
         // Install content (toast is handled by the modal)
         await installContentToProfile(payload);
-        debugLog('✅ Content installed successfully:', project.title, versionToInstall.version_number);
+        debugLog('✅ Content installed successfully:', project.title, installVersion.version_number);
       }
 
       // Update the store and local state to reflect changes
@@ -1726,9 +1736,9 @@ export function useModrinthInstall({
               is_installed: false,
               is_included_in_norisk_pack: newState[profileId]?.[version.id]?.is_included_in_norisk_pack || false, // Use profileId
               is_specific_version_in_pack: newState[profileId]?.[version.id]?.is_specific_version_in_pack || false, // Use profileId
-              is_enabled: null,
-              found_item_details: null,
-              norisk_pack_item_details: newState[profileId]?.[version.id]?.norisk_pack_item_details || null, // Use profileId
+              is_enabled: undefined,
+              found_item_details: undefined,
+              norisk_pack_item_details: newState[profileId]?.[version.id]?.norisk_pack_item_details ?? undefined, // Use profileId
             };
             
             return newState;

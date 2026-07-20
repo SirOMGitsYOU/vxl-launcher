@@ -3,6 +3,7 @@
 import type React from "react";
 import { forwardRef, useEffect, useRef, useState } from "react";
 import { cn } from "../../lib/utils";
+import { mergeRefs } from "../../lib/ref-utils";
 import { gsap } from "gsap";
 import { useThemeStore } from "../../store/useThemeStore";
 import { LoadingSpinner } from "./LoadingSpinner";
@@ -46,16 +47,7 @@ export const LoadingState = forwardRef<HTMLDivElement, LoadingStateProps>(
     );
     const [isVisible, setIsVisible] = useState(isLoading);
 
-    const mergedRef = (node: HTMLDivElement) => {
-      if (ref) {
-        if (typeof ref === "function") {
-          ref(node);
-        } else {
-          ref.current = node;
-        }
-      }
-      containerRef.current = node;
-    };
+    const mergedRef = mergeRefs(ref, containerRef);
 
     useEffect(() => {
       if (containerRef.current && isBackgroundAnimationEnabled) {

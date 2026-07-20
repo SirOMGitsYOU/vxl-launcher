@@ -3,6 +3,7 @@
 import type React from "react";
 import { forwardRef, useEffect, useRef, useState } from "react";
 import { cn } from "../../lib/utils";
+import { mergeRefs } from "../../lib/ref-utils";
 import { gsap } from "gsap";
 import { useThemeStore } from "../../store/useThemeStore";
 import { 
@@ -64,16 +65,7 @@ export const RadioButton = forwardRef<HTMLInputElement, RadioButtonProps>(
       setIsChecked(checked);
     }, [checked]);
 
-    const mergedRef = (node: HTMLInputElement) => {
-      if (ref) {
-        if (typeof ref === "function") {
-          ref(node);
-        } else {
-          ref.current = node;
-        }
-      }
-      radioRef.current = node;
-    };
+    const mergedRef = mergeRefs(ref, radioRef);
 
     useEffect(() => {
       if (containerRef.current && isBackgroundAnimationEnabled) {

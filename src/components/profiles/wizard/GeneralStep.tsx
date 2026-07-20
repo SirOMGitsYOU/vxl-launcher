@@ -105,7 +105,7 @@ export function GeneralStep({
             value={profile.name || ""}
             onChange={handleNameChange}
             placeholder="My Awesome Profile"
-            error={nameError}
+            error={nameError ?? undefined}
             icon={<Icon icon="solar:user-bold" className="w-5 h-5" />}
           />
         </div>

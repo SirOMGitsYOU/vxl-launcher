@@ -3,6 +3,7 @@
 import type React from "react";
 import { forwardRef, useRef } from "react";
 import { cn } from "../../lib/utils";
+import { mergeRefs } from "../../lib/ref-utils";
 import { useThemeStore } from "../../store/useThemeStore";
 
 interface LabelProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -39,16 +40,7 @@ export const Label = forwardRef<HTMLDivElement, LabelProps>(
     const labelRef = useRef<HTMLDivElement>(null);
     const accentColor = useThemeStore((state) => state.accentColor);
 
-    const mergedRef = (node: HTMLDivElement) => {
-      if (ref) {
-        if (typeof ref === "function") {
-          ref(node);
-        } else {
-          ref.current = node;
-        }
-      }
-      labelRef.current = node;
-    };
+    const mergedRef = mergeRefs(ref, labelRef);
 
     const getVariantColors = () => {
       switch (variant) {

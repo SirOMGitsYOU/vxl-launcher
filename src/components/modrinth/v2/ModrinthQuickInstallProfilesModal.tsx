@@ -157,7 +157,17 @@ export function ModrinthQuickInstallProfilesModal({
     setIsCreatingProfile(true);
 
     const profileNameToCreate = quickProfileName.trim();
-    const createPromise = onInstallToNewProfile!(profileNameToCreate, project, version, selectedSourceProfileId);
+    if (!onInstallToNewProfile || !version) {
+      setQuickProfileError("No version selected for installation.");
+      return;
+    }
+
+    const createPromise = onInstallToNewProfile(
+      profileNameToCreate,
+      project,
+      version,
+      selectedSourceProfileId,
+    );
 
     try {
       await toast.promise(createPromise, {

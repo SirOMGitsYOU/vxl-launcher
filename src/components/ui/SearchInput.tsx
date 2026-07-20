@@ -4,6 +4,7 @@ import type React from "react";
 import { forwardRef, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import { cn } from "../../lib/utils";
+import { mergeRefs } from "../../lib/ref-utils";
 import { useThemeStore } from "../../store/useThemeStore";
 import { gsap } from "gsap";
 import { ThemedSurface } from "./ThemedSurface";
@@ -62,16 +63,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
       description,
       error,
       disabled
-    });    const mergedRef = (node: HTMLInputElement) => {
-      if (ref) {
-        if (typeof ref === "function") {
-          ref(node);
-        } else {
-          ref.current = node;
-        }
-      }
-      inputRef.current = node;
-    };
+    });    const mergedRef = mergeRefs(ref, inputRef);
 
     const handleFocus = () => {
       if (disabled) return;
@@ -146,7 +138,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
       if (e.key === "Enter" && onSearch) {
         onSearch(value);
       }
-    };    const sizeStyles = {
+    };    const sizeStyles: Record<ComponentSize, { container: string; padding: string; text: string; icon: string }> = {
       sm: {
         container: "h-[42px]",
         padding: "px-6",
@@ -165,7 +157,20 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
         text: "text-3xl",
         icon: "w-7 h-7",
       },
-    };    const getVariantColors = () => {
+      xl: {
+        container: "h-[66px]",
+        padding: "px-12",
+        text: "text-4xl",
+        icon: "w-8 h-8",
+      },
+      xs: {
+        container: "h-[36px]",
+        padding: "px-4",
+        text: "text-lg",
+        icon: "w-4 h-4",
+      },
+    };
+    const resolvedSizeStyles = sizeStyles[size] ?? sizeStyles.md;    const getVariantColors = () => {
       return {
         main: accentColor.value,
         light: accentColor.hoverValue,
@@ -219,7 +224,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
           <div
             className={cn(
               "flex items-center justify-center transition-transform duration-200",
-              sizeStyles[size].icon,
+              resolvedSizeStyles.icon,
             )}
             style={{
               transform: isHovered && !disabled ? "scale(1.05)" : "scale(1)",
@@ -245,7 +250,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
             disabled={disabled}
             className={cn(
               "flex-1 h-full bg-transparent border-none outline-none text-white  placeholder:text-white/50 lowercase truncate",
-              sizeStyles[size].text,
+              resolvedSizeStyles.text,
             )}
             style={{
               lineHeight: "1.1",
@@ -265,7 +270,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
               className={cn(
                 "flex items-center justify-center transition-transform duration-200",
                 "text-white/70 hover:text-white",
-                sizeStyles[size].icon,
+                resolvedSizeStyles.icon,
               )}
               style={{
                 transform: isHovered && !disabled ? "scale(1.05)" : "scale(1)",
@@ -284,7 +289,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
           <div
             className={cn(
               "flex items-center w-full h-full",
-              sizeStyles[size].container,
+              resolvedSizeStyles.container,
               "w-full",
             )}
             onClick={() => inputRef.current?.focus()}
@@ -294,7 +299,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
                 <div
                   className={cn(
                     "flex items-center justify-center flex-shrink-0",
-                    sizeStyles[size].icon,
+                    resolvedSizeStyles.icon,
                   )}
                 >
                   {loading ? (
@@ -317,7 +322,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
                   disabled={disabled}
                   className={cn(
                     "bg-transparent border-none outline-none text-white  placeholder:text-white/50 lowercase truncate",
-                    sizeStyles[size].text,
+                    resolvedSizeStyles.text,
                   )}
                   style={{
                     lineHeight: "1.1",
@@ -336,7 +341,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
                   className={cn(
                     "flex items-center justify-center flex-shrink-0",
                     "text-white/70 hover:text-white transition-colors duration-200",
-                    sizeStyles[size].icon,
+                    resolvedSizeStyles.icon,
                   )}
                   aria-label="Clear search"
                 >
@@ -358,8 +363,8 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
           getBorderClasses(),
           "focus-within:outline-none focus-within:ring-2 focus-within:ring-white/30 focus-within:ring-offset-1 focus-within:ring-offset-black/20",
           disabled && "opacity-50 cursor-not-allowed",
-          sizeStyles[size].container,
-          sizeStyles[size].padding,
+          resolvedSizeStyles.container,
+          resolvedSizeStyles.padding,
           className,
         )}
         style={{

@@ -422,7 +422,7 @@ export function VXLStudiosSearchV2({
           })
           .map(proj => ({
             project_id: proj.id.toString(),
-            project_type: mapCurseForgeClassIdToProjectType(proj.classId),
+            project_type: mapCurseForgeClassIdToProjectType(proj.classId ?? 6),
             slug: proj.slug || proj.name.toLowerCase().replace(/\s+/g, '-'),
             title: proj.name,
             description: proj.summary,

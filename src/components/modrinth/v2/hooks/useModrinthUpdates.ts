@@ -107,8 +107,9 @@ export function useModrinthUpdates({
 
         debugLog('Batch check results:', batchResults);
 
-        const newInstalledState: Record<string, ContentInstallStatus | null> =
-          installedVersions[selectedProfile.id] || {};
+        const newInstalledState: Record<string, ContentInstallStatus> = {
+          ...(installedVersions[selectedProfile.id] || {}),
+        };
         let projectInNoRiskStatus: ContentInstallStatus | null = null;
 
         batchResults.results.forEach((result) => {
@@ -117,9 +118,10 @@ export function useModrinthUpdates({
           } else if (result.request_id) {
             newInstalledState[result.request_id] = {
               ...result.status,
-              is_included_in_norisk_pack:
+              is_included_in_norisk_pack: !!(
                 projectInNoRiskStatus?.is_included_in_norisk_pack &&
-                result.status.is_specific_version_in_pack,
+                result.status.is_specific_version_in_pack
+              ),
             };
           }
         });
@@ -162,8 +164,7 @@ export function useModrinthUpdates({
             project_type: projectType,
           });
 
-          const newInstalledState: Record<string, ContentInstallStatus | null> =
-            {};
+          const newInstalledState: Record<string, ContentInstallStatus> = {};
 
           for (const version of displayedVersions) {
             try {
@@ -183,9 +184,9 @@ export function useModrinthUpdates({
                   is_installed: false,
                   is_included_in_norisk_pack: false,
                   is_specific_version_in_pack: false,
-                  is_enabled: null,
-                  found_item_details: null,
-                  norisk_pack_item_details: null,
+                  is_enabled: undefined,
+                  found_item_details: undefined,
+                  norisk_pack_item_details: undefined,
                 };
                 continue;
               }
@@ -209,13 +210,10 @@ export function useModrinthUpdates({
                   statusFromService.is_specific_version_in_pack,
                 is_specific_version_in_pack:
                   statusFromService.is_specific_version_in_pack,
-                is_enabled:
-                  statusFromService.is_enabled !== undefined
-                    ? statusFromService.is_enabled
-                    : null,
-                found_item_details: statusFromService.found_item_details || null,
+                is_enabled: statusFromService.is_enabled,
+                found_item_details: statusFromService.found_item_details,
                 norisk_pack_item_details:
-                  statusFromService.norisk_pack_item_details || null,
+                  statusFromService.norisk_pack_item_details,
               };
             } catch (versionError) {
               console.error(
@@ -226,9 +224,9 @@ export function useModrinthUpdates({
                 is_installed: false,
                 is_included_in_norisk_pack: false,
                 is_specific_version_in_pack: false,
-                is_enabled: null,
-                found_item_details: null,
-                norisk_pack_item_details: null,
+                is_enabled: undefined,
+                found_item_details: undefined,
+                norisk_pack_item_details: undefined,
               };
             }
           }

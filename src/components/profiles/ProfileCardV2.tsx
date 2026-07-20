@@ -18,6 +18,7 @@ import { ExportProfileModal } from "./ExportProfileModal";
 import { useProfileLaunch } from "../../hooks/useProfileLaunch.tsx";
 import { Tooltip } from "../ui/Tooltip";
 import UnifiedService from "../../services/unified-service";
+import type { UnifiedModpackVersionsResponse } from "../../types/unified";
 import { useProfileStore } from "../../store/profile-store";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
 import { useCrafatarAvatar } from "../../hooks/useCrafatarAvatar";
@@ -80,7 +81,7 @@ export function ProfileCardV2({
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
 
   // Modpack versions state for conditional rendering
-  const [modpackVersions, setModpackVersions] = useState(null);
+  const [modpackVersions, setModpackVersions] = useState<UnifiedModpackVersionsResponse | null>(null);
   const [isLoadingVersions, setIsLoadingVersions] = useState(false);
   
   // Profile settings store
@@ -201,7 +202,7 @@ export function ProfileCardV2({
       id: "modpack-versions",
       label: "Modpack Versions",
       icon: "solar:archive-bold",
-      onClick: (prof) => {
+      onClick: (prof: Profile) => {
         console.log("Modpack versions button clicked for profile:", prof.name);
         handleFetchModpackVersions(prof);
       },

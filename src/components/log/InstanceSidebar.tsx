@@ -258,13 +258,13 @@ function InstanceItem({
   onHover,
   onOpenProfile,
   isCompact = false,
-  stoppingProcessIds,
-  getProfileState,
-  finalizeButtonLaunch,
-  addLauncherLog,
-  handleStopProcess,
-  handleLaunchProfile,
-  handleOpenFolder,
+  stoppingProcessIds = new Set<string>(),
+  getProfileState = () => ({ isButtonLaunching: false }),
+  finalizeButtonLaunch = () => {},
+  addLauncherLog = () => {},
+  handleStopProcess = () => {},
+  handleLaunchProfile = () => {},
+  handleOpenFolder = () => {},
 }: InstanceItemProps) {
   const statusColor = getStatusColor(instance.status);
 

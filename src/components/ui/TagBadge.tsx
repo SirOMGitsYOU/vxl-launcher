@@ -4,6 +4,7 @@ import type React from "react";
 import { forwardRef, useRef, useState } from "react";
 import { useThemeStore } from "../../store/useThemeStore";
 import { cn } from "../../lib/utils";
+import { mergeRefs } from "../../lib/ref-utils";
 import { ThemedSurface } from "./ThemedSurface";
 import { 
   getVariantColors, 
@@ -50,16 +51,7 @@ export const TagBadge = forwardRef<HTMLElement, TagBadgeProps>(
     const [isPressed, setIsPressed] = useState(false);
     const isClickable = !!onClick && !disabled;
 
-    const mergedRef = (node: HTMLElement) => {
-      if (ref) {
-        if (typeof ref === "function") {
-          ref(node);
-        } else {
-          ref.current = node;
-        }
-      }
-      badgeRef.current = node;
-    };
+    const mergedRef = mergeRefs(ref, badgeRef);
 
     const handleMouseDown = () => {
       if (disabled || !isClickable) return;
@@ -158,7 +150,7 @@ export const TagBadge = forwardRef<HTMLElement, TagBadgeProps>(
     } = props;
 
     const baseProps = {
-      ref: mergedRef,
+      ref: mergedRef as React.Ref<HTMLButtonElement & HTMLSpanElement>,
       className: cn(
         "inline-flex items-center justify-center relative overflow-hidden",        "w-fit  transition-all duration-200",
         sizeClasses,

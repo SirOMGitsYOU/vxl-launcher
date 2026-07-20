@@ -25,7 +25,7 @@ export function ProfileSelectionModal({
     return (
       <Modal
         title={title}
-        onClose={onClose}
+        onClose={onClose ?? (() => {})}
         width="lg"
       >
         <ProfileSelectionModalContent

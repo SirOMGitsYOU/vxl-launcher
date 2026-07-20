@@ -354,7 +354,7 @@ export const ModrinthProjectCardV2 = React.memo<ModrinthProjectCardV2Props>(
               hit.categories.length > 0 &&
               hit.categories
                 .slice(0, 3)
-                .map((category, index) => (
+                .map((category: string, index: number) => (
                   <TagBadge key={`${hit.project_id}-category-${index}`} size="sm">
                     {category.replace(/-/g, " ")}
                   </TagBadge>

@@ -13,6 +13,7 @@ import { useThemeStore } from "../../store/useThemeStore";
 import { createPortal } from "react-dom";
 import { useConfirmDialog } from "../../hooks/useConfirmDialog";
 import { gsap } from "gsap";
+import { mergeRefs } from "../../lib/ref-utils";
 
 interface ProfileContextMenuProps {
   profile: Profile;
@@ -164,16 +165,7 @@ export const ProfileContextMenu = forwardRef<
 
   const menuContent = (
     <div
-      ref={(node) => {
-        if (ref) {
-          if (typeof ref === "function") {
-            ref(node);
-          } else {
-            ref.current = node;
-          }
-        }
-        menuRef.current = node;
-      }}
+      ref={mergeRefs(ref, menuRef)}
       className="fixed z-[9999] rounded-md shadow-xl border-2 border-b-4 overflow-hidden"
       style={{
         top: adjustedPosition.y,

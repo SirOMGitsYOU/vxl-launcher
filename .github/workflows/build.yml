@@ -78,7 +78,7 @@ jobs:
         with:
           # Revert to using packageManager and args
           args: --verbose ${{ matrix.target != '' && format('--target {0}', matrix.target) || '' }} # Add --target if set
-          packageManager: yarn # Set packageManager to yarn
+          tauriScript: yarn tauri
 
       - name: Fix AppImage (Remove Wayland libs & Resign)
         if: matrix.platform == 'ubuntu-22.04'

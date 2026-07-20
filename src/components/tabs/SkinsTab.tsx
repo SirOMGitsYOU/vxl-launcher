@@ -36,7 +36,7 @@ const SortableSkinCard = ({ skin, selectedLocalSkin, accentColor, loading, onSel
   accentColor: any;
   loading: boolean;
   onSelectSkin: (skin: MinecraftSkin) => void;
-  onEditSkin: (skin: MinecraftSkin, event: React.MouseEvent) => void;
+  onEditSkin: (skin: MinecraftSkin, event?: React.MouseEvent) => void;
   onDeleteSkin: (id: string, name: string) => void;
 }) => {
   const {
@@ -307,7 +307,7 @@ export function SkinsTab() {
     event?.stopPropagation();
     showModal('add-skin-modal', (
       <AddSkinModal
-        skin={skin}
+        skin={skin ?? undefined}
         onSave={saveSkin}
         onAdd={addSkin}
         isLoading={localSkinsLoading}

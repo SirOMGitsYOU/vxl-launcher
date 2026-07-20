@@ -81,7 +81,7 @@ export function RangeSlider({
     if (!isDragging) {
       setLocalValue(value);
     }
-  }, [value, isDragging]);  const sizeConfig = {
+  }, [value, isDragging]);  const sizeConfig: Record<ComponentSize, { track: string; thumb: string; text: string }> = {
     sm: {
       track: "h-2",
       thumb: "w-5 h-5",
@@ -97,7 +97,18 @@ export function RangeSlider({
       thumb: "w-8 h-8",
       text: "text-lg",
     },
+    xl: {
+      track: "h-4",
+      thumb: "w-9 h-9",
+      text: "text-xl",
+    },
+    xs: {
+      track: "h-1.5",
+      thumb: "w-4 h-4",
+      text: "text-xs",
+    },
   };
+  const resolvedSizeConfig = sizeConfig[size] ?? sizeConfig.md;
 
   const getPercentage = useCallback((val: number) => {
     return ((val - min) / (max - min)) * 100;
@@ -228,7 +239,7 @@ export function RangeSlider({
           <span
             className={cn(
               "text-white tracking-wide ",
-              sizeConfig[size].text,
+              resolvedSizeConfig.text,
             )}
           >
             {valueLabel}
@@ -243,7 +254,7 @@ export function RangeSlider({
               <span
                 className={cn(
                   "text-white/70 ",
-                  sizeConfig[size].text,
+                  resolvedSizeConfig.text,
                 )}
               >
                 {minLabel}
@@ -254,7 +265,7 @@ export function RangeSlider({
                 ref={valueDisplayRef}
                 className={cn(
                   "text-white ",
-                  sizeConfig[size].text,
+                  resolvedSizeConfig.text,
                 )}
               >
                 {localValue}
@@ -284,7 +295,7 @@ export function RangeSlider({
               <span
                 className={cn(
                   "text-white/70 ",
-                  sizeConfig[size].text,
+                  resolvedSizeConfig.text,
                 )}
               >
                 {maxLabel}
@@ -304,7 +315,7 @@ export function RangeSlider({
               "border border-white/10",
               "focus-within:ring-1 focus-within:ring-white/30",
               radiusClass,
-              sizeConfig[size].track,
+              resolvedSizeConfig.track,
             )}
             style={{
               backgroundColor: `${accentColor.value}15`,
@@ -329,7 +340,7 @@ export function RangeSlider({
               isDragging && "cursor-grabbing",
               "border-2",
               radiusClass,
-              sizeConfig[size].thumb,
+              resolvedSizeConfig.thumb,
               "transition-colors duration-200",
             )}
             style={{

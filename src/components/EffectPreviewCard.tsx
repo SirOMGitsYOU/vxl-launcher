@@ -54,7 +54,6 @@ export default function EffectPreviewCard({
       case BACKGROUND_EFFECTS.ENCHANTMENT_PARTICLES:
         return (
           <EnchantmentParticlesEffect
-            particleCount={qualityParams.particleCount}
             interactive={false}
             {...previewProps}
           />

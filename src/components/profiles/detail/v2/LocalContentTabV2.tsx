@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { Button as UiV2Button } from "../../../ui-v2";
 import { Button } from "../../../ui/buttons/Button";
 import { ContentActionButtons, type ContentActionButton } from "../../../ui/ContentActionButtons";
+import type { ActionButtonVariant } from "../../../ui/ActionButton";
 import { GenericDetailListItem } from "../items/GenericDetailListItem";
 import { TagBadge } from "../../../ui/TagBadge";
 import { useThemeStore } from "../../../../store/useThemeStore";
@@ -464,7 +465,7 @@ export function LocalContentTabV2<T extends LocalContentItem>({
           : hasUpdates
             ? LOCAL_CONTENT_TAB_ICONS_TO_PRELOAD[14]
             : "solar:refresh-circle-bold",
-      variant: (hasUpdates ? "highlight" : "text") as const,
+      variant: (hasUpdates ? "highlight" : "text") as ActionButtonVariant,
       disabled:
         !isContentListReady || isUpdatingAll || isCheckingUpdates || isBatchToggling || isBatchDeleting,
       loading: isUpdatingAll || isCheckingUpdates,
@@ -1007,7 +1008,7 @@ export function LocalContentTabV2<T extends LocalContentItem>({
       });
 
       // Render update button separately with custom tooltip if available
-      const updateButtonNode = shouldShowUpdateButton ? (
+      const updateButtonNode = shouldShowUpdateButton && updateAvailableVersion ? (
         <Tooltip
           content={
             <div className="max-w-xs">

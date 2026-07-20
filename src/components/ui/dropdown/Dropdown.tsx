@@ -4,6 +4,7 @@ import type React from "react";
 import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../../../lib/utils";
+import { mergeRefs } from "../../../lib/ref-utils";
 import { getAccessibilityProps } from "../design-system";
 
 interface DropdownProps {
@@ -240,16 +241,7 @@ export const Dropdown = forwardRef<HTMLDivElement, DropdownProps>(
 
     const animationClasses = getAnimationClasses();    return createPortal(
       <div
-        ref={(node) => {
-          if (ref) {
-            if (typeof ref === "function") {
-              ref(node);
-            } else {
-              ref.current = node;
-            }
-          }
-          dropdownRef.current = node;
-        }}
+        ref={mergeRefs(ref, dropdownRef)}
         role={role}
         className={cn(
           "fixed z-50 overflow-hidden rounded-xl border border-[var(--surface-border)] bg-[var(--surface-raised)] shadow-lg",

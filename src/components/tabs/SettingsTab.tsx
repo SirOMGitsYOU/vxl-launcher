@@ -50,17 +50,17 @@ export function SettingsTab() {
       {
         id: "general",
         name: "General",
-        count: undefined, // No count for settings tabs
+        count: 0,
       },
       {
         id: "appearance",
         name: "Background",
-        count: undefined,
+        count: 0,
       },
       {
         id: "advanced",
         name: "Advanced",
-        count: undefined,
+        count: 0,
       },
     ];
     return groups;

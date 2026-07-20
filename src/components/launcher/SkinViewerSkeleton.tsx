@@ -3,6 +3,7 @@
 import type React from "react";
 import { forwardRef, useEffect, useRef } from "react";
 import { cn } from "../../lib/utils";
+import { mergeRefs } from "../../lib/ref-utils";
 import { gsap } from "gsap";
 import { useThemeStore } from "../../store/useThemeStore";
 
@@ -42,17 +43,7 @@ export const SkinViewerSkeleton = forwardRef<
       (state) => state.isBackgroundAnimationEnabled,
     );
 
-    // Merge refs
-    const mergedRef = (node: HTMLDivElement) => {
-      if (ref) {
-        if (typeof ref === "function") {
-          ref(node);
-        } else {
-          ref.current = node;
-        }
-      }
-      containerRef.current = node;
-    };
+    const mergedRef = mergeRefs(ref, containerRef);
 
     // Animation on mount
     useEffect(() => {

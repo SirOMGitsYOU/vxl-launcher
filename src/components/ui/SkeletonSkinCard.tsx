@@ -3,6 +3,7 @@
 import type React from "react";
 import { forwardRef, useEffect, useRef } from "react";
 import { cn } from "../../lib/utils";
+import { mergeRefs } from "../../lib/ref-utils";
 import { gsap } from "gsap";
 import { useThemeStore } from "../../store/useThemeStore";
 import { SkinViewerSkeleton } from "../launcher/SkinViewerSkeleton";
@@ -39,16 +40,7 @@ export const SkeletonSkinCard = forwardRef<HTMLDivElement, SkeletonCardProps>(
       (state) => state.isBackgroundAnimationEnabled,
     );
 
-    const mergedRef = (node: HTMLDivElement) => {
-      if (ref) {
-        if (typeof ref === "function") {
-          ref(node);
-        } else {
-          ref.current = node;
-        }
-      }
-      cardRef.current = node;
-    };
+    const mergedRef = mergeRefs(ref, cardRef);
 
     useEffect(() => {
       if (cardRef.current && isBackgroundAnimationEnabled) {

@@ -52,9 +52,9 @@ export const defaultErrorContentStatus: ContentInstallStatus = {
   is_installed: false,
   is_included_in_norisk_pack: false,
   is_specific_version_in_pack: false,
-  is_enabled: null,
-  found_item_details: null,
-  norisk_pack_item_details: null,
+  is_enabled: undefined,
+  found_item_details: undefined,
+  norisk_pack_item_details: undefined,
 };
 
 export const getStatusForNewInstall = (
@@ -66,7 +66,7 @@ export const getStatusForNewInstall = (
   is_specific_version_in_pack:
     existingPreviousStatus?.is_specific_version_in_pack || false,
   is_enabled: true,
-  found_item_details: existingPreviousStatus?.found_item_details || null,
+  found_item_details: existingPreviousStatus?.found_item_details ?? undefined,
   norisk_pack_item_details:
-    existingPreviousStatus?.norisk_pack_item_details || null,
+    existingPreviousStatus?.norisk_pack_item_details ?? undefined,
 });

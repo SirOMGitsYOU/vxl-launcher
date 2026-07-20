@@ -234,7 +234,10 @@ export function EnchantmentParticlesEffect({
       };
 
       if (Math.random() > 0.8) {
-        createParticle(mouseRef.current.x, mouseRef.current.y);
+        const { x, y } = mouseRef.current;
+        if (x !== null && y !== null) {
+          createParticle(x, y);
+        }
       }
     };
 

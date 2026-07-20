@@ -85,8 +85,7 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(  ({
         };
         onChange(event as any);
       }
-    };    const effectiveSize = customSize || size;
-    const colors = getVariantColors("default", accentColor);
+    };    const colors = getVariantColors("default", accentColor);
     const radiusClass = getBorderRadiusClass();
     const accessibilityProps = getAccessibilityProps({
       label,
@@ -94,7 +93,8 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(  ({
       error,
       required,
       disabled
-    });    const checkboxSizes = {
+    });    const effectiveSize = (customSize as ComponentSize | undefined) || size;
+    const checkboxSizes: Record<ComponentSize, string> = {
       xs: "w-5 h-5",
       sm: "w-6 h-6",
       md: "w-7 h-7", 
@@ -102,7 +102,7 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(  ({
       xl: "w-9 h-9",
     };
 
-    const iconSizes = {
+    const iconSizes: Record<ComponentSize, string> = {
       xs: "w-3 h-3",
       sm: "w-4 h-4",
       md: "w-5 h-5",

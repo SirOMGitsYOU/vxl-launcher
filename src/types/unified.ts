@@ -33,7 +33,7 @@ export interface UnifiedModSearchResult {
   title: string; // Name field used in UI
   slug: string;
   description: string;
-  author: string;
+  author: string | null;
   categories: string[];
   display_categories: string[];
   client_side?: string;

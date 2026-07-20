@@ -856,7 +856,12 @@ export function useModrinthSearch({
         const filteredVersions = getFilteredVersions(projectId, versions);
         
         // Check status only for versions that will be displayed
-        checkDisplayedVersionsStatus(projectId, filteredVersions, 0, displayCount);
+        checkDisplayedVersionsStatusRef.current?.(
+          projectId,
+          filteredVersions,
+          0,
+          displayCount,
+        );
       }
     });
   }, [expandedVersions, numDisplayedVersions, selectedProfile, versionFilters]);

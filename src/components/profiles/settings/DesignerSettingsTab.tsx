@@ -17,9 +17,10 @@ export function DesignerSettingsTab({
   const handleKeepLocalAssetsChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     updateProfile({
       norisk_information: {
-        ...(editedProfile.norisk_information || { 
-          is_experimental: editedProfile.norisk_information?.is_experimental || false 
-        }), 
+        ...(editedProfile.norisk_information ?? {
+          keep_local_assets: false,
+          is_experimental: false,
+        }),
         keep_local_assets: event.target.checked,
       },
     });
