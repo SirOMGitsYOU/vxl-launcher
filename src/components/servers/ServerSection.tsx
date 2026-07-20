@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import { invoke } from "@tauri-apps/api/core";
+import { useLocation } from "react-router-dom";
 import { cn } from "../../lib/utils";
 import { useThemeStore } from "../../store/useThemeStore";
 import { Card, IconButton, LoadingState } from "../ui-v2";
@@ -195,10 +196,15 @@ export function ServerSection({ className }: ServerSectionProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [connectingAddress, setConnectingAddress] = useState<string | null>(null);
+  const location = useLocation();
+  const isPlayRoute =
+    location.pathname === "/play" || location.pathname === "/" || location.pathname === "";
+  const shouldPingServers = isPlayRoute && !isCollapsed;
+  const wasCollapsedRef = useRef(isCollapsed);
 
-  const pingUserServers = useCallback(async (servers: ServerInfo[]) => {
+  const pingUserServers = useCallback(async (servers: ServerInfo[], signal: AbortSignal) => {
     for (const srv of servers) {
-      if (!srv.address) continue;
+      if (signal.aborted || !srv.address) continue;
 
       let pingInfo: ServerPingInfo = {};
 
@@ -207,11 +213,16 @@ export function ServerSection({ className }: ServerSectionProps) {
           address: srv.address,
         })) as ServerPingInfo;
       } catch (e) {
+        if (signal.aborted) return;
         console.warn("local ping failed", e);
       }
 
+      if (signal.aborted) return;
+
       try {
-        const response = await fetch(`https://eu.mc-api.net/v3/server/ping/${srv.address}`);
+        const response = await fetch(`https://eu.mc-api.net/v3/server/ping/${srv.address}`, {
+          signal,
+        });
         if (response.ok) {
           const data = (await response.json()) as Record<string, unknown>;
           const rawMotd = extractMotd(data);
@@ -229,8 +240,11 @@ export function ServerSection({ className }: ServerSectionProps) {
           }
         }
       } catch (e) {
+        if (signal.aborted) return;
         console.warn("eu.mc-api.net fetch failed", e);
       }
+
+      if (signal.aborted) return;
 
       if (pingInfo.description && !pingInfo.motd_plain) {
         pingInfo.motd_plain = stripMotdFormatting(pingInfo.description);
@@ -340,16 +354,38 @@ export function ServerSection({ className }: ServerSectionProps) {
   );
 
   useEffect(() => {
-    loadUserServers();
-  }, [loadUserServers]);
-
-  useEffect(() => {
-    if (isCollapsed || userServers.length === 0) {
+    if (!isPlayRoute) {
       return;
     }
 
-    void pingUserServers(userServers);
-  }, [isCollapsed, userServers, pingUserServers]);
+    void loadUserServers();
+  }, [isPlayRoute, loadUserServers]);
+
+  useEffect(() => {
+    if (!shouldPingServers || userServers.length === 0) {
+      return;
+    }
+
+    const abortController = new AbortController();
+    void pingUserServers(userServers, abortController.signal);
+
+    return () => {
+      abortController.abort();
+    };
+  }, [shouldPingServers, userServers, pingUserServers]);
+
+  const handleExpandPanel = useCallback(() => {
+    setServerSectionCollapsed(false);
+  }, [setServerSectionCollapsed]);
+
+  useEffect(() => {
+    const wasCollapsed = wasCollapsedRef.current;
+    wasCollapsedRef.current = isCollapsed;
+
+    if (wasCollapsed && !isCollapsed && isPlayRoute) {
+      void loadUserServers();
+    }
+  }, [isCollapsed, isPlayRoute, loadUserServers]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => handleResizeMove(e);
@@ -418,7 +454,7 @@ export function ServerSection({ className }: ServerSectionProps) {
       >
         <button
           type="button"
-          onClick={() => setServerSectionCollapsed(false)}
+          onClick={handleExpandPanel}
           title="Show your servers"
           aria-label="Show your servers"
           className="mt-4 flex h-10 w-10 items-center justify-center rounded-lg bg-[rgba(var(--accent-rgb),0.12)] text-[var(--accent)] transition-colors hover:bg-[rgba(var(--accent-rgb),0.2)]"
