@@ -1,3 +1,4 @@
+use crate::config::{ProjectDirsExt, LAUNCHER_DIRECTORY};
 use crate::error::{AppError, Result};
 use async_zip::error::ZipError;
 use async_zip::tokio::read::seek::ZipFileReader;
@@ -5,7 +6,9 @@ use base64::{engine::general_purpose::STANDARD, Engine as _};
 use futures::AsyncReadExt;
 use image::{imageops::FilterType, DynamicImage, ImageFormat};
 use log::debug;
-use std::path::Path;
+use sha2::{Digest, Sha256};
+use std::path::{Path, PathBuf};
+use std::time::UNIX_EPOCH;
 use tokio::fs::File;
 
 /// Helper function to read a specific zip entry by index and encode it as Base64
@@ -142,6 +145,106 @@ pub async fn find_first_png_in_archive_as_base64(archive_path: &Path) -> Result<
 
     debug!("No PNG found in archive: {}", archive_path.display());
     Err(AppError::PngNotFoundInArchive(archive_path.to_path_buf()))
+}
+
+fn archive_icon_cache_dir() -> PathBuf {
+    LAUNCHER_DIRECTORY.meta_dir().join("mod_icon_cache")
+}
+
+async fn archive_icon_cache_key(archive_path: &Path) -> Result<String> {
+    let metadata = tokio::fs::metadata(archive_path)
+        .await
+        .map_err(AppError::Io)?;
+    let modified = metadata
+        .modified()
+        .map_err(AppError::Io)?
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| AppError::Other("Invalid file modified time".to_string()))?
+        .as_secs();
+    let size = metadata.len();
+    let mut hasher = Sha256::new();
+    hasher.update(archive_path.to_string_lossy().as_bytes());
+    hasher.update(modified.to_le_bytes());
+    hasher.update(size.to_le_bytes());
+    Ok(format!("{:x}", hasher.finalize()))
+}
+
+/// Returns `Ok(Some(icon))` on cache hit, `Ok(None)` when cached as having no icon,
+/// and `Err(AppError::FileNotFound)` when there is no cache entry yet.
+pub async fn lookup_cached_archive_icon(archive_path: &Path) -> Result<Option<String>> {
+    let cache_key = archive_icon_cache_key(archive_path).await?;
+    let cache_dir = archive_icon_cache_dir();
+    let icon_path = cache_dir.join(format!("{cache_key}.b64"));
+    let miss_path = cache_dir.join(format!("{cache_key}.none"));
+
+    if miss_path.exists() {
+        return Ok(None);
+    }
+
+    if icon_path.exists() {
+        let cached = tokio::fs::read_to_string(&icon_path)
+            .await
+            .map_err(AppError::Io)?;
+        return Ok(Some(cached));
+    }
+
+    Err(AppError::FileNotFound(archive_path.to_path_buf()))
+}
+
+pub async fn store_cached_archive_icon(
+    archive_path: &Path,
+    icon: Option<&str>,
+) -> Result<()> {
+    let cache_key = archive_icon_cache_key(archive_path).await?;
+    let cache_dir = archive_icon_cache_dir();
+    if !cache_dir.exists() {
+        tokio::fs::create_dir_all(&cache_dir)
+            .await
+            .map_err(AppError::Io)?;
+    }
+
+    let icon_path = cache_dir.join(format!("{cache_key}.b64"));
+    let miss_path = cache_dir.join(format!("{cache_key}.none"));
+
+    match icon {
+        Some(base64_icon) => {
+            tokio::fs::write(&icon_path, base64_icon)
+                .await
+                .map_err(AppError::Io)?;
+            let _ = tokio::fs::remove_file(&miss_path).await;
+        }
+        None => {
+            tokio::fs::write(&miss_path, b"")
+                .await
+                .map_err(AppError::Io)?;
+            let _ = tokio::fs::remove_file(&icon_path).await;
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn find_first_png_in_archive_as_base64_cached(archive_path: &Path) -> Result<String> {
+    match lookup_cached_archive_icon(archive_path).await {
+        Ok(Some(cached_icon)) => return Ok(cached_icon),
+        Ok(None) => {
+            return Err(AppError::PngNotFoundInArchive(archive_path.to_path_buf()));
+        }
+        Err(AppError::FileNotFound(_)) => {}
+        Err(error) => return Err(error),
+    }
+
+    match find_first_png_in_archive_as_base64(archive_path).await {
+        Ok(icon) => {
+            let _ = store_cached_archive_icon(archive_path, Some(&icon)).await;
+            Ok(icon)
+        }
+        Err(AppError::PngNotFoundInArchive(_)) => {
+            let _ = store_cached_archive_icon(archive_path, None).await;
+            Err(AppError::PngNotFoundInArchive(archive_path.to_path_buf()))
+        }
+        Err(error) => Err(error),
+    }
 }
 
 

@@ -176,7 +176,13 @@ export function ModsTabV2({ profile, onRefreshRequired }: ModsTabV2Props) {
 
       // Get cached icons first
       const cachedIcons = ModIconCache.getLocalIcons(localModPaths);
-      setLocalArchiveIcons(cachedIcons);
+      const formattedCachedIcons = Object.fromEntries(
+        Object.entries(cachedIcons).map(([path, icon]) => [
+          path,
+          ModIconCache.formatLocalIconForDisplay(icon),
+        ]),
+      );
+      setLocalArchiveIcons(formattedCachedIcons);
 
       // Only fetch icons for paths we haven't cached yet
       const pathsToFetch = localModPaths.filter(path => !ModIconCache.hasLocalIcon(path));
@@ -192,9 +198,9 @@ export function ModsTabV2({ profile, onRefreshRequired }: ModsTabV2Props) {
           if (iconsResult) {
             const newLocalIcons: Record<string, string | null> = {};
             for (const path of uniquePaths) {
-              const iconData = iconsResult[path] || null;
-              newLocalIcons[path] = iconData;
+              const iconData = iconsResult[path] ?? null;
               ModIconCache.setLocalIcon(path, iconData);
+              newLocalIcons[path] = ModIconCache.formatLocalIconForDisplay(iconData);
             }
             setLocalArchiveIcons(prevIcons => ({ ...prevIcons, ...newLocalIcons }));
           }

@@ -90,7 +90,7 @@ interface UseLocalContentManagerReturn<T extends LocalContentItem> {
   handleBatchDeleteSelected: () => void;
   handleOpenItemFolder: (item: T) => void;
 
-  checkForContentUpdates: (currentProfile?: Profile, currentItems?: T[]) => Promise<void>;
+  checkForContentUpdates: (currentProfile?: Profile, currentItems?: T[]) => Promise<number>;
   handleUpdateContentItem: (item: T, updateVersion: UnifiedVersion, suppressOwnToast?: boolean) => Promise<void>;
   handleUpdateAllAvailableContent: () => Promise<void>;
   handleSwitchContentVersion: (item: T, newVersion: UnifiedVersion) => Promise<void>;
@@ -330,8 +330,8 @@ export function useLocalContentManager<T extends LocalContentItem>({
     onRefreshRequiredRef.current = onRefreshRequired;
   }, [onRefreshRequired]);
 
-  // Generic Phase 1: Fetch basic info for all content types
-  const fetchBasicInfo = useCallback(async (): Promise<void> => {
+  // Load local content in one pass (scan + hashes), then enrich via Modrinth in phase 2.
+  const loadItems = useCallback(async (): Promise<void> => {
     if (!profile?.id) {
       setItems([]);
       return;
@@ -339,145 +339,73 @@ export function useLocalContentManager<T extends LocalContentItem>({
     setIsInitialLoadingState(true);
     setIsFetchingHashesState(false);
     setIsFetchingModrinthDetailsState(false);
+    setIsInitialLoadProcessComplete(false);
     setError(null);
-    setModrinthIcons({});
-    setLocalArchiveIcons({});
     setContentUpdates({});
     setContentUpdateError(null);
-    setHashesToFetchModrinthDetailsFor(null); // Reset this here
+    setHashesToFetchModrinthDetailsFor(null);
 
     const backendContentType = mapUiContentTypeToBackend(contentType);
-    console.log(`[${contentType}] Phase 1: Fetching basic info...`, new Date().toISOString());
     try {
       const serviceParams: LoadItemsParams = {
         profile_id: profile.id,
         content_type: backendContentType,
-        calculate_hashes: false,
+        calculate_hashes: true,
         fetch_modrinth_data: false,
       };
       const fetchedBackendItems = await getLocalContent(serviceParams) as ProfileLocalContentItem[];
-      console.log(`[${contentType}] Phase 1: Raw items from getLocalContent`, new Date().toISOString(), fetchedBackendItems);
 
       const mappedItemsToFrontend = fetchedBackendItems.map(item => mapBackendItemToFrontendType<T>(item));
-      const processedBasicItems = mappedItemsToFrontend.map(item => {
-        const finalFilename = item.filename || getDisplayFileName(item);
-        console.log(`[${contentType}] fetchBasicInfo: Processing item - Original Filename: ${item.filename}, Path: ${item.path}, getDisplayFileName: ${getDisplayFileName(item)}, Final Filename: ${finalFilename}`);
-        return {
-          ...item,
-          filename: finalFilename,
-          modrinth_info: null, // Ensure modrinth_info is initially null
-          sha1_hash: null, // Ensure sha1_hash is initially null for Phase 1
-        };
-      });
-      setItems(processedBasicItems as T[]);
-      console.log(`[${contentType}] Phase 1: Basic items set (count: ${processedBasicItems.length})`, new Date().toISOString());
+      const processedItems = mappedItemsToFrontend.map(item => ({
+        ...item,
+        filename: item.filename || getDisplayFileName(item),
+      }));
+      setItems(processedItems as T[]);
       setSelectedItemIds(new Set());
       if (onRefreshRequiredRef.current) onRefreshRequiredRef.current();
+
+      const allKnownHashes = processedItems
+        .map(item => item.sha1_hash)
+        .filter(hash => hash != null) as string[];
+
+      if (allKnownHashes.length > 0) {
+        setHashesToFetchModrinthDetailsFor(allKnownHashes);
+      } else {
+        setIsInitialLoadProcessComplete(true);
+      }
     } catch (err) {
-      console.error(`[${contentType}] Phase 1: Error fetching basic info:`, err);
+      console.error(`[${contentType}] Failed to load local content:`, err);
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setIsInitialLoadingState(false);
     }
   }, [profile?.id, contentType, getDisplayFileName]);
 
-  // Generic Phase 2: Fetch hashes and update items
-  const fetchHashesAndUpdateItems = useCallback(async (): Promise<void> => {
-    if (!profile?.id || items.length === 0) return;
-
-    const backendContentType = mapUiContentTypeToBackend(contentType);
-    console.log(`[${contentType}] Phase 2: Fetching hashes and full local info...`, new Date().toISOString());
-    setIsFetchingHashesState(true);
-    setError(null); // Clear previous errors before this specific phase
-
-    try {
-      const serviceParams: LoadItemsParams = {
-        profile_id: profile.id,
-        content_type: backendContentType,
-        calculate_hashes: true,
-        fetch_modrinth_data: false, // Modrinth details via JS in Phase 3
-      };
-      const fetchedBackendItemsWithHashes = await getLocalContent(serviceParams) as ProfileLocalContentItem[];
-      console.log(`[${contentType}] Phase 2: Raw items with hashes from getLocalContent`, new Date().toISOString(), fetchedBackendItemsWithHashes);
-      
-      const mappedItemsToFrontend = fetchedBackendItemsWithHashes.map(item => mapBackendItemToFrontendType<T>(item));
-
-      setItems(currentItems =>
-        currentItems.map(currentItem => {
-          const match = mappedItemsToFrontend.find(fi => fi.path === currentItem.path);
-          if (match) { // Merge all details from the hash-calculated fetch
-            return { 
-              ...currentItem, 
-              sha1_hash: match.sha1_hash, 
-              file_size: match.file_size, 
-              is_disabled: match.is_disabled,
-              is_directory: match.is_directory, // Ensure this is also updated
-              // Modrinth info is still deferred to Phase 3
-            } as T;
-          }
-          return currentItem;
-        })
-      );
-
-      const allKnownHashes = mappedItemsToFrontend
-        .map(item => item.sha1_hash)
-        .filter(hash => hash != null) as string[];
-      
-      if (allKnownHashes.length > 0) {
-        console.log(`[${contentType}] Phase 2: Hashes obtained, setting for Modrinth lookup.`, new Date().toISOString(), allKnownHashes);
-        setHashesToFetchModrinthDetailsFor(allKnownHashes);
-      } else {
-        setHashesToFetchModrinthDetailsFor(null);
-      }
-    } catch (err) {
-      console.error(`[${contentType}] Phase 2: Error fetching hashes:`, err);
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setIsFetchingHashesState(false);
-    }
-  }, [profile?.id, contentType, items, getDisplayFileName]); // items is a dependency here
-
-  // fetchData now just calls fetchBasicInfo, which is Phase 1
   const fetchData = useCallback(async (initialFetch = true): Promise<void> => {
-    // The 'initialFetch' parameter for fetchData is now more about resetting UI states like selection
-    // The actual data fetching sequence is managed by fetchBasicInfo and subsequent effects.
     if (initialFetch) {
       setSelectedItemIds(new Set());
-      setContentUpdates({}); // Clear previous updates
+      setContentUpdates({});
       setContentUpdateError(null);
-      setIsInitialLoadProcessComplete(false); // Reset flag for new load process
-      setSearchQuery(""); // Clear search query on refresh
+      setIsInitialLoadProcessComplete(false);
+      setSearchQuery("");
     }
-    await fetchBasicInfo();
-  }, [fetchBasicInfo, setSearchQuery]); // Added setSearchQuery to dependencies
+    await loadItems();
+  }, [loadItems, setSearchQuery]);
 
-  // Initial data fetch (Phase 1)
   useEffect(() => {
-    fetchBasicInfo();
+    void loadItems();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchBasicInfo]); 
+  }, [loadItems]);
   
-  // Phase 2: Trigger Fetch Hashes (for all content types)
+  // Phase 2: Fetch Modrinth project details based on hashes
   useEffect(() => {
-    // Only trigger if Phase 1 is done, and there are items that might need hashes,
-    // and hash fetching isn't already in progress.
-    if (!isInitialLoadingState && items.length > 0 && items.some(item => item.sha1_hash === null) && !isFetchingHashesState) {
-      fetchHashesAndUpdateItems(); 
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, isInitialLoadingState, isFetchingHashesState, fetchHashesAndUpdateItems]); // fetchHashesAndUpdateItems is memoized
-  
-  // Phase 3: Fetch Modrinth project details based on hashes (existing logic, should be fine)
-  useEffect(() => {
-    let isMounted = true; // To prevent state updates on unmounted component
+    let isMounted = true;
     if (hashesToFetchModrinthDetailsFor && hashesToFetchModrinthDetailsFor.length > 0 && profile?.id && !isFetchingModrinthDetailsState) {
-      console.log(`[${contentType}] Phase 3: Triggering Modrinth project details fetch for hashes`, new Date().toISOString(), hashesToFetchModrinthDetailsFor);
       setIsFetchingModrinthDetailsState(true);
       const fetchModrinthDataByHashes = async () => {
         try {
           const modrinthVersionsMap = await ModrinthService.getVersionsByHashes(hashesToFetchModrinthDetailsFor!);
           if (!isMounted) return;
-          console.log(`[${contentType}] Phase 3: Modrinth data received`, new Date().toISOString(), modrinthVersionsMap);
           setItems(currentItems =>
             currentItems.map(item => {
               if (item.sha1_hash && modrinthVersionsMap[item.sha1_hash]) {
@@ -495,25 +423,24 @@ export function useLocalContentManager<T extends LocalContentItem>({
               return item;
             })
           );
-          console.log(`[${contentType}] Phase 3: Items updated with Modrinth data`, new Date().toISOString());
         } catch (modrinthError) {
           if (!isMounted) return;
-          console.warn(`[${contentType}] Phase 3: Failed to fetch Modrinth details by hashes:`, modrinthError);
+          console.warn(`[${contentType}] Failed to fetch Modrinth details by hashes:`, modrinthError);
           const errorMsg = modrinthError instanceof Error ? modrinthError.message : String(modrinthError);
           setError(prevError => prevError ? `${prevError}; Failed to fetch Modrinth details (${errorMsg})` : `Failed to fetch Modrinth details (${errorMsg})`);
         } finally {
-          if (isMounted) { // Ensure component is still mounted before setting state
+          if (isMounted) {
             setIsFetchingModrinthDetailsState(false);
             setHashesToFetchModrinthDetailsFor(null); 
-            setIsInitialLoadProcessComplete(true); // Set the flag indicating Phase 3 completion
+            setIsInitialLoadProcessComplete(true);
           }
         }
       };
-      fetchModrinthDataByHashes();
+      void fetchModrinthDataByHashes();
     }
-    return () => { isMounted = false; }; // Cleanup function
+    return () => { isMounted = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hashesToFetchModrinthDetailsFor, profile?.id, contentType]); // Dependencies should NOT include isInitialLoadProcessComplete
+  }, [hashesToFetchModrinthDetailsFor, profile?.id, contentType]);
 
   // Click outside to close dropdown
   useEffect(() => {
@@ -573,7 +500,10 @@ export function useLocalContentManager<T extends LocalContentItem>({
         } catch (err) {
           console.error("[useLocalContentManager] Failed to fetch Modrinth project details for icons:", err);
           const errorIcons: Record<string, string | null> = {};
-          uniqueProjectIds.forEach(id => { errorIcons[id] = null; });
+          uniqueProjectIds.forEach(id => {
+            errorIcons[id] = null;
+            ModIconCache.setModrinthIcon(id, null);
+          });
           setModrinthIcons(prevIcons => ({ ...prevIcons, ...errorIcons }));
         }
       }
@@ -638,69 +568,76 @@ export function useLocalContentManager<T extends LocalContentItem>({
     fetchCurseForgeIcons();
   }, [items, getItemPlatform]);
 
-  // Fetch local archive icons
+  // Fetch local archive icons - use global cache to avoid re-reading jars on every profile open
   useEffect(() => {
-    console.log(`[${contentType}] Running useEffect for fetchLocalArchiveIcons. Items count: ${items.length}, localArchiveIcons keys: ${Object.keys(localArchiveIcons).length}`);
     const fetchLocalArchiveIcons = async () => {
       if (!items || items.length === 0) {
-        if (Object.keys(localArchiveIcons).length > 0) {
-          setLocalArchiveIcons({});
-          console.log(`[${contentType}] fetchLocalArchiveIcons: No items or items array empty, clearing localArchiveIcons because it wasn't empty.`);
-        }
         return;
       }
 
-      const pathsToFetchIconsFor = items
+      const pathsNeedingIcons = items
         .filter(item => {
-          if (!item.path || localArchiveIcons[item.path] !== undefined) {
+          if (!item.path) {
             return false;
           }
           const lowerPath = item.path.toLowerCase();
           if (contentType === 'NoRiskMod') {
             return lowerPath.endsWith('.jar');
-          } else {
-            return lowerPath.endsWith('.zip');
           }
+          return lowerPath.endsWith('.zip') || lowerPath.endsWith('.jar');
         })
-        .map(item => ({ filename: item.filename, path: item.path! })); 
-      
-      const uniquePathObjects = pathsToFetchIconsFor.filter((obj, index, self) => 
-        index === self.findIndex(t => t.path === obj.path)
+        .map(item => item.path!);
+
+      const uniquePaths = [...new Set(pathsNeedingIcons)];
+      if (uniquePaths.length === 0) {
+        return;
+      }
+
+      const cachedIcons = ModIconCache.getLocalIcons(uniquePaths);
+      const formattedCachedIcons = Object.fromEntries(
+        Object.entries(cachedIcons).map(([path, icon]) => [
+          path,
+          ModIconCache.formatLocalIconForDisplay(icon),
+        ]),
       );
-      console.log(`[${contentType}] fetchLocalArchiveIcons: Unique paths to fetch icons for:`, uniquePathObjects.map(obj => obj.path));
 
-      if (uniquePathObjects.length > 0) {
-        try {
-          const archivePaths = uniquePathObjects.map(obj => obj.path);
-          const iconsResult = await invoke<Record<string, string | null>>(
-            "get_icons_for_archives",
-            { archivePaths }
-          );
+      if (Object.keys(formattedCachedIcons).length > 0) {
+        setLocalArchiveIcons(prevIcons => ({ ...prevIcons, ...formattedCachedIcons }));
+      }
 
-          if (iconsResult) {
-            const newLocalIcons: Record<string, string | null> = {};
-            uniquePathObjects.forEach(obj => {
-                const base64Icon = iconsResult[obj.path];
-                if (obj.path) {
-                  newLocalIcons[obj.path] = base64Icon ? 'data:image/png;base64,' + base64Icon : null;
-                }
-            });
-            setLocalArchiveIcons(prevIcons => ({ ...prevIcons, ...newLocalIcons }));
-          } else {
-            console.warn("[useLocalContentManager] get_icons_for_archives returned null or undefined.");
+      const pathsToFetch = uniquePaths.filter(path => !ModIconCache.hasLocalIcon(path));
+      if (pathsToFetch.length === 0) {
+        return;
+      }
+
+      try {
+        const iconsResult = await invoke<Record<string, string | null>>(
+          "get_icons_for_archives",
+          { archivePaths: pathsToFetch },
+        );
+
+        if (iconsResult) {
+          const newLocalIcons: Record<string, string | null> = {};
+          for (const path of pathsToFetch) {
+            const base64Icon = iconsResult[path] ?? null;
+            ModIconCache.setLocalIcon(path, base64Icon);
+            newLocalIcons[path] = ModIconCache.formatLocalIconForDisplay(base64Icon);
           }
-        } catch (err) {
-          console.error("[useLocalContentManager] Failed to fetch local archive icons:", err);
-          const errorIcons: Record<string, string | null> = {};
-          uniquePathObjects.forEach(obj => { 
-            if (obj.path) errorIcons[obj.path] = null;
-          });
-          setLocalArchiveIcons(prevIcons => ({ ...prevIcons, ...errorIcons }));
+          setLocalArchiveIcons(prevIcons => ({ ...prevIcons, ...newLocalIcons }));
         }
+      } catch (err) {
+        console.error("[useLocalContentManager] Failed to fetch local archive icons:", err);
+        const errorIcons: Record<string, string | null> = {};
+        pathsToFetch.forEach(path => {
+          ModIconCache.setLocalIcon(path, null);
+          errorIcons[path] = null;
+        });
+        setLocalArchiveIcons(prevIcons => ({ ...prevIcons, ...errorIcons }));
       }
     };
-    fetchLocalArchiveIcons();
-  }, [items, contentType, localArchiveIcons]); 
+
+    void fetchLocalArchiveIcons();
+  }, [items, contentType]);
 
   const filteredItems = useMemo(() => {
     if (!searchQuery) return items;
@@ -958,11 +895,25 @@ export function useLocalContentManager<T extends LocalContentItem>({
     }
   }, []);
   
-  const checkForContentUpdates = useCallback(async (currentProfile = profile, currentItems = items) => {
+  const checkForContentUpdates = useCallback(async (currentProfile = profile, currentItems = items): Promise<number> => {
     if (!currentProfile || !currentItems || currentItems.length === 0) {
       setContentUpdates({});
-      return;
+      return 0;
     }
+
+    const countUpdatableItems = (updates: Record<string, UnifiedVersion>) => {
+      let count = 0;
+      for (const item of currentItems) {
+        const updateIdentifier = getUpdateIdentifier(item);
+        if (updateIdentifier && updates[updateIdentifier]) {
+          const hasUpdatesEnabled = contentType === "Mod" && item.updates_enabled !== false;
+          if (hasUpdatesEnabled) {
+            count++;
+          }
+        }
+      }
+      return count;
+    };
 
     // Sammle alle Items die entweder einen sha1_hash (Modrinth) oder fingerprint (CurseForge) haben
     const itemsWithIdentifiers = currentItems.filter(item =>
@@ -971,7 +922,7 @@ export function useLocalContentManager<T extends LocalContentItem>({
 
     if (itemsWithIdentifiers.length === 0) {
       setContentUpdates({});
-      return;
+      return 0;
     }
 
     // Erstelle Identifier-Mapping: für jeden Item einen eindeutigen String-Identifier
@@ -1004,8 +955,6 @@ export function useLocalContentManager<T extends LocalContentItem>({
 
     setIsCheckingUpdates(true);
     setContentUpdateError(null);
-    console.log("Current Items:", currentItems);
-    console.log("Hash platforms:", hashPlatforms);
 
     try {
       const request: UnifiedUpdateCheckRequest = {
@@ -1020,67 +969,31 @@ export function useLocalContentManager<T extends LocalContentItem>({
       // Verwende den UnifiedService
       const updates: UnifiedUpdateCheckResponse = await UnifiedService.checkModUpdates(request);
 
-      // Debug logging
-      console.log('=== UPDATE CHECK DEBUG ===');
-      console.log('Available update keys:', Object.keys(updates.updates));
-      console.log('Sample updates:');
-      Object.entries(updates.updates).slice(0, 3).forEach(([key, update]) => {
-        console.log(`  Key: "${key}" -> ${update.version_number} (${update.source})`);
-      });
-
       const filteredUpdates: Record<string, UnifiedVersion> = {};
       const itemsByIdentifier = new Map<string, T>();
 
-      // Erstelle Mapping von Identifier zu Item
       for (const { item, identifier } of itemIdentifiers) {
         itemsByIdentifier.set(identifier, item);
       }
 
-      console.log('=== FILTERING DEBUG ===');
-      console.log('Items by identifier keys:', Array.from(itemsByIdentifier.keys()));
-      console.log('Update keys to process:', Object.keys(updates.updates));
-
       for (const [identifier, unifiedVersion] of Object.entries(updates.updates)) {
         const item = itemsByIdentifier.get(identifier);
-        console.log(`Processing update key "${identifier}": item found = ${!!item}`);
-        if (item) {
-          console.log(`  Item: ${item.filename}, platform: ${item.platform}, has curseforge_info: ${!!item.curseforge_info}, fingerprint: ${item.curseforge_info?.fingerprint}, sha1_hash: ${item.sha1_hash}`);
-        } else {
-          // Try to find item with different identifier formats
-          console.log(`  Looking for item with fingerprint ${identifier}...`);
-          const foundByFingerprint = items.find(i => i.curseforge_info?.fingerprint?.toString() === identifier);
-          if (foundByFingerprint) {
-            console.log(`  Found by fingerprint: ${foundByFingerprint.filename}`);
-          } else {
-            console.log(`  No item found with fingerprint ${identifier}`);
-          }
-        }
-
         if (item && unifiedVersion && unifiedVersion.id) {
-          // Vergleiche die aktuelle Version mit der verfügbaren Update-Version
           const currentVersionId = item.modrinth_info?.version_id || item.curseforge_info?.file_id || item.id;
-          console.log(`Comparing versions for ${item.filename}: current=${currentVersionId} (${typeof currentVersionId}), update=${unifiedVersion.id} (${typeof unifiedVersion.id})`);
           if (currentVersionId !== unifiedVersion.id) {
-            console.log(`Found update for ${item.filename}: ${currentVersionId} -> ${unifiedVersion.id}`);
-            // Verwende UnifiedVersion direkt ohne Konvertierung
             filteredUpdates[identifier] = unifiedVersion as UnifiedVersion;
-          } else {
-            console.log(`No update needed for ${item.filename}: versions match (${currentVersionId})`);
           }
-        } else {
-          console.log(`Skipping update for key "${identifier}": item=${!!item}, unifiedVersion=${!!unifiedVersion}, unifiedVersion.id=${unifiedVersion?.id}`);
         }
       }
 
-      console.log('Filtered updates result:', Object.keys(filteredUpdates));
-
-      console.log("Filtered updates:", filteredUpdates);
       setContentUpdates(filteredUpdates);
+      return countUpdatableItems(filteredUpdates);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error(`Error checking for ${contentType} updates:`, errorMsg);
       setContentUpdateError(`Error checking for ${contentType} updates: ${errorMsg}`);
       setContentUpdates({});
+      return 0;
     } finally {
       setIsCheckingUpdates(false);
     }
@@ -1353,19 +1266,6 @@ export function useLocalContentManager<T extends LocalContentItem>({
     );
 
   }, [profile, contentType, getDisplayFileName, performContentVersionSwitch]);
-
-  useEffect(() => {
-    // Check for updates only after the initial full loading process for the current profile is complete,
-    // and if there are items to check.
-    if (profile?.id && items.length > 0 && isInitialLoadProcessComplete) {
-      console.log(`[${contentType}] Initial load process complete. Triggering checkForContentUpdates.`);
-      checkForContentUpdates();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.id, isInitialLoadProcessComplete, contentType]); // Removed items, relying on checkForContentUpdates internal dep on items. checkForContentUpdates itself is a dependency here to ensure it's the latest version.
-  // Note: We are intentionally omitting `items` from this dependency array to prevent re-checking on every toggle.
-  // `checkForContentUpdates` is a useCallback that itself depends on `items`, so it will use the latest `items` when called.
-  // The `isInitialLoadProcessComplete` flag is the primary gate for this effect.
 
   // Toggle updates enabled for a single item
   const handleToggleItemUpdatesEnabled = useCallback(async (item: T) => {

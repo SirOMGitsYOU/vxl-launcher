@@ -281,7 +281,7 @@ pub async fn get_icons_for_archives(
 
     for path_str in archive_paths {
         let archive_path = Path::new(&path_str);
-        let result = file_utils::find_first_png_in_archive_as_base64(archive_path).await;
+        let result = file_utils::find_first_png_in_archive_as_base64_cached(archive_path).await;
 
         match result {
             Ok(base64_icon) => {

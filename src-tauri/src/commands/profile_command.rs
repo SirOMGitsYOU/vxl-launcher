@@ -26,7 +26,7 @@ use crate::utils::{
     datapack_utils, path_utils, profile_utils, repair_utils, resourcepack_utils, shaderpack_utils,
 };
 use chrono::Utc;
-use log::{error, info, trace, warn};
+use log::{debug, error, info, trace, warn};
 use sanitize_filename::sanitize;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -2025,9 +2025,9 @@ pub async fn get_local_content(
     params: ProfileUtilLoadItemsParams, // Use LoadItemsParams directly from profile_utils
 ) -> Result<Vec<LocalContentItem>, CommandError> {
     info!(
-        "Executing get_local_content command for profile {}, content_type: '{:?}', calc_hashes: {}, fetch_modrinth: {}",
+        "Executing get_local_content for profile {}, content_type: '{:?}', calc_hashes: {}, fetch_modrinth: {}",
         params.profile_id,
-        params.content_type, // This is now the enum, so use {:?} for Debug display
+        params.content_type,
         params.calculate_hashes,
         params.fetch_modrinth_data
     );
@@ -2038,10 +2038,10 @@ pub async fn get_local_content(
     match ProfileUtilLocalContentLoader::load_items(params.clone()).await {
         // .clone() if params is used later, or pass directly
         Ok(items) => {
-            info!(
-                "Successfully loaded {} items of type '{:?}' for profile {}",
+            debug!(
+                "get_local_content returned {} items of type '{:?}' for profile {}",
                 items.len(),
-                params.content_type, // Log the enum directly
+                params.content_type,
                 params.profile_id
             );
             Ok(items)

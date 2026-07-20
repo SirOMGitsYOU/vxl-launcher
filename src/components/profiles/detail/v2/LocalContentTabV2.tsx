@@ -46,7 +46,8 @@ import { ThemedSurface } from "../../../ui/ThemedSurface";
 import { useAppDragDropStore } from "../../../../store/appStore"; // Import the store
 import { createPortal } from "react-dom";
 import { ModrinthService } from "../../../../services/modrinth-service"; // Added import
-import UnifiedService from "../../../../services/unified-service"; // Added import
+import UnifiedService from "../../../../services/unified-service";
+import { ModVersionCache } from "../../../../store/mod-version-cache"; // Added import
 import { EmptyState } from "../../../ui/EmptyState"; // Added import
 import { useProfileStore } from "../../../../store/profile-store"; // Added import
 import { useConfirmDialog } from "../../../../hooks/useConfirmDialog"; // Added import
@@ -415,9 +416,72 @@ export function LocalContentTabV2<T extends LocalContentItem>({
   // Use the provided onAddContent prop if available, otherwise use the new default implementation.
   const effectiveOnAddContent = onAddContentProp || defaultOnAddContent;
 
-  console.log(
-    `LocalContentTabV2 (${contentType}): Render. isLoading: ${isLoading}, hook items: ${items.length}, filteredItems: ${filteredItems.length}, error: ${error}, searchQuery: '${searchQuery}'`,
-  );
+  const isContentListReady =
+    !isLoading && !isFetchingModrinthDetails && items.length > 0;
+
+  const handleUpdateCheckButtonClick = useCallback(async () => {
+    if (updatableContentCount > 0) {
+      await handleUpdateAllAvailableContent();
+      return;
+    }
+
+    const availableUpdates = await checkForContentUpdates();
+    if (availableUpdates > 0) {
+      toast.success(
+        availableUpdates === 1
+          ? "1 update available"
+          : `${availableUpdates} updates available`,
+      );
+    } else {
+      toast.success("All mods are up to date");
+    }
+  }, [
+    updatableContentCount,
+    handleUpdateAllAvailableContent,
+    checkForContentUpdates,
+  ]);
+
+  const updateCheckButtonAction = useMemo(() => {
+    if (contentType !== "Mod") {
+      return null;
+    }
+
+    const hasUpdates = updatableContentCount > 0;
+
+    return {
+      id: hasUpdates ? "update-all" : "check-updates",
+      label: isUpdatingAll
+        ? "UPDATING ALL..."
+        : isCheckingUpdates
+          ? "CHECKING..."
+          : hasUpdates
+            ? `UPDATE ALL (${updatableContentCount})`
+            : "CHECK FOR UPDATES",
+      icon:
+        isUpdatingAll || isCheckingUpdates
+          ? LOCAL_CONTENT_TAB_ICONS_TO_PRELOAD[11]
+          : hasUpdates
+            ? LOCAL_CONTENT_TAB_ICONS_TO_PRELOAD[14]
+            : "solar:refresh-circle-bold",
+      variant: (hasUpdates ? "highlight" : "text") as const,
+      disabled:
+        !isContentListReady || isUpdatingAll || isCheckingUpdates || isBatchToggling || isBatchDeleting,
+      loading: isUpdatingAll || isCheckingUpdates,
+      tooltip: hasUpdates
+        ? `Update all ${updatableContentCount} mods with enabled updates`
+        : "Check installed mods for available updates",
+      onClick: handleUpdateCheckButtonClick,
+    };
+  }, [
+    contentType,
+    updatableContentCount,
+    isUpdatingAll,
+    isCheckingUpdates,
+    isContentListReady,
+    isBatchToggling,
+    isBatchDeleting,
+    handleUpdateCheckButtonClick,
+  ]);
 
   useEffect(() => {
     preloadIcons(LOCAL_CONTENT_TAB_ICONS_TO_PRELOAD);
@@ -495,21 +559,41 @@ export function LocalContentTabV2<T extends LocalContentItem>({
         }
 
         if (platform && projectId) {
+          const loadersArg =
+            contentType === "Mod" && profile?.loader ? [profile.loader] : undefined;
+          const gameVersionsArg = profile?.game_version ? [profile.game_version] : undefined;
+
+          const cachedVersions = ModVersionCache.get(
+            platform,
+            projectId,
+            profile?.game_version,
+            loadersArg,
+          );
+
+          if (cachedVersions) {
+            setAvailableVersions(cachedVersions);
+            setIsLoadingVersions(false);
+            setVersionsError(null);
+            return;
+          }
+
           setIsLoadingVersions(true);
           setAvailableVersions(null);
           setVersionsError(null);
           try {
-            let loadersArg: string[] | undefined = undefined;
-            if (contentType === "Mod") {
-              loadersArg = profile?.loader ? [profile.loader] : undefined;
-            }
-
             const versions = await UnifiedService.getModVersions({
               source: platform,
               project_id: projectId,
               loaders: loadersArg,
-              game_versions: profile?.game_version ? [profile.game_version] : undefined,
+              game_versions: gameVersionsArg,
             });
+            ModVersionCache.set(
+              platform,
+              projectId,
+              profile?.game_version,
+              loadersArg,
+              versions.versions,
+            );
             setAvailableVersions(versions.versions);
           } catch (error) {
             console.error(`Failed to fetch ${platformName} versions:`, error);
@@ -834,7 +918,6 @@ export function LocalContentTabV2<T extends LocalContentItem>({
       const isFromModPack = item.modpack_origin !== null && item.modpack_origin !== undefined;
 
       if (hasUpdateAvailable) {
-        console.log(`Update available for ${item.filename}:`, updateAvailableVersion);
         // Check if current version differs from available update
         const currentVersionId = item.modrinth_info?.version_id || item.curseforge_info?.file_id || item.id;
         if (currentVersionId !== updateAvailableVersion.id) {
@@ -846,7 +929,6 @@ export function LocalContentTabV2<T extends LocalContentItem>({
             shouldShowUpdateButton = true;
             isUpdateButtonDimmed = true; // Show dimmed styling and actually disable
             updateButtonTooltip = `This mod comes from a modpack and cannot be updated individually. Updates should be handled through the modpack.`;
-            console.log(`Update button shown and disabled for ${item.filename} - modpack mod`);
           } else {
             // Check if updates are enabled for this mod (consistent with updatableContentCount logic)
             // Default to enabled if null/undefined, only disabled if explicitly false
@@ -863,16 +945,12 @@ export function LocalContentTabV2<T extends LocalContentItem>({
               shouldShowUpdateButton = true;
               isUpdateButtonDimmed = true;
               updateButtonTooltip = `Update checks are disabled for this mod. Enable update checks first to allow automatic updates.`;
-              console.log(`Update button will be shown (dimmed) for ${item.filename} - updates disabled`);
             }
           }
         }
       }
 
-      // Debug logging only for items that have updates available
-      if (updateAvailableVersion) {
-        console.log(`Item "${item.filename}": modrinth_info=${!!item.modrinth_info}, curseforge_info=${!!item.curseforge_info}, sha1_hash="${item.sha1_hash}", fingerprint=${item.curseforge_info?.fingerprint}, updateIdentifier="${updateIdentifier}", hasUpdate=${!!updateAvailableVersion}, updateVersion="${updateAvailableVersion.version_number}", modpack_origin="${item.modpack_origin}", updates_enabled=${item.updates_enabled}, isFromModPack=${item.modpack_origin !== null && item.modpack_origin !== undefined}, buttonDisabled=${isUpdateButtonDimmed}`);
-      }
+      // Build action buttons array for this item
 
       // Update action is handled separately with custom tooltip below
       // Only add update action if no update available
@@ -1206,24 +1284,9 @@ export function LocalContentTabV2<T extends LocalContentItem>({
             {/* Hide other buttons when any items are selected */}
             {selectedItemIds.size === 0 && (
               <>
-                {/* Update All buttons */}
-                {updatableContentCount > 0 && (
-                  <ContentActionButtons
-                    actions={[
-                      {
-                        id: "update-all",
-                        label: isUpdatingAll ? "UPDATING ALL..." : `UPDATE ALL (${updatableContentCount})`,
-                        icon: isUpdatingAll ? LOCAL_CONTENT_TAB_ICONS_TO_PRELOAD[11] : LOCAL_CONTENT_TAB_ICONS_TO_PRELOAD[14],
-                        variant: "highlight" as const,
-                        disabled: isUpdatingAll,
-                        loading: isUpdatingAll,
-                        tooltip: `Update all ${updatableContentCount} mods with enabled updates`,
-                        onClick: handleUpdateAllAvailableContent,
-                      },
-                    ]}
-                    size="sm"
-                  />
-                )}
+                {updateCheckButtonAction ? (
+                  <ContentActionButtons actions={[updateCheckButtonAction]} size="sm" />
+                ) : null}
 
                 {/* Browse and Add buttons - only for non-NoRiskMod types */}
                 {effectiveOnAddContent && contentType !== "NoRiskMod" && profile && (

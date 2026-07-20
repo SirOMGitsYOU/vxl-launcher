@@ -3,6 +3,16 @@ const modrinthIconCache = new Map<string, string | null>();
 const curseforgeIconCache = new Map<string, string | null>();
 const localIconCache = new Map<string, string | null>();
 
+function formatLocalIconForDisplay(icon: string | null | undefined): string | null {
+  if (!icon) {
+    return null;
+  }
+  if (icon.startsWith("data:")) {
+    return icon;
+  }
+  return `data:image/png;base64,${icon}`;
+}
+
 export const ModIconCache = {
   // Modrinth icon cache
   getModrinthIcon: (projectId: string): string | null | undefined => {
@@ -71,6 +81,12 @@ export const ModIconCache = {
       }
     });
     return result;
+  },
+
+  formatLocalIconForDisplay,
+
+  getLocalIconForDisplay: (path: string): string | null => {
+    return formatLocalIconForDisplay(localIconCache.get(path));
   },
 
   // Clear cache (useful for testing or manual refresh)

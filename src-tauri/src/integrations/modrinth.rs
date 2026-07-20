@@ -1039,36 +1039,32 @@ pub async fn get_multiple_projects(ids: Vec<String>) -> Result<Vec<ModrinthProje
         ))
     })?;
 
-    // Prepare a version of the body for logging, possibly truncated if too long
-    let logged_response_body_display: String;
-    const MAX_RAW_BODY_LOG_LENGTH: usize = 5000; // Corrected back to 5000
-
-    if response_body_text.len() > MAX_RAW_BODY_LOG_LENGTH {
-        logged_response_body_display = format!(
-            "{}... (body truncated, original length: {})",
-            &response_body_text[..MAX_RAW_BODY_LOG_LENGTH],
-            response_body_text.len()
-        );
-    } else {
-        logged_response_body_display = response_body_text.clone();
-    }
-
     log::debug!(
-        "Modrinth bulk projects raw response body: {}",
-        logged_response_body_display
+        "Modrinth bulk projects response received ({} bytes)",
+        response_body_text.len()
     );
 
     // Now parse the original, full text
     let projects =
         serde_json::from_str::<Vec<ModrinthProject>>(&response_body_text).map_err(|e| {
+            const MAX_RAW_BODY_LOG_LENGTH: usize = 500;
+            let logged_body = if response_body_text.len() > MAX_RAW_BODY_LOG_LENGTH {
+                format!(
+                    "{}... (truncated, length: {})",
+                    &response_body_text[..MAX_RAW_BODY_LOG_LENGTH],
+                    response_body_text.len()
+                )
+            } else {
+                response_body_text.clone()
+            };
             let error_message = format!(
-                "Failed to parse Modrinth bulk projects response: {}. Body (logged version): {}",
-                e, logged_response_body_display
+                "Failed to parse Modrinth bulk projects response: {}. Body preview: {}",
+                e, logged_body
             );
             log::error!(
                 "JSON Parsing Error in get_multiple_projects: {}",
                 error_message
-            ); // Added explicit error log
+            );
             AppError::RequestError(error_message)
         })?;
 
