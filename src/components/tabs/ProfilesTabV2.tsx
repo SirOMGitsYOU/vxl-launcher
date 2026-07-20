@@ -230,6 +230,7 @@ export function ProfilesTabV2() {
             ]}
           />
           <IconButton
+            size="sm"
             onClick={() => {
               const nextMode = layoutMode === "list" ? "grid" : layoutMode === "grid" ? "compact" : "list";
               setProfilesTabLayoutMode(nextMode);
