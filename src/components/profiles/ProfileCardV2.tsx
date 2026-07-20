@@ -492,10 +492,9 @@ export function ProfileCardV2({
           setIsContextMenuOpen(true);
           setOpenContextMenuId(contextMenuId);
 
-          const cardRect = e.currentTarget.getBoundingClientRect();
           setContextMenuPosition({
-            x: e.clientX - cardRect.left,
-            y: e.clientY - cardRect.top,
+            x: e.clientX,
+            y: e.clientY,
           });
         }}
       >
@@ -759,10 +758,9 @@ export function ProfileCardV2({
         setIsContextMenuOpen(true);
         setOpenContextMenuId(contextMenuId);
 
-        const cardRect = e.currentTarget.getBoundingClientRect();
         setContextMenuPosition({
-          x: e.clientX - cardRect.left,
-          y: e.clientY - cardRect.top,
+          x: e.clientX,
+          y: e.clientY,
         });
       }}
     >

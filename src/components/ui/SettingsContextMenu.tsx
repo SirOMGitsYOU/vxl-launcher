@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "@iconify/react";
 import { cn } from "../../lib/utils";
 import type { Profile } from "../../types/profile";
@@ -37,6 +38,45 @@ export interface SettingsContextMenuProps {
   onClose: () => void;
   /** Optional ref to the button that triggers this menu */
   triggerButtonRef?: React.RefObject<HTMLElement>;
+}
+
+const MENU_MIN_WIDTH = 220;
+const VIEWPORT_PADDING = 8;
+
+function estimateMenuHeight(itemCount: number): number {
+  return itemCount * 42 + 12;
+}
+
+function clampMenuPosition(
+  x: number,
+  y: number,
+  menuWidth: number,
+  menuHeight: number,
+): { x: number; y: number } {
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  let left = x;
+  let top = y;
+
+  if (left + menuWidth + VIEWPORT_PADDING > viewportWidth) {
+    left = x - menuWidth;
+  }
+
+  if (top + menuHeight + VIEWPORT_PADDING > viewportHeight) {
+    top = y - menuHeight;
+  }
+
+  left = Math.max(
+    VIEWPORT_PADDING,
+    Math.min(left, viewportWidth - menuWidth - VIEWPORT_PADDING),
+  );
+  top = Math.max(
+    VIEWPORT_PADDING,
+    Math.min(top, viewportHeight - menuHeight - VIEWPORT_PADDING),
+  );
+
+  return { x: left, y: top };
 }
 
 function ContextMenuPanel({
@@ -99,6 +139,38 @@ export function SettingsContextMenu({
   triggerButtonRef,
 }: SettingsContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
+  const [adjustedPosition, setAdjustedPosition] = useState(position);
+
+  useEffect(() => {
+    setPortalNode(document.body);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen || triggerButtonRef) {
+      return;
+    }
+
+    setAdjustedPosition(
+      clampMenuPosition(
+        position.x,
+        position.y,
+        MENU_MIN_WIDTH,
+        estimateMenuHeight(items.length),
+      ),
+    );
+  }, [isOpen, items.length, position, triggerButtonRef]);
+
+  useLayoutEffect(() => {
+    if (!isOpen || triggerButtonRef || !menuRef.current) {
+      return;
+    }
+
+    const rect = menuRef.current.getBoundingClientRect();
+    setAdjustedPosition(
+      clampMenuPosition(position.x, position.y, rect.width, rect.height),
+    );
+  }, [isOpen, items, position, triggerButtonRef]);
 
   useEffect(() => {
     if (triggerButtonRef) {
@@ -145,20 +217,21 @@ export function SettingsContextMenu({
     );
   }
 
-  if (!isOpen) {
+  if (!isOpen || !portalNode) {
     return null;
   }
 
-  return (
+  return createPortal(
     <div
       ref={menuRef}
-      className="absolute z-50 min-w-[220px] overflow-hidden rounded-xl border border-[var(--surface-border)] bg-[var(--surface-raised)] shadow-lg"
+      className="fixed z-[9999] min-w-[220px] overflow-hidden rounded-xl border border-[var(--surface-border)] bg-[var(--surface-raised)] shadow-lg"
       style={{
-        left: position.x,
-        top: position.y,
+        left: adjustedPosition.x,
+        top: adjustedPosition.y,
       }}
     >
       <ContextMenuPanel profile={profile} items={items} onClose={onClose} />
-    </div>
+    </div>,
+    portalNode,
   );
 }
