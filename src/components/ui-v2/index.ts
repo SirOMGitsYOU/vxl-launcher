@@ -2,6 +2,7 @@ export { Button } from "./Button";
 export { IconButton } from "./IconButton";
 export { Input } from "./Input";
 export { Select } from "./Select";
+export { SelectMenu, type SelectMenuOption } from "./SelectMenu";
 export { SelectTab } from "./SelectTab";
 export { Card } from "./Card";
 export { Badge } from "./Badge";

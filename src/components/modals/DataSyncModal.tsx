@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { Icon } from "@iconify/react";
-import { Button } from "../ui/buttons/Button";
+import { Modal } from "../ui/Modal";
+import { Button, Card } from "../ui-v2";
 import { Checkbox } from "../ui/Checkbox";
 import { toast } from "react-hot-toast";
 import type { FileSyncConfig } from "../../types/fileSync";
 import * as FileSyncService from "../../services/file-sync-service";
 import { useProfileStore } from "../../store/profile-store";
-import { useThemeStore } from "../../store/useThemeStore";
 
 interface DataSyncModalProps {
   isOpen: boolean;
@@ -16,13 +16,12 @@ interface DataSyncModalProps {
 }
 
 const SYNCABLE_FILES = [
-  { value: "servers.dat", label: "Server List (servers.dat)" },
-  { value: "options.txt", label: "Game Options (options.txt)" },
-  { value: "shaderpacks", label: "Shaderpacks Folder" },
-];
+  { value: "servers.dat", label: "Server list (servers.dat)" },
+  { value: "options.txt", label: "Game options (options.txt)" },
+  { value: "shaderpacks", label: "Shaderpacks folder" },
+] as const;
 
 export function DataSyncModal({ isOpen, onClose }: DataSyncModalProps) {
-  const accentColor = useThemeStore((state) => state.accentColor);
   const { profiles } = useProfileStore();
   const [step, setStep] = useState<"source" | "files" | "targets">("source");
   const [selectedSourceProfile, setSelectedSourceProfile] = useState("");
@@ -33,21 +32,34 @@ export function DataSyncModal({ isOpen, onClose }: DataSyncModalProps) {
 
   if (!isOpen) return null;
 
+  const resetState = () => {
+    setStep("source");
+    setSelectedSourceProfile("");
+    setSelectedFiles(["servers.dat"]);
+    setSyncAllProfiles(false);
+    setSelectedTargetProfiles(new Set());
+  };
+
+  const handleClose = () => {
+    onClose();
+    resetState();
+  };
+
   const handleFileToggle = (file: string) => {
     setSelectedFiles((prev) =>
-      prev.includes(file) ? prev.filter((f) => f !== file) : [...prev, file]
+      prev.includes(file) ? prev.filter((entry) => entry !== file) : [...prev, file],
     );
   };
 
   const handleTargetProfileToggle = (profileId: string) => {
     setSelectedTargetProfiles((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(profileId)) {
-        newSet.delete(profileId);
+      const next = new Set(prev);
+      if (next.has(profileId)) {
+        next.delete(profileId);
       } else {
-        newSet.add(profileId);
+        next.add(profileId);
       }
-      return newSet;
+      return next;
     });
   };
 
@@ -63,233 +75,227 @@ export function DataSyncModal({ isOpen, onClose }: DataSyncModalProps) {
     }
 
     if (!syncAllProfiles && selectedTargetProfiles.size === 0) {
-      toast.error("Please select at least one target profile or enable 'ALL Profiles'");
+      toast.error("Please select at least one target profile or enable all profiles");
       return;
     }
 
     setIsLoading(true);
     try {
-      const sourceProfile = profiles.find((p) => p.id === selectedSourceProfile);
+      const sourceProfile = profiles.find((profile) => profile.id === selectedSourceProfile);
       if (!sourceProfile) {
         toast.error("Source profile not found");
         return;
       }
 
       const targetProfileIds = syncAllProfiles
-        ? profiles.filter((p) => p.id !== selectedSourceProfile).map((p) => p.id)
+        ? profiles.filter((profile) => profile.id !== selectedSourceProfile).map((profile) => profile.id)
         : Array.from(selectedTargetProfiles);
 
-      const config: Omit<
-        FileSyncConfig,
-        "id" | "created_at" | "last_synced_at"
-      > = {
+      const config: Omit<FileSyncConfig, "id" | "created_at" | "last_synced_at"> = {
         source_profile_id: selectedSourceProfile,
         modpack_name: sourceProfile.name,
         profile_ids: targetProfileIds,
-        files_to_sync: selectedFiles as any,
+        files_to_sync: selectedFiles as FileSyncConfig["files_to_sync"],
         sync_all_profiles: syncAllProfiles,
         enabled: true,
       };
 
       await FileSyncService.createFileSyncConfig(config);
-      toast.success("Data Sync configuration created successfully");
-      onClose();
+      toast.success("Data sync configuration created successfully");
       handleClose();
     } catch (error) {
       console.error("Failed to create sync config:", error);
-      toast.error("Failed to create Data Sync configuration");
+      toast.error("Failed to create data sync configuration");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleClose = () => {
-    onClose();
-    setStep("source");
-    setSelectedSourceProfile("");
-    setSelectedFiles(["servers.dat"]);
-    setSyncAllProfiles(false);
-    setSelectedTargetProfiles(new Set());
+  const renderProfileOption = (
+    profile: { id: string; name: string },
+    selected: boolean,
+    onSelect: () => void,
+  ) => (
+    <button
+      key={profile.id}
+      type="button"
+      onClick={onSelect}
+      className="w-full text-left"
+    >
+      <Card
+        interactive
+        selected={selected}
+        className="px-3 py-2.5"
+      >
+        <span className="text-sm text-white">{profile.name}</span>
+      </Card>
+    </button>
+  );
+
+  const renderFooter = () => {
+    if (step === "source") {
+      return (
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={handleClose} className="flex-1" size="md">
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => setStep("files")}
+            disabled={!selectedSourceProfile}
+            className="flex-1"
+            size="md"
+            icon={<Icon icon="solar:arrow-right-bold" className="h-4 w-4" />}
+          >
+            Next
+          </Button>
+        </div>
+      );
+    }
+
+    if (step === "files") {
+      return (
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => setStep("source")}
+            className="flex-1"
+            size="md"
+            icon={<Icon icon="solar:arrow-left-bold" className="h-4 w-4" />}
+          >
+            Back
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => setStep("targets")}
+            disabled={selectedFiles.length === 0}
+            className="flex-1"
+            size="md"
+            icon={<Icon icon="solar:arrow-right-bold" className="h-4 w-4" />}
+          >
+            Next
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex gap-2">
+        <Button
+          variant="secondary"
+          onClick={() => setStep("files")}
+          className="flex-1"
+          size="md"
+          icon={<Icon icon="solar:arrow-left-bold" className="h-4 w-4" />}
+        >
+          Back
+        </Button>
+        <Button
+          variant="primary"
+          onClick={handleCreateSync}
+          disabled={isLoading || (!syncAllProfiles && selectedTargetProfiles.size === 0)}
+          className="flex-1"
+          size="md"
+          icon={
+            isLoading ? (
+              <Icon icon="solar:refresh-bold" className="h-4 w-4 animate-spin" />
+            ) : (
+              <Icon icon="solar:check-circle-bold" className="h-4 w-4" />
+            )
+          }
+        >
+          {isLoading ? "Creating..." : "Create sync"}
+        </Button>
+      </div>
+    );
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-900 rounded-lg p-6 max-w-md w-full mx-4 border border-white/10">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg  text-white uppercase">Data Sync Setup</h2>
-          <button
-            onClick={handleClose}
-            className="p-1 hover:bg-white/10 rounded transition-colors"
-          >
-            <Icon icon="solar:close-circle-bold" className="w-5 h-5" />
-          </button>
-        </div>
+  const stepTitle =
+    step === "source"
+      ? "Data sync — Source profile"
+      : step === "files"
+        ? "Data sync — Files"
+        : "Data sync — Target profiles";
 
-        {/* Step 1: Source Profile Selection */}
+  return (
+    <Modal title={stepTitle} onClose={handleClose} width="md" footer={renderFooter()}>
+      <div className="space-y-4 p-6 select-none">
         {step === "source" && (
-          <div className="space-y-4">
-            <p className="text-xs  text-white/70">
-              Select an initial source profile to sync files from:
+          <>
+            <p className="text-sm text-[var(--text-secondary)]">
+              Select the profile to sync files from.
             </p>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
+            <div className="custom-scrollbar max-h-56 space-y-2 overflow-y-auto">
               {profiles.length === 0 ? (
-                <p className="text-xs  text-white/60">
-                  No profiles available
-                </p>
+                <p className="text-sm text-[var(--text-muted)]">No profiles available</p>
               ) : (
-                profiles.map((profile) => (
-                  <button
-                    key={profile.id}
-                    onClick={() => setSelectedSourceProfile(profile.id)}
-                    className={`w-full p-2 rounded text-left transition-colors ${
-                      selectedSourceProfile === profile.id
-                        ? "bg-white/20 border border-white/40"
-                        : "bg-black/30 border border-white/10 hover:border-white/20"
-                    }`}
-                  >
-                    <span className="text-xs  text-white/80">
-                      {profile.name}
-                    </span>
-                  </button>
-                ))
+                profiles.map((profile) =>
+                  renderProfileOption(profile, selectedSourceProfile === profile.id, () =>
+                    setSelectedSourceProfile(profile.id),
+                  ),
+                )
               )}
             </div>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={handleClose}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => setStep("files")}
-                disabled={!selectedSourceProfile}
-                className="flex-1"
-              >
-                Next
-              </Button>
-            </div>
-          </div>
+          </>
         )}
 
-        {/* Step 2: File Selection */}
         {step === "files" && (
-          <div className="space-y-4">
-            <p className="text-xs  text-white/70">
-              Select files to sync:
-            </p>
+          <>
+            <p className="text-sm text-[var(--text-secondary)]">Choose which files to sync.</p>
             <div className="space-y-2">
               {SYNCABLE_FILES.map((file) => (
-                <label key={file.value} className="flex items-center gap-2 cursor-pointer">
+                <Card key={file.value} className="px-3 py-2.5">
                   <Checkbox
+                    label={file.label}
                     checked={selectedFiles.includes(file.value)}
                     onChange={() => handleFileToggle(file.value)}
+                    size="md"
                   />
-                  <span className="text-xs  text-white/80">
-                    {file.label}
-                  </span>
-                </label>
+                </Card>
               ))}
             </div>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => setStep("source")}
-                className="flex-1"
-              >
-                Back
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => setStep("targets")}
-                disabled={selectedFiles.length === 0}
-                className="flex-1"
-              >
-                Next
-              </Button>
-            </div>
-          </div>
+          </>
         )}
 
-        {/* Step 3: Target Profile Selection */}
         {step === "targets" && (
-          <div className="space-y-4">
-            <p className="text-xs  text-white/70 mb-3">
-              Select target profiles to sync to:
+          <>
+            <p className="text-sm text-[var(--text-secondary)]">
+              Choose which profiles should receive synced files.
             </p>
 
-            {/* ALL Profiles Toggle */}
-            <label className="flex items-center gap-3 p-2 rounded bg-black/30 border border-white/10 cursor-pointer hover:border-white/20 transition-colors">
+            <Card className="px-3 py-2.5">
               <Checkbox
+                label="All profiles"
                 checked={syncAllProfiles}
                 onChange={() => setSyncAllProfiles(!syncAllProfiles)}
+                description="Include every other profile as a sync target"
+                size="md"
               />
-              <div className="flex-1">
-                <p className="text-xs  text-white">
-                  ALL Profiles
-                </p>
-                <p className="text-xs  text-white/50">
-                  Include all other profiles
-                </p>
-              </div>
-            </label>
+            </Card>
 
-            {/* Profile List */}
             {!syncAllProfiles && (
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {profiles.filter((p) => p.id !== selectedSourceProfile).length === 0 ? (
-                  <p className="text-xs  text-white/60">
-                    No other profiles available
-                  </p>
+              <div className="custom-scrollbar max-h-56 space-y-2 overflow-y-auto">
+                {profiles.filter((profile) => profile.id !== selectedSourceProfile).length === 0 ? (
+                  <p className="text-sm text-[var(--text-muted)]">No other profiles available</p>
                 ) : (
                   profiles
-                    .filter((p) => p.id !== selectedSourceProfile)
+                    .filter((profile) => profile.id !== selectedSourceProfile)
                     .map((profile) => (
-                      <label
-                        key={profile.id}
-                        className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-white/5 transition-colors"
-                      >
+                      <Card key={profile.id} className="px-3 py-2.5">
                         <Checkbox
+                          label={profile.name}
                           checked={selectedTargetProfiles.has(profile.id)}
                           onChange={() => handleTargetProfileToggle(profile.id)}
+                          size="md"
                         />
-                        <span className="text-xs  text-white/80">
-                          {profile.name}
-                        </span>
-                      </label>
+                      </Card>
                     ))
                 )}
               </div>
             )}
-
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => setStep("files")}
-                className="flex-1"
-              >
-                Back
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleCreateSync}
-                disabled={
-                  isLoading ||
-                  (!syncAllProfiles && selectedTargetProfiles.size === 0)
-                }
-                className="flex-1"
-              >
-                {isLoading ? "Creating..." : "Create Sync"}
-              </Button>
-            </div>
-          </div>
+          </>
         )}
       </div>
-    </div>
+    </Modal>
   );
 }

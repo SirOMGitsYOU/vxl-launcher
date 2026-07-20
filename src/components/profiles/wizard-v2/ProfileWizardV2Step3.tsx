@@ -6,7 +6,6 @@ import type { ModLoader } from "../../../types/profile";
 import { Modal } from "../../ui/Modal";
 import { Button } from "../../ui-v2";
 import { StatusMessage } from "../../ui/StatusMessage";
-import { useThemeStore } from "../../../store/useThemeStore";
 import { SearchStyleInput } from "../../ui/Input";
 import { RangeSlider } from "../../ui/RangeSlider";
 import { Select } from "../../ui/Select";
@@ -51,7 +50,6 @@ export function ProfileWizardV2Step3({
     selectedLoaderVersion,
     defaultGroup
 }: ProfileWizardV2Step3Props) {
-    const accentColor = useThemeStore((state) => state.accentColor);
     const [profileName, setProfileName] = useState("");
     const [profileGroup, setProfileGroup] = useState(defaultGroup || "");
     const [memoryMaxMb, setMemoryMaxMb] = useState<number>(3072); // 3GB default
@@ -156,11 +154,10 @@ export function ProfileWizardV2Step3({
 
         return (
             <div className="space-y-8">
-                {/* Profile Details */}
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <label className="block text-base  text-white/50">
-                            Profile Name
+                        <label className="block text-sm font-medium text-[var(--text-secondary)]">
+                            Profile name
                         </label>
                         <SearchStyleInput
                             value={profileName}
@@ -182,8 +179,8 @@ export function ProfileWizardV2Step3({
                     </div>
 
                     <div className="space-y-2">
-                        <label className="block text-base  text-white/50">
-                            Group (Optional)
+                        <label className="block text-sm font-medium text-[var(--text-secondary)]">
+                            Group (optional)
                         </label>
                         <SearchStyleInput
                             value={profileGroup}
@@ -223,10 +220,9 @@ export function ProfileWizardV2Step3({
                     </div>
                 </div>
 
-                {/* RAM Settings */}
                 <div className="space-y-3">
-                    <label className="block text-base  text-white/50">
-                        Recommended RAM: 4096 mb
+                    <label className="block text-sm font-medium text-[var(--text-secondary)]">
+                        Memory allocation
                     </label>
                     <RangeSlider
                         value={memoryMaxMb}
@@ -285,7 +281,7 @@ export function ProfileWizardV2Step3({
 
     return (
         <Modal
-            title="create profile - finalize"
+            title="Create profile — Finalize"
             onClose={onClose}
             width="lg"
             footer={renderFooter()}

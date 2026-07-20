@@ -11,7 +11,6 @@ import { StatusMessage } from "../../ui/StatusMessage";
 import { SearchWithFilters } from "../../ui/SearchWithFilters";
 import { ProfileWizardV2Step2 } from "./ProfileWizardV2Step2";
 import { ProfileWizardV2Step3 } from "./ProfileWizardV2Step3";
-import { useThemeStore } from "../../../store/useThemeStore";
 import { useProfileStore } from "../../../store/profile-store";
 import type { CreateProfileParams } from "../../../types/profile";
 import { toast } from "react-hot-toast";
@@ -23,7 +22,6 @@ interface ProfileWizardV2Props {
 }
 
 export function ProfileWizardV2({ onClose, onSave, defaultGroup }: ProfileWizardV2Props) {
-  const accentColor = useThemeStore((state) => state.accentColor);
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [showLoadingIndicator, setShowLoadingIndicator] = useState(false);
@@ -281,7 +279,7 @@ export function ProfileWizardV2({ onClose, onSave, defaultGroup }: ProfileWizard
   // Default: Show Step 1
   return (
     <Modal
-      title="Create profile — select Minecraft version"
+      title="Create profile — Select Minecraft version"
       onClose={onClose}
       width="lg"
       footer={renderFooter()}

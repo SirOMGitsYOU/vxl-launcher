@@ -7,8 +7,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Modal } from "../../ui/Modal";
 import { Button, LoadingState } from "../../ui-v2";
 import { StatusMessage } from "../../ui/StatusMessage";
-import { useThemeStore } from "../../../store/useThemeStore";
-import { Select } from "../../ui/Select";
+import { cn } from "../../../lib/utils";
 
 interface LoaderVersionInfo {
   loader: {
@@ -24,14 +23,25 @@ interface ProfileWizardV2Step2Props {
   selectedMinecraftVersion: string;
 }
 
-export function ProfileWizardV2Step2({ 
-  onClose, 
-  onNext, 
+const MOD_LOADERS: {
+  key: ModLoader;
+  label: string;
+  backgroundImage: string;
+}[] = [
+  { key: "vanilla", label: "Vanilla", backgroundImage: "/icons/minecraft.png" },
+  { key: "fabric", label: "Fabric", backgroundImage: "/icons/fabric.png" },
+  { key: "forge", label: "Forge", backgroundImage: "/icons/forge.png" },
+  { key: "neoforge", label: "NeoForge", backgroundImage: "/icons/neoforge.png" },
+  { key: "quilt", label: "Quilt", backgroundImage: "/icons/quilt.png" },
+];
+
+export function ProfileWizardV2Step2({
+  onClose,
+  onNext,
   onBack,
-  selectedMinecraftVersion 
+  selectedMinecraftVersion,
 }: ProfileWizardV2Step2Props) {
-  const accentColor = useThemeStore((state) => state.accentColor);
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedLoader, setSelectedLoader] = useState<ModLoader>("fabric");
   const [selectedLoaderVersion, setSelectedLoaderVersion] = useState<string | null>(null);
@@ -41,106 +51,92 @@ export function ProfileWizardV2Step2({
   const [showNoVersionsFound, setShowNoVersionsFound] = useState(false);
   const [unavailableLoaders, setUnavailableLoaders] = useState<Set<ModLoader>>(new Set());
 
-  const modLoaders: { key: ModLoader; label: string; icon: string; backgroundImage: string }[] = [
-    { key: "vanilla", label: "Vanilla", icon: "solar:gamepad-bold", backgroundImage: "/icons/minecraft.png" },
-    { key: "fabric", label: "Fabric", icon: "solar:box-bold", backgroundImage: "/icons/fabric.png" },
-    { key: "forge", label: "Forge", icon: "solar:hammer-bold", backgroundImage: "/icons/forge.png" },
-    { key: "neoforge", label: "NeoForge", icon: "solar:shield-bold", backgroundImage: "/icons/neoforge.png" },
-    { key: "quilt", label: "Quilt", icon: "solar:widget-bold", backgroundImage: "/icons/quilt.png" },
-  ];
-
-  // Check all mod loaders availability when Minecraft version changes
   useEffect(() => {
     const checkAllLoaders = async () => {
       setUnavailableLoaders(new Set());
-      
-      // Check all mod loaders in parallel
-      const modLoaderKeys: Exclude<ModLoader, "vanilla">[] = ["fabric", "forge", "neoforge", "quilt"];
-      
+
+      const modLoaderKeys: Exclude<ModLoader, "vanilla">[] = [
+        "fabric",
+        "forge",
+        "neoforge",
+        "quilt",
+      ];
+
       const checkPromises = modLoaderKeys.map(async (loaderKey) => {
         try {
           let versions: string[] = [];
-          
+
           switch (loaderKey) {
-            case "fabric":
+            case "fabric": {
               const fabricVersions = await invoke<LoaderVersionInfo[]>(
                 "get_fabric_loader_versions",
-                { minecraftVersion: selectedMinecraftVersion }
+                { minecraftVersion: selectedMinecraftVersion },
               );
-              versions = fabricVersions.map(v => 
-                `${v.loader.version}${v.loader.stable ? " (stable)" : ""}`
+              versions = fabricVersions.map(
+                (v) => `${v.loader.version}${v.loader.stable ? " (stable)" : ""}`,
               );
               break;
-              
+            }
             case "forge":
               versions = await invoke<string[]>("get_forge_versions", {
                 minecraftVersion: selectedMinecraftVersion,
               });
               break;
-              
             case "neoforge":
               versions = await invoke<string[]>("get_neoforge_versions", {
                 minecraftVersion: selectedMinecraftVersion,
               });
               break;
-              
-            case "quilt":
+            case "quilt": {
               const quiltVersions = await invoke<LoaderVersionInfo[]>(
                 "get_quilt_loader_versions",
-                { minecraftVersion: selectedMinecraftVersion }
+                { minecraftVersion: selectedMinecraftVersion },
               );
-              versions = quiltVersions.map(v => 
-                `${v.loader.version}${v.loader.stable ? " (stable)" : ""}`
+              versions = quiltVersions.map(
+                (v) => `${v.loader.version}${v.loader.stable ? " (stable)" : ""}`,
               );
               break;
+            }
           }
-          
-          // If no versions available, mark as unavailable
-          if (versions.length === 0) {
-            return loaderKey;
-          }
-          return null;
+
+          return versions.length === 0 ? loaderKey : null;
         } catch (err) {
-          // Check if error is a 400/404 (no versions available) vs real error
-          const errorMessage = err instanceof Error 
-            ? err.message 
-            : typeof err === 'object' && err !== null && 'message' in err
-            ? String((err as any).message)
-            : String(err);
-          const errorKind = typeof err === 'object' && err !== null && 'kind' in err
-            ? String((err as any).kind)
-            : '';
-          const isNoVersionsError = 
-            errorMessage.includes("Status 400") || 
+          const errorMessage =
+            err instanceof Error
+              ? err.message
+              : typeof err === "object" && err !== null && "message" in err
+                ? String((err as { message: unknown }).message)
+                : String(err);
+          const errorKind =
+            typeof err === "object" && err !== null && "kind" in err
+              ? String((err as { kind: unknown }).kind)
+              : "";
+          const isNoVersionsError =
+            errorMessage.includes("Status 400") ||
             errorMessage.includes("Status 404") ||
             errorKind.includes("Status 400") ||
             errorKind.includes("Status 404");
-          
-          if (isNoVersionsError) {
-            return loaderKey;
-          }
-          // Real error - don't mark as unavailable, let user see the error
-          return null;
+
+          return isNoVersionsError ? loaderKey : null;
         }
       });
-      
+
       const unavailableResults = await Promise.all(checkPromises);
-      const unavailable = unavailableResults.filter((loader): loader is Exclude<ModLoader, "vanilla"> => loader !== null);
-      
+      const unavailable = unavailableResults.filter(
+        (loader): loader is Exclude<ModLoader, "vanilla"> => loader !== null,
+      );
+
       if (unavailable.length > 0) {
         setUnavailableLoaders(new Set(unavailable));
-        
-        // If currently selected loader becomes unavailable, switch to vanilla
         if (unavailable.includes(selectedLoader as Exclude<ModLoader, "vanilla">)) {
           setSelectedLoader("vanilla");
         }
       }
     };
-    
-    checkAllLoaders();
-  }, [selectedMinecraftVersion]);
 
-  // Fetch versions when loader changes
+    void checkAllLoaders();
+  }, [selectedMinecraftVersion, selectedLoader]);
+
   useEffect(() => {
     const fetchVersions = async () => {
       if (selectedLoader === "vanilla") {
@@ -156,94 +152,96 @@ export function ProfileWizardV2Step2({
       setShowNoVersionsFound(false);
       setError(null);
 
-      // Show loading indicator only after 800ms delay
-      const loadingTimeout = setTimeout(() => {
-        if (loadingVersions) {
-          setShowLoadingIndicator(true);
-        }
+      const loadingTimeout = window.setTimeout(() => {
+        setShowLoadingIndicator(true);
       }, 800);
 
-      // Show "no versions found" only after 800ms delay
-      const noVersionsTimeout = setTimeout(() => {
-        if (!loadingVersions && loaderVersions.length === 0 && !error) {
-          setShowNoVersionsFound(true);
-        }
-      }, 800);
+      let noVersionsTimeout: number | undefined;
 
       try {
         let versions: string[] = [];
 
         switch (selectedLoader) {
-          case "fabric":
+          case "fabric": {
             const fabricVersions = await invoke<LoaderVersionInfo[]>(
               "get_fabric_loader_versions",
-              { minecraftVersion: selectedMinecraftVersion }
+              { minecraftVersion: selectedMinecraftVersion },
             );
-            versions = fabricVersions.map(v => 
-              `${v.loader.version}${v.loader.stable ? " (stable)" : ""}`
+            versions = fabricVersions.map(
+              (v) => `${v.loader.version}${v.loader.stable ? " (stable)" : ""}`,
             );
             break;
-
+          }
           case "forge":
             versions = await invoke<string[]>("get_forge_versions", {
               minecraftVersion: selectedMinecraftVersion,
             });
             break;
-
           case "neoforge":
             versions = await invoke<string[]>("get_neoforge_versions", {
               minecraftVersion: selectedMinecraftVersion,
             });
             break;
-
-          case "quilt":
+          case "quilt": {
             const quiltVersions = await invoke<LoaderVersionInfo[]>(
               "get_quilt_loader_versions",
-              { minecraftVersion: selectedMinecraftVersion }
+              { minecraftVersion: selectedMinecraftVersion },
             );
-            versions = quiltVersions.map(v => 
-              `${v.loader.version}${v.loader.stable ? " (stable)" : ""}`
+            versions = quiltVersions.map(
+              (v) => `${v.loader.version}${v.loader.stable ? " (stable)" : ""}`,
             );
             break;
+          }
         }
 
         setLoaderVersions(versions);
-        // Auto-select latest (first) version
         if (versions.length > 0) {
           setSelectedLoaderVersion(versions[0]);
           setShowNoVersionsFound(false);
         } else {
-          // No versions available - mark loader as unavailable
-          if (selectedLoader === "fabric" || selectedLoader === "forge" || selectedLoader === "neoforge" || selectedLoader === "quilt") {
-            setUnavailableLoaders(prev => new Set(prev).add(selectedLoader));
+          noVersionsTimeout = window.setTimeout(() => {
+            setShowNoVersionsFound(true);
+          }, 800);
+
+          if (
+            selectedLoader === "fabric" ||
+            selectedLoader === "forge" ||
+            selectedLoader === "neoforge" ||
+            selectedLoader === "quilt"
+          ) {
+            setUnavailableLoaders((prev) => new Set(prev).add(selectedLoader));
             setSelectedLoader("vanilla");
+            setSelectedLoaderVersion(null);
+            setShowNoVersionsFound(false);
           }
-          setSelectedLoaderVersion(null);
-          setShowNoVersionsFound(false);
         }
       } catch (err) {
         console.error(`Failed to fetch ${selectedLoader} versions:`, err);
-        
-        // Check if error is a 400/404 (no versions available) vs real error
-        const errorMessage = err instanceof Error 
-          ? err.message 
-          : typeof err === 'object' && err !== null && 'message' in err
-          ? String((err as any).message)
-          : String(err);
-        const errorKind = typeof err === 'object' && err !== null && 'kind' in err
-          ? String((err as any).kind)
-          : '';
-        const isNoVersionsError = 
-          errorMessage.includes("Status 400") || 
+
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : typeof err === "object" && err !== null && "message" in err
+              ? String((err as { message: unknown }).message)
+              : String(err);
+        const errorKind =
+          typeof err === "object" && err !== null && "kind" in err
+            ? String((err as { kind: unknown }).kind)
+            : "";
+        const isNoVersionsError =
+          errorMessage.includes("Status 400") ||
           errorMessage.includes("Status 404") ||
           errorKind.includes("Status 400") ||
           errorKind.includes("Status 404");
-        
+
         if (isNoVersionsError) {
-          // No versions available - mark loader as unavailable, don't show error
-          // Only mark mod loaders as unavailable (not vanilla)
-          if (selectedLoader === "fabric" || selectedLoader === "forge" || selectedLoader === "neoforge" || selectedLoader === "quilt") {
-            setUnavailableLoaders(prev => new Set(prev).add(selectedLoader));
+          if (
+            selectedLoader === "fabric" ||
+            selectedLoader === "forge" ||
+            selectedLoader === "neoforge" ||
+            selectedLoader === "quilt"
+          ) {
+            setUnavailableLoaders((prev) => new Set(prev).add(selectedLoader));
             setSelectedLoader("vanilla");
           }
           setLoaderVersions([]);
@@ -251,21 +249,22 @@ export function ProfileWizardV2Step2({
           setShowNoVersionsFound(false);
           setError(null);
         } else {
-          // Real error - show error message
           setError(`Failed to load ${selectedLoader} versions. Please try again.`);
           setLoaderVersions([]);
           setSelectedLoaderVersion(null);
           setShowNoVersionsFound(false);
         }
       } finally {
-        clearTimeout(loadingTimeout);
-        clearTimeout(noVersionsTimeout);
+        window.clearTimeout(loadingTimeout);
+        if (noVersionsTimeout !== undefined) {
+          window.clearTimeout(noVersionsTimeout);
+        }
         setLoadingVersions(false);
         setShowLoadingIndicator(false);
       }
     };
 
-    fetchVersions();
+    void fetchVersions();
   }, [selectedLoader, selectedMinecraftVersion]);
 
   const handleNext = () => {
@@ -274,12 +273,7 @@ export function ProfileWizardV2Step2({
 
   const renderContent = () => {
     if (loading) {
-      return (
-        <div className="flex flex-col items-center justify-center h-64">
-          <Icon icon="solar:refresh-bold" className="w-12 h-12 text-white animate-spin mb-4" />
-          <p className="text-xl  text-white lowercase">loading...</p>
-        </div>
-      );
+      return <LoadingState message="Loading mod loaders..." />;
     }
 
     if (error) {
@@ -287,98 +281,79 @@ export function ProfileWizardV2Step2({
     }
 
     return (
-      <div className="flex flex-col space-y-3">
-        {/* Mod Loader Selection */}
-        <div className="grid grid-cols-2 gap-2 flex-shrink-0">
-          {modLoaders.map(loader => {
+      <div className="flex flex-col space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          {MOD_LOADERS.map((loader) => {
             const isUnavailable = unavailableLoaders.has(loader.key);
             const isDisabled = isUnavailable && loader.key !== "vanilla";
+            const isSelected = selectedLoader === loader.key;
+
             return (
               <div
                 key={loader.key}
-                className={`relative overflow-hidden transition-all duration-200 rounded-lg cursor-pointer flex items-center ${
-                  isDisabled
-                    ? "opacity-50 cursor-not-allowed pointer-events-none"
-                    : "hover:bg-black/20"
-                }`}
-                style={{
-                  borderWidth: '2px',
-                  borderColor: isDisabled 
-                    ? 'transparent' 
-                    : (selectedLoader === loader.key ? accentColor.value : 'rgba(255, 255, 255, 0.1)'),
-                  backgroundColor: selectedLoader === loader.key ? `${accentColor.value}15` : 'rgba(0, 0, 0, 0.2)',
-                }}
+                className={cn(
+                  "flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all duration-200",
+                  isDisabled && "pointer-events-none cursor-not-allowed opacity-50",
+                  isSelected && !isDisabled
+                    ? "border-[var(--accent)] bg-[rgba(var(--accent-rgb),0.06)] vxl-accent-glow"
+                    : "border-[var(--surface-border)] bg-[var(--surface-overlay)] hover:border-[var(--surface-border-strong)]",
+                )}
                 onClick={() => !isDisabled && setSelectedLoader(loader.key)}
               >
-                {/* Content */}
-                <div className="relative z-10 flex items-center gap-4 px-4 py-3 w-full">
-                  {/* Background Image - Icon on left */}
-                  <div
-                    className="w-16 h-16 flex-shrink-0"
-                    style={{
-                      backgroundImage: `url('${loader.backgroundImage}')`,
-                      backgroundSize: 'contain',
-                      backgroundPosition: 'center',
-                      backgroundRepeat: 'no-repeat',
-                    }}
-                  />
-                  
-                  {/* Text */}
-                  <div className="flex flex-col items-start">
-                    <h4 className=" text-4xl text-white lowercase drop-shadow-lg">
-                      {loader.label}
-                    </h4>
-                    {isDisabled && (
-                      <p className=" text-2xl text-white/70 lowercase">
-                        not available
-                      </p>
-                    )}
-                  </div>
+                <div
+                  className="h-12 w-12 shrink-0 bg-contain bg-center bg-no-repeat"
+                  style={{ backgroundImage: `url('${loader.backgroundImage}')` }}
+                />
+                <div className="min-w-0">
+                  <h4 className="text-sm font-semibold text-white">{loader.label}</h4>
+                  {isDisabled && (
+                    <p className="text-xs text-[var(--text-muted)]">Not available</p>
+                  )}
                 </div>
-                
-                {/* Dark overlay for better text readability */}
-                <div className={`absolute inset-0 z-0 transition-all duration-200 ${
-                  selectedLoader === loader.key && !isDisabled
-                    ? "bg-black/35"
-                    : isDisabled
-                    ? "bg-black/75"
-                    : "bg-black/55"
-                }`} />
               </div>
             );
           })}
         </div>
 
-        {/* Version Selection */}
-        <div className="h-20 flex items-center flex-shrink-0">
+        <div className="min-h-[2.75rem]">
           {selectedLoader === "vanilla" ? (
-            <div className="text-center w-full">
-              <p className="text-lg  text-white/50 lowercase">
-                no additional version required
-              </p>
-            </div>
+            <p className="py-2 text-center text-sm text-[var(--text-muted)]">
+              No additional loader version required
+            </p>
           ) : showLoadingIndicator ? (
-            <div className="flex items-center justify-center w-full">
-              <Icon icon="solar:refresh-bold" className="w-6 h-6 text-white animate-spin mr-3" />
-              <p className="text-lg  text-white lowercase">loading versions...</p>
-            </div>
+            <LoadingState message="Loading versions..." />
           ) : loaderVersions.length > 0 ? (
-            <Select
-              value={selectedLoaderVersion || ""}
-              onChange={setSelectedLoaderVersion}
-              options={loaderVersions.map(version => ({
-                value: version,
-                label: version
-              }))}
-              placeholder={`Select ${modLoaders.find(l => l.key === selectedLoader)?.label} version...`}
-              size="md"
-              className="w-full"
-            />
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-[var(--text-secondary)]">Loader version</p>
+              <div className="custom-scrollbar max-h-44 overflow-y-auto rounded-xl border border-[var(--surface-border)] bg-[var(--surface-overlay)] p-2">
+                {loaderVersions.map((version) => {
+                  const isSelected = selectedLoaderVersion === version;
+                  return (
+                    <button
+                      key={version}
+                      type="button"
+                      onClick={() => setSelectedLoaderVersion(version)}
+                      className={cn(
+                        "mb-1 w-full rounded-lg px-3 py-2 text-left text-sm transition-colors last:mb-0",
+                        isSelected
+                          ? "border border-[var(--accent)]/40 bg-[rgba(var(--accent-rgb),0.12)] text-white"
+                          : "border border-transparent text-[var(--text-secondary)] hover:bg-white/5 hover:text-white",
+                      )}
+                    >
+                      {version}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           ) : showNoVersionsFound ? (
-            <div className="text-center w-full">
-              <Icon icon="solar:danger-triangle-bold" className="w-8 h-8 text-white/50 mx-auto mb-2" />
-              <p className="text-base  text-white/70 lowercase">
-                no {selectedLoader} versions available for {selectedMinecraftVersion}
+            <div className="py-2 text-center">
+              <Icon
+                icon="solar:danger-triangle-bold"
+                className="mx-auto mb-2 h-6 w-6 text-[var(--text-muted)]"
+              />
+              <p className="text-sm text-[var(--text-secondary)]">
+                No {selectedLoader} versions available for {selectedMinecraftVersion}
               </p>
             </div>
           ) : null}
@@ -388,13 +363,13 @@ export function ProfileWizardV2Step2({
   };
 
   const renderFooter = () => (
-    <div className="flex justify-between items-center">
+    <div className="flex items-center justify-between">
       <Button
         variant="secondary"
         onClick={onBack}
         disabled={loading || loadingVersions}
         size="md"
-        icon={<Icon icon="solar:arrow-left-bold" className="w-4 h-4" />}
+        icon={<Icon icon="solar:arrow-left-bold" className="h-4 w-4" />}
       >
         Back
       </Button>
@@ -402,9 +377,11 @@ export function ProfileWizardV2Step2({
       <Button
         variant="primary"
         onClick={handleNext}
-        disabled={loading || loadingVersions || (selectedLoader !== "vanilla" && !selectedLoaderVersion)}
+        disabled={
+          loading || loadingVersions || (selectedLoader !== "vanilla" && !selectedLoaderVersion)
+        }
         size="md"
-        icon={<Icon icon="solar:arrow-right-bold" className="w-4 h-4" />}
+        icon={<Icon icon="solar:arrow-right-bold" className="h-4 w-4" />}
       >
         Next
       </Button>
@@ -413,14 +390,12 @@ export function ProfileWizardV2Step2({
 
   return (
     <Modal
-      title="Create profile — select mod loader"
+      title="Create profile — Select mod loader"
       onClose={onClose}
       width="lg"
       footer={renderFooter()}
     >
-      <div className="min-h-[400px] p-6 overflow-hidden">
-        {renderContent()}
-      </div>
+      <div className="min-h-[400px] overflow-hidden p-6">{renderContent()}</div>
     </Modal>
   );
-} 
+}

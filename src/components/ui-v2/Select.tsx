@@ -1,28 +1,59 @@
 "use client";
 
 import type React from "react";
-import { Icon } from "@iconify/react";
-import { cn } from "../../lib/utils";
+import { SelectMenu, type SelectMenuOption } from "./SelectMenu";
 
-interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {}
+function optionsFromChildren(children: React.ReactNode): SelectMenuOption[] {
+  const options: SelectMenuOption[] = [];
 
-export function Select({ className, children, ...props }: SelectProps) {
+  for (const child of Array.isArray(children) ? children : [children]) {
+    if (!child || typeof child !== "object" || !("props" in child)) continue;
+    const props = child.props as {
+      value?: string;
+      disabled?: boolean;
+      children?: React.ReactNode;
+    };
+    if (props.value === undefined) continue;
+    options.push({
+      value: String(props.value),
+      label: String(props.children ?? props.value),
+      disabled: props.disabled,
+    });
+  }
+
+  return options;
+}
+
+interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, "onChange" | "placeholder"> {
+  options?: SelectMenuOption[];
+  onChange?: (event: React.ChangeEvent<HTMLSelectElement>) => void;
+  placeholder?: string;
+}
+
+export function Select({
+  className,
+  children,
+  value,
+  onChange,
+  options,
+  disabled,
+  placeholder,
+}: SelectProps) {
+  const resolvedOptions = options ?? optionsFromChildren(children);
+
   return (
-    <div className="relative inline-flex min-w-0">
-      <select
-        className={cn(
-          "h-9 w-full min-w-0 appearance-none rounded-lg border border-[var(--surface-border)] bg-[var(--surface-overlay)] pl-3 pr-8",
-          "cursor-pointer text-sm text-white focus:border-[var(--accent)]/50 focus:outline-none",
-          className,
-        )}
-        {...props}
-      >
-        {children}
-      </select>
-      <Icon
-        icon="solar:alt-arrow-down-linear"
-        className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-muted)]"
-      />
-    </div>
+    <SelectMenu
+      value={String(value ?? "")}
+      onChange={(nextValue) => {
+        onChange?.({
+          target: { value: nextValue },
+        } as React.ChangeEvent<HTMLSelectElement>);
+      }}
+      options={resolvedOptions}
+      className={className}
+      disabled={disabled}
+      placeholder={placeholder}
+      size={className?.includes("text-xs") || className?.includes("h-8") ? "sm" : "md"}
+    />
   );
 }

@@ -1,38 +1,35 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 
 import { Modal } from "../ui/Modal";
-import { Button } from "../ui/buttons/Button";
-import { StatusMessage } from "../ui/StatusMessage";
-import { useThemeStore } from "../../store/useThemeStore";
+import { Button, Card } from "../ui-v2";
 import { toast } from "react-hot-toast";
-import { open as openDialog } from '@tauri-apps/plugin-dialog';
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import * as ProfileService from "../../services/profile-service";
 import { useProfileStore } from "../../store/profile-store";
+import { cn } from "../../lib/utils";
 
 interface ProfileImportProps {
   onClose: () => void;
   onImportComplete: () => void;
 }
 
-export function ProfileImport({
-  onClose,
-  onImportComplete,
-}: ProfileImportProps) {
+const SUPPORTED_FORMATS = [
+  { ext: ".mrpack", label: "Modrinth", iconClass: "text-sky-400" },
+  { ext: ".vxlpack", label: "VXL Launcher", iconClass: "text-emerald-400" },
+  { ext: ".zip", label: "CurseForge", iconClass: "text-orange-400" },
+] as const;
+
+export function ProfileImport({ onClose, onImportComplete }: ProfileImportProps) {
   const [isImporting, setIsImporting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const accentColor = useThemeStore((state) => state.accentColor);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const formatItemsRef = useRef<HTMLUListElement>(null);
   const navigate = useNavigate();
 
   const handleImport = async () => {
     const operationId = `profile-import-dialog-${Date.now()}`;
-    let loadingToastId: string | undefined = undefined; // To ensure it's only used if a file is selected
+    let loadingToastId: string | undefined;
 
     try {
       const selectedPath = await openDialog({
@@ -52,7 +49,9 @@ export function ProfileImport({
         onClose();
 
         loadingToastId = `loading-${operationId}`;
-        const fileName = selectedPath.substring(selectedPath.lastIndexOf('/') + 1).substring(selectedPath.lastIndexOf('\\') + 1);
+        const fileName = selectedPath
+          .substring(selectedPath.lastIndexOf("/") + 1)
+          .substring(selectedPath.lastIndexOf("\\") + 1);
         toast.loading(`Importing profile from ${fileName}...`, { id: loadingToastId });
 
         const newProfileId = await ProfileService.importProfileByPath(selectedPath);
@@ -63,18 +62,10 @@ export function ProfileImport({
         });
         useProfileStore.getState().fetchProfiles();
         onImportComplete();
-
-        // Navigate to the new profile
         navigate(`/profiles/${newProfileId}`);
-
-      } else {
-        if (selectedPath === null) {
-          console.log("Profile import dialog cancelled by user.");
-          // No toast for cancellation is usually fine
-        } else {
-          console.warn("File selection dialog did not return a valid path or was an array:", selectedPath);
-          toast.error("Could not get selected file path. Please try again.");
-        }
+      } else if (selectedPath !== null) {
+        console.warn("File selection dialog did not return a valid path:", selectedPath);
+        toast.error("Could not get selected file path. Please try again.");
       }
     } catch (err) {
       console.error("Failed to import profile:", err);
@@ -92,106 +83,51 @@ export function ProfileImport({
   const renderFooter = () => (
     <div className="flex justify-end">
       <Button
-        variant="default"
+        variant="primary"
         onClick={handleImport}
         disabled={isImporting}
-        icon={<Icon icon="solar:upload-bold" className="w-5 h-5 text-white" />}
+        icon={
+          isImporting ? (
+            <Icon icon="solar:refresh-bold" className="h-4 w-4 animate-spin" />
+          ) : (
+            <Icon icon="solar:upload-bold" className="h-4 w-4" />
+          )
+        }
         size="md"
       >
-        {isImporting ? (
-          <>
-            <Icon
-              icon="solar:refresh-bold"
-              className="w-5 h-5 animate-spin text-white"
-            />
-            <span>importing...</span>
-          </>
-        ) : (
-          "select file to import"
-        )}
+        {isImporting ? "Importing..." : "Select file to import"}
       </Button>
     </div>
   );
 
   return (
-    <Modal
-      title="import profile"
-      onClose={onClose}
-      width="lg"
-      footer={renderFooter()}
-    >
-      <div className="p-6" ref={contentRef}>
-        {error && <StatusMessage type="error" message={error} />}
-        {success && <StatusMessage type="success" message={success} />}
+    <Modal title="Import profile" onClose={onClose} width="lg" footer={renderFooter()}>
+      <div className="space-y-5 p-6 select-none">
+        <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
+          Select a file or drag and drop a .mrpack, .vxlpack, or .zip file into the launcher to
+          import it and create a new profile.
+        </p>
 
-        <div className="space-y-6">
-          <div>
-            <p className="text-lg text-white/70 mb-6  tracking-wide select-none">
-              Select a file or drag and drop a .mrpack, .vxlpack, or .zip file into the launcher to import it and create a new profile.
-            </p>
-
-            <div className="mb-6">
-              <h3 className="text-2xl text-white  mb-4 select-none lowercase">
-                supported formats:
-              </h3>
-              <ul
-                className="text-2xl text-white/80 space-y-4 select-none lowercase "
-                ref={formatItemsRef}
-              >
-                <li className="flex items-center">
-                  <div
-                    className="w-10 h-10 rounded-md flex items-center justify-center mr-4"
-                    style={{
-                      backgroundColor: `${accentColor.value}30`,
-                      borderWidth: "2px",
-                      borderStyle: "solid",
-                      borderColor: `${accentColor.value}60`,
-                    }}
-                  >
+        <div>
+          <h3 className="mb-3 text-sm font-semibold text-white">Supported formats</h3>
+          <ul className="space-y-2">
+            {SUPPORTED_FORMATS.map((format) => (
+              <li key={format.ext}>
+                <Card className="flex items-center gap-3 p-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[rgba(var(--accent-rgb),0.12)]">
                     <Icon
                       icon="solar:file-bold"
-                      className="w-5 h-5 text-blue-400"
+                      className={cn("h-4 w-4", format.iconClass)}
                     />
                   </div>
-                  <span>.mrpack (Modrinth)</span>
-                </li>
-                <li className="flex items-center">
-                  <div
-                    className="w-10 h-10 rounded-md flex items-center justify-center mr-4"
-                    style={{
-                      backgroundColor: `${accentColor.value}30`,
-                      borderWidth: "2px",
-                      borderStyle: "solid",
-                      borderColor: `${accentColor.value}60`,
-                    }}
-                  >
-                    <Icon
-                      icon="solar:file-bold"
-                      className="w-5 h-5 text-green-400"
-                    />
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium text-white">{format.ext}</span>
+                    <span className="text-sm text-[var(--text-muted)]"> · {format.label}</span>
                   </div>
-                  <span>.vxlpack (VXL Launcher)</span>
-                </li>
-                <li className="flex items-center">
-                  <div
-                    className="w-10 h-10 rounded-md flex items-center justify-center mr-4"
-                    style={{
-                      backgroundColor: `${accentColor.value}30`,
-                      borderWidth: "2px",
-                      borderStyle: "solid",
-                      borderColor: `${accentColor.value}60`,
-                    }}
-                  >
-                    <Icon
-                      icon="solar:file-bold"
-                      className="w-5 h-5 text-orange-400"
-                    />
-                  </div>
-                  <span>.zip (CurseForge)</span>
-                </li>
-              </ul>
-            </div>
-          </div>
+                </Card>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </Modal>

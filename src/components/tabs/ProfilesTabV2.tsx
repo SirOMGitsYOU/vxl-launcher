@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useProfileStore } from "../../store/profile-store";
-import { LoadingState, EmptyState, Select, IconButton, ToolbarActions } from "../ui-v2";
+import { LoadingState, EmptyState, SelectMenu, IconButton, ToolbarActions } from "../ui-v2";
 import { LibraryProfileCard } from "../library/LibraryProfileCard";
 import { useShellSearchTab } from "../../hooks/useShellSearchTab";
 import { useShellSearch } from "../../contexts/ShellSearchContext";
@@ -217,15 +217,18 @@ export function ProfilesTabV2() {
       onFilterChange={setProfilesTabActiveGroup}
       toolbarExtra={<ToolbarActions actions={actionButtons} />}
       sortControl={
-        <div className="flex items-center gap-2">
-          <Select
+        <div className="flex select-none items-center gap-2">
+          <span className="whitespace-nowrap text-sm text-[var(--text-muted)]">Sort by</span>
+          <SelectMenu
             value={sortBy}
-            onChange={(e) => setProfilesTabSortBy(e.target.value)}
-          >
-            <option value="name">Sort by: Name</option>
-            <option value="last_played">Sort by: Last played</option>
-            <option value="date_created">Sort by: Date created</option>
-          </Select>
+            onChange={setProfilesTabSortBy}
+            className="min-w-[9rem]"
+            options={[
+              { value: "name", label: "Name" },
+              { value: "last_played", label: "Last played" },
+              { value: "date_created", label: "Date created" },
+            ]}
+          />
           <IconButton
             onClick={() => {
               const nextMode = layoutMode === "list" ? "grid" : layoutMode === "grid" ? "compact" : "list";

@@ -24,10 +24,8 @@ export function DropdownItem({
 
   return (    <button
       className={cn(
-        "w-full px-4 py-2 text-left  text-lg transition-all duration-200 lowercase",
-        "flex items-center gap-3",
-        "hover:bg-white/10",
-        "active:bg-white/5",
+        "flex w-full items-center gap-3 px-4 py-2 text-left text-sm normal-case tracking-normal transition-all duration-200",
+        "hover:bg-white/10 active:bg-white/5",
         isActive && "bg-white/15",
         className,
       )}

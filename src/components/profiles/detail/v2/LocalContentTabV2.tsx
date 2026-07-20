@@ -42,7 +42,6 @@ import {
   type SwitchContentVersionPayload,
 } from "../../../../types/content"; // Added import
 import { type DialogFilter, open } from "@tauri-apps/plugin-dialog"; // Corrected: DialogFile is not exported directly
-import { Select, type SelectOption } from "../../../ui/Select";
 import { ThemedSurface } from "../../../ui/ThemedSurface";
 import { useAppDragDropStore } from "../../../../store/appStore"; // Import the store
 import { createPortal } from "react-dom";

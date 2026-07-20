@@ -4,35 +4,22 @@ import { Icon } from "@iconify/react";
 import { StableIcon } from "./IconWrapper";
 import { CustomDropdown } from "./CustomDropdown";
 import type { DropdownOption } from "./CustomDropdown";
+import { cn } from "../../lib/utils";
 
 export interface SearchWithFiltersProps {
-  /** Placeholder text for the search input */
   placeholder?: string;
-  /** Current search value */
   searchValue?: string;
-  /** Callback when search value changes */
   onSearchChange?: (value: string) => void;
-  /** Callback when Enter is pressed in search input */
   onSearchEnter?: (value: string) => void;
-  /** Sort options for the sort dropdown */
   sortOptions?: DropdownOption[];
-  /** Current sort value */
   sortValue?: string;
-  /** Callback when sort value changes */
   onSortChange?: (value: string) => void;
-  /** Filter options for the filter dropdown */
   filterOptions?: DropdownOption[];
-  /** Current filter value */
   filterValue?: string;
-  /** Callback when filter value changes */
   onFilterChange?: (value: string) => void;
-  /** Additional CSS classes */
   className?: string;
-  /** Optional icon for the search input */
   searchIcon?: string;
-  /** Whether to show the sort dropdown */
   showSort?: boolean;
-  /** Whether to show the filter dropdown */
   showFilter?: boolean;
 }
 
@@ -57,62 +44,49 @@ export function SearchWithFilters({
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && onSearchEnter) {
+    if (e.key === "Enter" && onSearchEnter) {
       onSearchEnter(searchValue);
     }
   };
 
   return (
-    <div className={`flex items-center gap-4 ${className}`}>
-      {/* Search with integrated filters */}
-      <div className="flex items-center gap-2 bg-black/50 rounded-lg px-4 py-3 border border-white/10 hover:border-white/20 transition-colors flex-1 max-w-md">
-        <StableIcon icon={searchIcon} className="w-4 h-4 text-white/50" />
+    <div className={cn("flex items-center gap-4", className)}>
+      <div className="flex max-w-md flex-1 items-center gap-2 rounded-lg border border-[var(--surface-border)] bg-[var(--surface-overlay)] px-4 py-2.5 transition-colors hover:border-[var(--surface-border-strong)]">
+        <StableIcon icon={searchIcon} className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
         <input
           type="text"
           placeholder={placeholder}
           value={searchValue}
           onChange={handleSearchChange}
           onKeyDown={handleSearchKeyDown}
-          className="bg-transparent text-white placeholder-white/50  text-sm flex-1 outline-none"
+          className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-[var(--text-muted)]"
         />
-        
-        {/* Sort Filter */}
-        {showSort && sortOptions.length > 0 && (
+
+        {showSort && sortOptions.length > 0 && onSortChange ? (
           <>
-            {/* Separator */}
-            <div className="h-4 w-px bg-white/20 mx-2"></div>
-            
-            {/* Sort Filter Button */}
-            <div className="relative">
-              <CustomDropdown
-                label=""
-                value={sortValue}
-                onChange={onSortChange}
-                options={sortOptions}
-                className="w-auto"
-              />
-            </div>
+            <div className="mx-1 h-4 w-px bg-[var(--surface-border)]" />
+            <CustomDropdown
+              value={sortValue}
+              onChange={onSortChange}
+              options={sortOptions}
+              className="w-auto shrink-0"
+              variant="search"
+            />
           </>
-        )}
-        
-        {/* Version/Filter */}
-        {showFilter && filterOptions.length > 0 && (
+        ) : null}
+
+        {showFilter && filterOptions.length > 0 && onFilterChange ? (
           <>
-            {/* Separator */}
-            <div className="h-4 w-px bg-white/20 mx-2"></div>
-            
-            {/* Filter Button */}
-            <div className="relative">
-              <CustomDropdown
-                label=""
-                value={filterValue}
-                onChange={onFilterChange}
-                options={filterOptions}
-                className="w-auto"
-              />
-            </div>
+            <div className="mx-1 h-4 w-px bg-[var(--surface-border)]" />
+            <CustomDropdown
+              value={filterValue}
+              onChange={onFilterChange}
+              options={filterOptions}
+              className="w-auto shrink-0"
+              variant="search"
+            />
           </>
-        )}
+        ) : null}
       </div>
     </div>
   );

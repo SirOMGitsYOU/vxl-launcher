@@ -80,9 +80,9 @@ export function ModrinthSearchV2({
 
   const {
     searchResultsAreaRef,
-    searchTerm,
+      searchTerm,
     setSearchTerm,
-    projectType,
+        projectType,
     searchResults,
     loading,
     error,
@@ -113,8 +113,8 @@ export function ModrinthSearchV2({
     modSource,
     setModSource,
     internalProfiles,
-    currentSelectedCategories,
-    currentSelectedLoaders,
+        currentSelectedCategories,
+        currentSelectedLoaders,
     availableProjectTypes,
     availableLoaders,
     displayedGameVersions,
@@ -185,45 +185,45 @@ export function ModrinthSearchV2({
         )}
       >
         <ModrinthInstallBar
-          searchTerm={searchTerm}
-          onSearchTermChange={setSearchTerm}
-          projectType={projectType}
-          onProjectTypeChange={handleProjectTypeChange}
+      searchTerm={searchTerm}
+      onSearchTermChange={setSearchTerm}
+      projectType={projectType}
+      onProjectTypeChange={handleProjectTypeChange}
           availableProjectTypes={availableProjectTypes}
           allowedProjectTypes={allowedProjectTypes || ALL_MODRINTH_PROJECT_TYPES}
-          profiles={internalProfiles}
-          selectedProfile={selectedProfile}
-          onSelectedProfileChange={(profile) => {
-            if (profile === null) {
-              setSelectedProfile(null);
-              setSelectedGameVersions([]);
+      profiles={internalProfiles}
+      selectedProfile={selectedProfile}
+      onSelectedProfileChange={(profile) => {
+        if (profile === null) {
+          setSelectedProfile(null);
+          setSelectedGameVersions([]);
               setSelectedLoadersByProjectType((prev) => ({
                 ...prev,
                 [projectType]: [],
               }));
-            } else {
-              setSelectedProfile(profile);
-            }
-          }}
-          sortOrder={sortOrder}
-          onSortOrderChange={setSortOrder}
-          sortOptions={sortOptions}
-          isSidebarVisible={isSidebarVisible}
-          onToggleSidebar={() => setIsSidebarVisible(!isSidebarVisible)}
-          selectedGameVersions={selectedGameVersions}
-          currentSelectedLoaders={currentSelectedLoaders}
-          currentSelectedCategories={currentSelectedCategories}
-          filterClientRequired={filterClientRequired}
-          filterServerRequired={filterServerRequired}
-          onRemoveGameVersionTag={removeGameVersionTag}
-          onRemoveLoaderTag={removeLoaderTag}
-          onRemoveCategoryTag={removeCategoryTag}
-          onRemoveClientRequiredTag={removeClientRequiredTag}
-          onRemoveServerRequiredTag={removeServerRequiredTag}
-          onClearAllFilters={clearAllFilters}
+        } else {
+          setSelectedProfile(profile);
+        }
+      }}
+      sortOrder={sortOrder}
+      onSortOrderChange={setSortOrder}
+      sortOptions={sortOptions}
+      isSidebarVisible={isSidebarVisible}
+      onToggleSidebar={() => setIsSidebarVisible(!isSidebarVisible)}
+      selectedGameVersions={selectedGameVersions}
+      currentSelectedLoaders={currentSelectedLoaders}
+      currentSelectedCategories={currentSelectedCategories}
+      filterClientRequired={filterClientRequired}
+      filterServerRequired={filterServerRequired}
+      onRemoveGameVersionTag={removeGameVersionTag}
+      onRemoveLoaderTag={removeLoaderTag}
+      onRemoveCategoryTag={removeCategoryTag}
+      onRemoveClientRequiredTag={removeClientRequiredTag}
+      onRemoveServerRequiredTag={removeServerRequiredTag}
+      onClearAllFilters={clearAllFilters}
           overrideDisplayContext={overrideDisplayContext}
-          modSource={modSource}
-          onModSourceChange={setModSource}
+      modSource={modSource}
+      onModSourceChange={setModSource}
           quickInstallModalOpen={quickInstallModalOpen}
           quickInstallProject={quickInstallProject}
           quickInstallVersions={quickInstallVersions}
@@ -252,7 +252,7 @@ export function ModrinthSearchV2({
           versionFilters={versionFilters}
           versionDropdownUIState={versionDropdownUIState}
           openVersionDropdowns={openVersionDropdowns}
-          selectedProfile={selectedProfile}
+                      selectedProfile={selectedProfile}
           installedProjects={installedProjects}
           installedVersions={installedVersions}
           accentColor={accentColor}
@@ -260,51 +260,51 @@ export function ModrinthSearchV2({
           installingModpackAsProfile={installingModpackAsProfile}
           installingVersion={installingVersion}
           installingModpackVersion={installingModpackVersion}
-          hoveredVersionId={hoveredVersionId}
-          gameVersionsData={gameVersionsData}
-          showAllGameVersionsSidebar={showAllGameVersionsSidebar}
+                      hoveredVersionId={hoveredVersionId}
+                      gameVersionsData={gameVersionsData}
+                      showAllGameVersionsSidebar={showAllGameVersionsSidebar}
           selectedGameVersions={selectedGameVersions}
           onQuickInstallClick={onQuickInstallClick}
-          onInstallModpackAsProfileClick={handleInstallModpackAsProfile}
-          onInstallModpackVersionAsProfileClick={handleInstallModpackVersionAsProfile}
-          onToggleVersionsClick={toggleProjectVersions}
-          onVersionFilterChange={handleVersionFilterChange}
-          onVersionUiStateChange={handleVersionDropdownUIChange}
-          onToggleVersionDropdown={toggleVersionDropdown}
-          onCloseAllVersionDropdowns={closeAllVersionDropdowns}
-          onLoadMoreVersions={loadMoreProjectVersions}
-          onInstallVersionClick={handleDirectInstall}
-          onHoverVersion={setHoveredVersionId}
-          onDeleteVersionClick={handleDeleteVersionFromProfile}
-          onToggleEnableClick={handleToggleEnableVersion}
+                      onInstallModpackAsProfileClick={handleInstallModpackAsProfile}
+                      onInstallModpackVersionAsProfileClick={handleInstallModpackVersionAsProfile}
+                      onToggleVersionsClick={toggleProjectVersions}
+                      onVersionFilterChange={handleVersionFilterChange}
+                      onVersionUiStateChange={handleVersionDropdownUIChange}
+                      onToggleVersionDropdown={toggleVersionDropdown}
+                      onCloseAllVersionDropdowns={closeAllVersionDropdowns}
+                      onLoadMoreVersions={loadMoreProjectVersions}
+                      onInstallVersionClick={handleDirectInstall}
+                      onHoverVersion={setHoveredVersionId}
+                      onDeleteVersionClick={handleDeleteVersionFromProfile}
+                      onToggleEnableClick={handleToggleEnableVersion}
           onLoadMoreResults={loadMoreResults}
         />
-      </div>
+                        </div>
 
       <ModrinthFiltersPanel
         isVisible={isSidebarVisible}
-        projectType={projectType}
-        accentColor={accentColor}
-        gameVersionSearchTerm={gameVersionSearchTerm}
-        onGameVersionSearchTermChange={setGameVersionSearchTerm}
-        displayedGameVersions={displayedGameVersions}
-        selectedGameVersions={selectedGameVersions}
-        onGameVersionToggle={handleGameVersionToggle}
-        showAllGameVersionsSidebar={showAllGameVersionsSidebar}
-        onShowAllGameVersionsSidebarChange={setShowAllGameVersionsSidebar}
-        availableLoaders={availableLoaders}
-        currentSelectedLoaders={currentSelectedLoaders}
-        onLoaderToggle={handleLoaderToggle}
-        allLoadersData={allLoadersData}
-        dynamicFilterGroups={dynamicFilterGroups}
-        currentSelectedCategories={currentSelectedCategories}
-        onCategoryToggle={handleCategoryToggle}
-        filterClientRequired={filterClientRequired}
-        onClientRequiredToggle={() => setFilterClientRequired(!filterClientRequired)}
-        filterServerRequired={filterServerRequired}
-        onServerRequiredToggle={() => setFilterServerRequired(!filterServerRequired)}
-        modSource={modSource}
-      />
+          projectType={projectType}
+          accentColor={accentColor}
+          gameVersionSearchTerm={gameVersionSearchTerm}
+          onGameVersionSearchTermChange={setGameVersionSearchTerm}
+          displayedGameVersions={displayedGameVersions}
+          selectedGameVersions={selectedGameVersions}
+          onGameVersionToggle={handleGameVersionToggle}
+          showAllGameVersionsSidebar={showAllGameVersionsSidebar}
+          onShowAllGameVersionsSidebarChange={setShowAllGameVersionsSidebar}
+          availableLoaders={availableLoaders}
+          currentSelectedLoaders={currentSelectedLoaders}
+          onLoaderToggle={handleLoaderToggle}
+          allLoadersData={allLoadersData}
+          dynamicFilterGroups={dynamicFilterGroups}
+          currentSelectedCategories={currentSelectedCategories}
+          onCategoryToggle={handleCategoryToggle}
+          filterClientRequired={filterClientRequired}
+          onClientRequiredToggle={() => setFilterClientRequired(!filterClientRequired)}
+          filterServerRequired={filterServerRequired}
+          onServerRequiredToggle={() => setFilterServerRequired(!filterServerRequired)}
+          modSource={modSource}
+        />
     </div>
   );
-}
+} 
