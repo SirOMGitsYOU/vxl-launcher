@@ -479,12 +479,14 @@ export function SkinsTab() {
           <div className="flex items-center justify-center h-full min-h-[240px] text-[var(--text-secondary)]">
             Loading account...
           </div>
-        ) : accountError ? (
-          <StatusMessage type="error" message={`Account Error: ${accountError}`} />
         ) : !activeAccount ? (
-          <div className="flex items-center justify-center h-full min-h-[240px] text-[var(--text-secondary)]">
-            Please log in to a Minecraft account to manage skins.
-          </div>
+          accountError ? (
+            <StatusMessage type="error" message={`Account Error: ${accountError}`} />
+          ) : (
+            <div className="flex items-center justify-center h-full min-h-[240px] text-[var(--text-secondary)]">
+              Please log in to a Minecraft account to manage skins.
+            </div>
+          )
         ) : localSkinsError ? (
           <StatusMessage type="error" message={localSkinsError} />
         ) : localSkinsLoading ? (

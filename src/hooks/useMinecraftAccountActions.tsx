@@ -50,7 +50,7 @@ export function useMinecraftAccountActions() {
                 toast.error("Login cancelled");
                 useMinecraftAuthStore.setState({
                   isLoading: false,
-                  error: "Login cancelled by user",
+                  error: null,
                 });
               } catch (err) {
                 console.error("Failed to cancel login:", err);

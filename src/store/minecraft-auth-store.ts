@@ -58,6 +58,10 @@ export const useMinecraftAuthStore = create<MinecraftAuthState>((set, get) => ({
   error: null,
 
   initializeAccounts: async () => {
+    if (get().isLoading) {
+      return;
+    }
+
     try {
       set({ isLoading: true, error: null });
 
@@ -74,6 +78,7 @@ export const useMinecraftAuthStore = create<MinecraftAuthState>((set, get) => ({
         accounts: updatedAccounts,
         activeAccount,
         isLoading: false,
+        error: null,
       });
 
       // Pre-fetch avatars in the background after accounts are loaded

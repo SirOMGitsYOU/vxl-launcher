@@ -16,15 +16,10 @@ export function AccountSelector({ className }: AccountSelectorProps) {
     accounts,
     activeAccount,
     isLoading,
-    initializeAccounts,
     handleAddAccount,
     handleSetActive,
     handleRemoveAccount,
   } = useMinecraftAccountActions();
-
-  useEffect(() => {
-    initializeAccounts();
-  }, [initializeAccounts]);
 
   useEffect(() => {
     if (!open) return;
