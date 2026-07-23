@@ -182,7 +182,18 @@ function HeaderBar({ minimizeRef, maximizeRef, closeRef }: HeaderBarProps) {
         {
           loading: 'Downloading and installing update...',
           success: 'Update installed successfully! Application will restart.',
-          error: (err) => `Update failed: ${err instanceof Error ? err.message : String(err)}`,
+          error: (err) => {
+            const message =
+              err instanceof Error
+                ? err.message
+                : typeof err === "object" &&
+                    err !== null &&
+                    "message" in err &&
+                    typeof (err as { message?: unknown }).message === "string"
+                  ? (err as { message: string }).message
+                  : String(err);
+            return `Update failed: ${message}`;
+          },
         }
       );
     } catch (error) {

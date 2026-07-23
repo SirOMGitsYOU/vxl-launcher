@@ -1,8 +1,9 @@
 use crate::error::{AppError, Result as AppResult};
 use log::{error, info, warn};
+use semver::Version;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
-use tauri_plugin_updater::UpdaterExt;
+use tauri_plugin_updater::{RemoteRelease, UpdaterExt};
 use tokio::time::{sleep, Duration};
 
 /// Checks if the application is running inside a Flatpak environment.
@@ -22,6 +23,65 @@ pub fn is_flatpak() -> bool {
     }
 
     is_flatpak
+}
+
+/// Builds the dynamic updater endpoint URL for the configured release channel.
+fn build_update_endpoint(is_beta_channel: bool) -> AppResult<String> {
+    let base_repo_url = "https://api.voxelstudios.co.uk/api/v1/launcher/releases";
+    let channel_query = if is_beta_channel {
+        "?channel=beta"
+    } else {
+        ""
+    };
+
+    let mut platform_specific_target = "{{target}}".to_string();
+
+    if cfg!(target_os = "linux") {
+        if std::env::var("APPIMAGE").is_ok() {
+            info!("Linux AppImage detected. Updater will use default target for manifest URL.");
+        } else {
+            let deb_target_identifier = "debian";
+            info!(
+                "Linux non-AppImage (e.g., .deb) detected. Modifying manifest URL to use target: {}",
+                deb_target_identifier
+            );
+            platform_specific_target = deb_target_identifier.to_string();
+        }
+    }
+
+    Ok(format!(
+        "{}/{}/{{{{arch}}}}/{{{{current_version}}}}{}",
+        base_repo_url, platform_specific_target, channel_query
+    ))
+}
+
+/// Trust the dynamic update server for version decisions (supports security recalls / forced updates).
+fn server_directed_version_comparator(current: Version, update: RemoteRelease) -> bool {
+    update.version != current
+}
+
+/// Builds a configured updater instance for the given channel.
+fn build_updater(
+    app_handle: &AppHandle,
+    is_beta_channel: bool,
+) -> AppResult<tauri_plugin_updater::Updater> {
+    let update_url_str = build_update_endpoint(is_beta_channel)?;
+    info!("Using update endpoint template: {}", update_url_str);
+
+    let update_url = update_url_str.parse().map_err(|e| {
+        AppError::Other(format!(
+            "Failed to parse update URL '{}': {}",
+            update_url_str, e
+        ))
+    })?;
+
+    app_handle
+        .updater_builder()
+        .endpoints(vec![update_url])
+        .map_err(|e| AppError::Other(format!("Failed to set updater endpoints: {}", e)))?
+        .version_comparator(server_directed_version_comparator)
+        .build()
+        .map_err(|e| AppError::Other(format!("Failed to build updater: {}", e)))
 }
 
 /// Checks if an update is available and returns detailed information including the updater instance.
@@ -47,47 +107,7 @@ pub async fn check_update_available_detailed(
         current_version, channel
     );
 
-    // Determine the base part of the URL and the platform-specific segment template
-    let base_repo_url = if is_beta_channel {
-        "https://api.voxelstudios.co.uk/api/v1/launcher/releases/beta"
-    } else {
-        "https://api.voxelstudios.co.uk/api/v1/launcher/releases"
-    };
-
-    let mut platform_specific_target = "{{target}}".to_string(); // Default: Tauri replaces {{target}}
-
-    if cfg!(target_os = "linux") {
-        if std::env::var("APPIMAGE").is_ok() {
-            info!("Linux AppImage detected. Updater will use default target for manifest URL.");
-            // platform_specific_target remains "{{target}}" for AppImage
-        } else {
-            // Not an AppImage, assume .deb or similar package manager context.
-            let deb_target_identifier = "debian";
-            info!(
-                "Linux non-AppImage (e.g., .deb) detected. Modifying manifest URL to use target: {}",
-                deb_target_identifier
-            );
-            platform_specific_target = deb_target_identifier.to_string();
-        }
-    }
-
-    // Construct the final update URL string
-    let update_url_str = format!(
-        "{}/{}/{{{{arch}}}}/{{{{current_version}}}}",
-        base_repo_url, platform_specific_target
-    );
-
-    info!("Using update endpoint template: {}", update_url_str);
-
-    let update_url = update_url_str.parse()
-        .map_err(|e| AppError::Other(format!("Failed to parse update URL '{}': {}", update_url_str, e)))?;
-
-    let updater_builder = app_handle.updater_builder().endpoints(vec![update_url])
-        .map_err(|e| AppError::Other(format!("Failed to set updater endpoints: {}", e)))?;
-
-    let updater = updater_builder
-        .build()
-        .map_err(|e| AppError::Other(format!("Failed to build updater: {}", e)))?;
+    let updater = build_updater(app_handle, is_beta_channel)?;
 
     info!("Updater built successfully. Checking for updates...");
 
@@ -401,74 +421,12 @@ pub async fn check_for_updates(
         None,
     );
 
-    // Determine the base part of the URL and the platform-specific segment template
-    let base_repo_url = if is_beta_channel {
-        "https://api.voxelstudios.co.uk/api/v1/launcher/releases/beta"
-    } else {
-        "https://api.voxelstudios.co.uk/api/v1/launcher/releases"
-    };
-
-    let mut platform_specific_target = "{{target}}".to_string(); // Default: Tauri replaces {{target}}
-
-    if cfg!(target_os = "linux") {
-        if std::env::var("APPIMAGE").is_ok() {
-            info!("Linux AppImage detected. Updater will use default target for manifest URL.");
-            // platform_specific_target remains "{{target}}" for AppImage
-        } else {
-            // Not an AppImage, assume .deb or similar package manager context.
-            // The server must be configured to serve a .deb manifest for this specific target string.
-            // IMPORTANT: "debian" is a placeholder. Confirm with your backend/server team
-            // what target string they expect for .deb packages (e.g., "debian", "linux-deb").
-            let deb_target_identifier = "debian";
-            info!(
-                "Linux non-AppImage (e.g., .deb) detected. Modifying manifest URL to use target: {}",
-                deb_target_identifier
-            );
-            platform_specific_target = deb_target_identifier.to_string();
-        }
-    }
-
-    // Construct the final update URL string
-    // Tauri will replace {{arch}} and {{current_version}}.
-    // {{target}} will also be replaced by Tauri *if* platform_specific_target is "{{target}}".
-    // Otherwise, our specific target (e.g., "debian") is used directly.
-    let update_url_str = format!(
-        "{}/{}/{{{{arch}}}}/{{{{current_version}}}}",
-        base_repo_url, platform_specific_target
-    );
-
-    info!("Using update endpoint template: {}", update_url_str);
-
-    let update_url = match update_url_str.parse() {
-        Ok(url) => url,
+    let updater = match build_updater(&app_handle, is_beta_channel) {
+        Ok(updater) => updater,
         Err(e) => {
-            error!("Failed to parse update URL '{}': {}", update_url_str, e);
+            error!("Failed to build updater: {}", e);
             final_status = "error".to_string();
-            final_message = format!("Failed to parse update URL: {}", e);
-            emit_status(&app_handle, &final_status, final_message.clone(), None);
-            emit_status(&app_handle, "close", final_message.clone(), None);
-            return;
-        }
-    };
-
-    let updater_result = app_handle.updater_builder().endpoints(vec![update_url]);
-
-    let updater = match updater_result {
-        Ok(builder) => match builder.build() {
-            Ok(updater) => updater,
-            Err(e) => {
-                error!("Failed to build updater: {}", e);
-                final_status = "error".to_string();
-                final_message = format!("Failed to build updater: {}", e);
-                emit_status(&app_handle, &final_status, final_message.clone(), None);
-                emit_status(&app_handle, "close", final_message.clone(), None);
-                return;
-            }
-        },
-        Err(e) => {
-            error!("Failed to set updater endpoints: {}", e);
-            final_status = "error".to_string();
-            final_message = format!("Failed to set updater endpoints: {}", e);
+            final_message = format!("Failed to build updater: {}", e);
             emit_status(&app_handle, &final_status, final_message.clone(), None);
             emit_status(&app_handle, "close", final_message.clone(), None);
             return;

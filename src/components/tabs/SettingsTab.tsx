@@ -26,7 +26,6 @@ import { Tooltip } from ".././ui/Tooltip";
 import { SimpleTooltip } from ".././ui/Tooltip";
 import { CompactSettingsGrid } from ".././ui/CompactSettingsGrid";
 import EffectPreviewCard from ".././EffectPreviewCard";
-import { LoadingSpinnerPreview } from ".././ui/LoadingSpinnerPreview";
 import { RangeSlider } from ".././ui/RangeSlider";
 import { openExternalUrl } from "../../services/tauri-service";
 import { openLauncherDirectory } from "../../services/tauri-service";
@@ -525,14 +524,12 @@ export function SettingsTab() {
 
   const renderAdvancedTab = () => (
     <div className="space-y-6">
-      <LoadingSpinnerPreview />
-
       <div>
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-2">
             <Icon icon="solar:folder-bold" className="w-6 h-6 text-white" />
             <SimpleTooltip content="This setting allows you to store game data on a different drive or location. Useful if your main drive is running out of space. The launcher will automatically handle the location change for new downloads and installations.">
-              <h3 className="text-lg font-semibold text-white lowercase cursor-help">
+              <h3 className="text-lg font-semibold text-white cursor-help">
                 Game Data Directory
               </h3>
             </SimpleTooltip>
@@ -603,7 +600,7 @@ export function SettingsTab() {
           <div className="flex items-center justify-between gap-2 mb-2">
             <div className="flex items-center gap-2">
               <Icon icon="solar:code-bold" className="w-6 h-6 text-white" />
-              <h3 className="text-lg font-semibold text-white lowercase">
+              <h3 className="text-lg font-semibold text-white">
                 Game Hooks
               </h3>
             </div>
@@ -853,7 +850,7 @@ export function SettingsTab() {
           <div className="flex items-center justify-between gap-2 mb-2">
             <div className="flex items-center gap-2">
               <Icon icon="solar:document-text-bold" className="w-6 h-6 text-white" />
-              <h3 className="text-lg font-semibold text-white lowercase">
+              <h3 className="text-lg font-semibold text-white">
                 Third-party Code
               </h3>
             </div>
