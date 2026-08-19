@@ -634,9 +634,9 @@
     },
     {
         "type": "file",
-        "url": "https://registry.npmjs.org/@tauri-apps/api/-/api-2.5.0.tgz",
-        "sha512": "2ddbb1e22a7e1c601c3d49ae2d3f0422493ac9a7e5e6f2b43f47346f2cc02b3c4987bbf17a556d74f38d8df8139bde8f6cddb8ca364d11263c08aa3caa78a5b8",
-        "dest-filename": "@tauri-apps-api-2.5.0.tgz",
+        "url": "https://registry.npmjs.org/@tauri-apps/api/-/api-2.11.1.tgz",
+        "sha512": "33614fb98343da6fb087985f5bd66949dc4c3dd109a2f3c15b0a07266c14a72b1360d1da3a4545378d7d9bf2b42c88236ffeca536bc182c51ea495ae8100af00",
+        "dest-filename": "@tauri-apps-api-2.11.1.tgz",
         "dest": "flatpak-node/yarn-mirror"
     },
     {
@@ -676,9 +676,9 @@
     },
     {
         "type": "file",
-        "url": "https://registry.npmjs.org/@tauri-apps/plugin-opener/-/plugin-opener-2.2.6.tgz",
-        "sha512": "6d2764b8fef565045ea4f3a7f01384741298250be5ebe8dbd7ad10b495ff8b61fd045e99c9263f91896387be8dd8d7b97c93104607bbae52a84ad61063926ad7",
-        "dest-filename": "@tauri-apps-plugin-opener-2.2.6.tgz",
+        "url": "https://registry.npmjs.org/@tauri-apps/plugin-opener/-/plugin-opener-2.5.3.tgz",
+        "sha512": "08271496d5cc39f50402b6dfddd6f790213b1a0cb5131044065e752a8d8e0c9e860d81d1a759d2365426e6e342158e64effb9f68ae486f70eefd98abd7d21841",
+        "dest-filename": "@tauri-apps-plugin-opener-2.5.3.tgz",
         "dest": "flatpak-node/yarn-mirror"
     },
     {
