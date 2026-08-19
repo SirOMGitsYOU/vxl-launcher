@@ -18,6 +18,8 @@ import { exit } from '@tauri-apps/plugin-process';
 import { Tooltip } from "../ui/Tooltip";
 import { toast } from 'react-hot-toast';
 import { signalFrontendReady } from "../../startup/boot-splash";
+import { formatErrorMessage } from "../../utils/error-utils";
+import { logError } from "../../utils/logging-utils";
 
 const getNavItems = (hasAccount: boolean) => [
   { id: "play", icon: "solar:play-bold", label: "Play" },
@@ -182,23 +184,11 @@ function HeaderBar({ minimizeRef, maximizeRef, closeRef }: HeaderBarProps) {
         {
           loading: 'Downloading and installing update...',
           success: 'Update installed successfully! Application will restart.',
-          error: (err) => {
-            const message =
-              err instanceof Error
-                ? err.message
-                : typeof err === "object" &&
-                    err !== null &&
-                    "message" in err &&
-                    typeof (err as { message?: unknown }).message === "string"
-                  ? (err as { message: string }).message
-                  : String(err);
-            return `Update failed: ${message}`;
-          },
+          error: (err) => `Update failed: ${formatErrorMessage(err)}`,
         }
       );
     } catch (error) {
-      console.error("Failed to download and install update:", error);
-      // Toast error is already handled by the promise toast
+      logError(`Failed to download and install update: ${formatErrorMessage(error)}`);
     }
   };
 

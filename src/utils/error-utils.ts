@@ -12,6 +12,9 @@ export function formatErrorMessage(error: unknown, depth = 0): string {
   }
 
   if (typeof error === "string") {
+    if (error === "[object Object]") {
+      return "Unknown error";
+    }
     const trimmed = error.trim();
     if (
       (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
@@ -27,7 +30,11 @@ export function formatErrorMessage(error: unknown, depth = 0): string {
   }
 
   if (error instanceof Error) {
-    return formatErrorMessage(error.message, depth + 1) || error.name;
+    const fromMessage = formatErrorMessage(error.message, depth + 1);
+    if (fromMessage && fromMessage !== "Unknown error") {
+      return fromMessage;
+    }
+    return formatErrorMessage({ ...error } as Record<string, unknown>, depth + 1) || error.name;
   }
 
   if (typeof error === "object") {

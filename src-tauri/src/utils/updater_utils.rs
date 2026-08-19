@@ -349,7 +349,6 @@ async fn handle_update(
         .await
         .map_err(|e| {
             error!("Update download failed: {}", e);
-            // Convert updater::Error to AppError::Other for download step
             AppError::Other(format!("Updater download error: {}", e))
         })?;
     

@@ -1,6 +1,6 @@
 use fastnbt::error::Error as FastNbtError;
 use fs_extra::error::Error as FsExtraError;
-use serde::Serialize;
+use serde::{Serialize, Serializer};
 use std::io;
 use thiserror::Error;
 use uuid::Uuid;
@@ -197,10 +197,28 @@ pub enum AppError {
     },
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Debug)]
 pub struct CommandError {
     pub message: String,
     pub kind: String,
+}
+
+impl std::fmt::Display for CommandError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+impl std::error::Error for CommandError {}
+
+impl Serialize for CommandError {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // Serialize as a string so the webview doesn't stringify this as "[object Object]".
+        serializer.serialize_str(&self.message)
+    }
 }
 
 impl From<AppError> for CommandError {

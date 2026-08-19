@@ -19,6 +19,8 @@ import { RetroGridEffect } from "../effects/RetroGridEffect";
 import { VoxelGrid } from "../effects/VoxelGrid";
 import { RetroVoxelGrid } from "../effects/RetroVoxelGrid";
 import { Logo } from "../ui/Logo";
+import { formatErrorMessage } from "../../utils/error-utils";
+import { logError } from "../../utils/logging-utils";
 
 interface UpdaterStatusPayload {
   message: string;
@@ -93,7 +95,14 @@ export default function Updater() {
           closeTimerRef.current = null;
         }
 
-        setStatusMessage(message);
+        const statusText =
+          typeof message === "string" ? message : formatErrorMessage(message);
+        if (typeof message !== "string") {
+          logError(
+            `Updater status payload message was not a string: ${formatErrorMessage(event.payload)}`,
+          );
+        }
+        setStatusMessage(statusText);
         setStatus(newStatus);
 
         if (
