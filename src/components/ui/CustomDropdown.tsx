@@ -47,7 +47,7 @@ export function CustomDropdown({
         options={menuOptions}
         disabled={disabled}
         placeholder={placeholder}
-        className={variant === "search" ? "min-w-[8.5rem]" : "w-full"}
+        className={cn(variant === "search" ? "min-w-[8.5rem]" : "w-full", "h-9")}
       />
     </div>
   );

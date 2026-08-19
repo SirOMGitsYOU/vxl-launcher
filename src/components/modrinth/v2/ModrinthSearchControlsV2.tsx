@@ -1,19 +1,16 @@
 "use client";
 
-import React, { useRef } from "react";
+import React from "react";
 import type {
   ModrinthProjectType,
 } from "../../../types/modrinth";
 import { UnifiedSortType, ModPlatform } from "../../../types/unified";
-// Profile type will be defined locally
 import { SearchWithFilters } from "../../ui/SearchWithFilters";
 import { SelectTab } from "../../ui-v2/SelectTab";
-import { IconButton } from "../../ui-v2/IconButton";
 import { TagBadge } from "../../ui/TagBadge";
 import { Icon } from "@iconify/react";
-import { useDisplayContextStore } from "../../../store/useDisplayContextStore";
-import { useThemeStore } from "../../../store/useThemeStore";
 import { cn } from "../../../lib/utils";
+import { CustomDropdown } from "../../ui/CustomDropdown";
 
 // SVG Components converted to data URLs
 const modrinthSvgDataUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%2322c55e' d='M12.252.004a11.78 11.768 0 0 0-8.92 3.73a11 10.999 0 0 0-2.17 3.11a11.37 11.359 0 0 0-1.16 5.169c0 1.42.17 2.5.6 3.77c.24.759.77 1.899 1.17 2.529a12.3 12.298 0 0 0 8.85 5.639c.44.05 2.54.07 2.76.02c.2-.04.22.1-.26-1.7l-.36-1.37l-1.01-.06a8.5 8.489 0 0 1-5.18-1.8a5.34 5.34 0 0 1-1.3-1.26c0-.05.34-.28.74-.5a37.572 37.545 0 0 1 2.88-1.629c.03 0 .5.45 1.06.98l1 .97l2.07-.43l2.06-.43l1.47-1.47c.8-.8 1.48-1.5 1.48-1.52c0-.09-.42-1.63-.46-1.7c-.04-.06-.2-.03-1.02.18c-.53.13-1.2.3-1.45.4l-.48.15l-.53.53l-.53.53l-.93.1l-.93.07l-.52-.5a2.7 2.7 0 0 1-.96-1.7l-.13-.6l.43-.57c.68-.9.68-.9 1.46-1.1c.4-.1.65-.2.83-.33c.13-.099.65-.579 1.14-1.069l.9-.9l-.7-.7l-.7-.7l-1.95.54c-1.07.3-1.96.53-1.97.53c-.03 0-2.23 2.48-2.63 2.97l-.29.35l.28 1.03c.16.56.3 1.16.31 1.34l.03.3l-.34.23c-.37.23-2.22 1.3-2.84 1.63c-.36.2-.37.2-.44.1c-.08-.1-.23-.6-.32-1.03c-.18-.86-.17-2.75.02-3.73a8.84 8.839 0 0 1 7.9-6.93c.43-.03.77-.08.78-.1c.06-.17.5-2.999.47-3.039c-.01-.02-.1-.02-.2-.03Zm3.68.67c-.2 0-.3.1-.37.38c-.06.23-.46 2.42-.46 2.52c0 .04.1.11.22.16a8.51 8.499 0 0 1 2.99 2a8.38 8.379 0 0 1 2.16 3.449a6.9 6.9 0 0 1 .4 2.8c0 1.07 0 1.27-.1 1.73a9.37 9.369 0 0 1-1.76 3.769c-.32.4-.98 1.06-1.37 1.38c-.38.32-1.54 1.1-1.7 1.14c-.1.03-.1.06-.07.26c.03.18.64 2.56.7 2.78l.06.06a12.07 12.058 0 0 0 7.27-9.4c.13-.77.13-2.58 0-3.4a11.96 11.948 0 0 0-5.73-8.578c-.7-.42-2.05-1.06-2.25-1.06Z'%3E%3C/path%3E%3C/svg%3E";
@@ -89,25 +86,9 @@ export const ModrinthSearchControlsV2: React.FC<
   onRemoveClientRequiredTag,
   onRemoveServerRequiredTag,
   onClearAllFilters,
-  overrideDisplayContext,
   modSource,
   onModSourceChange,
 }) => {
-  const globalDisplayContext = useDisplayContextStore((state) => state.context);
-  const effectiveDisplayContext =
-    overrideDisplayContext || globalDisplayContext;
-  const accentColor = useThemeStore((state) => state.accentColor);
-  const filtersContainerRef = useRef<HTMLDivElement>(null);
-
-  const isDetailView = effectiveDisplayContext === "detail";
-  const buttonSize = isDetailView
-    ? isSidebarVisible
-      ? "xs"
-      : "sm"
-    : !isSidebarVisible
-      ? "lg"
-      : "sm";
-
   // Calculate total number of active filters
   const totalFilters =
     selectedGameVersions.length +
@@ -139,34 +120,33 @@ export const ModrinthSearchControlsV2: React.FC<
 
       {/* Search & Filter Header */}
       <div className="mb-4">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 flex-1">
-            <SearchWithFilters
-              placeholder={`Search ${projectType}s...`}
-              searchValue={searchTerm}
-              onSearchChange={onSearchTermChange}
-              sortOptions={sortOptions}
-              sortValue={sortOrder}
-              onSortChange={(value) => onSortOrderChange(value as UnifiedSortType)}
-            />
+        <div className="flex h-9 items-center gap-2">
+          <SearchWithFilters
+            placeholder={`Search ${projectType}s...`}
+            searchValue={searchTerm}
+            onSearchChange={onSearchTermChange}
+            showSort={false}
+            onFilterToggle={onToggleSidebar}
+            isFilterActive={isSidebarVisible}
+            filterBadgeCount={totalFilters}
+          />
 
-            <IconButton
-              onClick={onToggleSidebar}
-              title={isSidebarVisible ? "Hide filters" : "Show filters"}
-            >
-              <Icon icon="solar:filter-bold" className="w-4 h-4" />
-            </IconButton>
-          </div>
+          <CustomDropdown
+            value={sortOrder}
+            onChange={(value) => onSortOrderChange(value as UnifiedSortType)}
+            options={sortOptions}
+            className="h-9 w-auto shrink-0"
+            variant="search"
+          />
 
-          {/* Platform Selection Buttons - ganz rechts */}
-          <div className="flex items-center gap-1 border border-[var(--surface-border)] rounded-lg p-0.5 bg-[var(--surface-overlay)]">
+          <div className="flex h-9 shrink-0 items-stretch gap-0.5 rounded-lg border border-[var(--surface-border)] bg-[var(--surface-overlay)] p-0.5">
             <button
               onClick={() => {
                 onModSourceChange(ModPlatform.Modrinth);
                 onClearAllFilters();
               }}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200",
+                "flex h-full items-center gap-1.5 rounded-md px-3 text-sm font-medium transition-all duration-200",
                 modSource === ModPlatform.Modrinth
                   ? "bg-[rgba(var(--accent-rgb),0.15)] text-white border border-[var(--accent)]/30"
                   : "text-[var(--text-secondary)] hover:text-white hover:bg-[var(--surface-base)] border border-transparent",
@@ -176,7 +156,7 @@ export const ModrinthSearchControlsV2: React.FC<
               <img
                 src={modrinthSvgDataUrl}
                 alt="Modrinth"
-                className="w-5 h-5 object-contain"
+                className="h-4 w-4 object-contain"
               />
               <span className="hidden sm:inline">Modrinth</span>
             </button>
@@ -187,7 +167,7 @@ export const ModrinthSearchControlsV2: React.FC<
                 onClearAllFilters();
               }}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200",
+                "flex h-full items-center gap-1.5 rounded-md px-3 text-sm font-medium transition-all duration-200",
                 modSource === ModPlatform.CurseForge
                   ? "bg-orange-500/20 text-white border border-orange-400/30"
                   : "text-[var(--text-secondary)] hover:text-white hover:bg-[var(--surface-base)] border border-transparent",
@@ -197,7 +177,7 @@ export const ModrinthSearchControlsV2: React.FC<
               <img
                 src={curseforgeSvgDataUrl}
                 alt="CurseForge"
-                className="w-5 h-5 object-contain"
+                className="h-4 w-4 object-contain"
               />
               <span className="hidden sm:inline">CurseForge</span>
             </button>
