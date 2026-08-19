@@ -9,7 +9,7 @@ import { VerticalNavbar } from ".././navigation/VerticalNavbar";
 import { UserProfileBar } from ".././header/UserProfileBar";
 import { useThemeStore } from "../../store/useThemeStore";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
-import { checkUpdateAvailable, downloadAndInstallUpdate } from "../../services/nrc-service";
+import { checkUpdateAvailable, downloadAndInstallUpdate } from "../../services/vxl-service";
 import type { UpdateInfo } from "../../types/updater";
 import { ProfileWizardV2Modal } from "../modals/ProfileWizardV2Modal";
 import { ProfileSettingsModal } from "../modals/ProfileSettingsModal";

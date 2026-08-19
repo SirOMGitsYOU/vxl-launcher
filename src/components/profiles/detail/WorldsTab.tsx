@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { convertFileSrc } from "@tauri-apps/api/core";
 import { Icon } from "@iconify/react";
 import { parseMotdToHtml } from "../../../utils/motd-utils";
+import { localFileToDisplayUrl } from "../../../utils/local-file-url";
 import { useThemeStore } from "../../../store/useThemeStore";
 import { useProfileStore } from "../../../store/profile-store";
 import { useAppDragDropStore } from "../../../store/appStore";
@@ -22,7 +22,6 @@ import { ConfirmDeleteDialog } from "../../modals/ConfirmDeleteDialog";
 import { useGlobalModal } from "../../../hooks/useGlobalModal";
 import { useProfileLaunch } from "../../../hooks/useProfileLaunch.tsx";
 import { toast } from "react-hot-toast";
-import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { preloadIcons } from "../../../lib/icon-utils";
 // --- Import Real Types ---
@@ -179,6 +178,7 @@ export function WorldsTab({
 
   // --- State ---
   const [worlds, setWorlds] = useState<WorldInfo[]>([]);
+  const [worldIconUrls, setWorldIconUrls] = useState<Record<string, string>>({});
   const [servers, setServers] = useState<ServerInfo[]>([]);
   const [displayItems, setDisplayItems] = useState<DisplayItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -242,17 +242,50 @@ export function WorldsTab({
     return world.display_name || world.folder_name;
   }, []);
 
-  const getWorldIconSrc = useCallback((world: WorldInfo): string | null => {
-    if (world.icon_path) {
-      try {
-        return convertFileSrc(world.icon_path);
-      } catch (err) {
-        console.error(`Failed to convert icon path ${world.icon_path}:`, err);
-        return null;
+  useEffect(() => {
+    let cancelled = false;
+
+    const resolveIcons = async () => {
+      const entries = await Promise.all(
+        worlds.map(async (world) => {
+          if (!world.icon_path) {
+            return [world.folder_name, null] as const;
+          }
+          try {
+            const url = await localFileToDisplayUrl(world.icon_path);
+            return [world.folder_name, url] as const;
+          } catch (err) {
+            console.error(`Failed to load world icon ${world.icon_path}:`, err);
+            return [world.folder_name, null] as const;
+          }
+        }),
+      );
+
+      if (cancelled) {
+        return;
       }
-    }
-    return null;
-  }, []);
+
+      const next: Record<string, string> = {};
+      for (const [folderName, url] of entries) {
+        if (url) {
+          next[folderName] = url;
+        }
+      }
+      setWorldIconUrls(next);
+    };
+
+    void resolveIcons();
+    return () => {
+      cancelled = true;
+    };
+  }, [worlds]);
+
+  const getWorldIconSrc = useCallback(
+    (world: WorldInfo): string | null => {
+      return worldIconUrls[world.folder_name] ?? null;
+    },
+    [worldIconUrls],
+  );
 
   const getServerDisplayName = useCallback((server: ServerInfo): string => {
     return server.name || server.address || "Unnamed Server";
@@ -580,28 +613,23 @@ export function WorldsTab({
 
   const handleOpenWorldFolder = useCallback(
     async (world: WorldInfo) => {
-      if (!world?.icon_path) {
+      if (!world?.folder_name) {
         toast.error("World path is not available.");
-        console.error(
-          "Cannot open world folder: Profile path is missing.",
-          profile,
-        );
+        console.error("Cannot open world folder: folder name is missing.", world);
         return;
       }
-      // Basic path joining, consider using a library for robust path construction if complex scenarios arise
-      const worldFolderPath = `${world.icon_path}`;
+
       try {
-        console.log(`Attempting to open folder: ${worldFolderPath}`);
-        await revealItemInDir(worldFolderPath);
+        await WorldService.openWorldFolder(profile.id, world.folder_name);
         toast.success(`Opened folder for '${getWorldDisplayName(world)}'`);
       } catch (err) {
-        console.error(`Failed to open folder ${worldFolderPath}:`, err);
+        console.error(`Failed to open folder for ${world.folder_name}:`, err);
         toast.error(
           `Failed to open folder: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     },
-    [profile?.path, getWorldDisplayName],
+    [profile.id, getWorldDisplayName],
   );
 
   const handleRefresh = () => {

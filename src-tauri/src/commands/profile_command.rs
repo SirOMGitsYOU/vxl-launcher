@@ -21,6 +21,7 @@ use crate::utils::profile_utils::{
 };
 use crate::utils::resourcepack_utils::ResourcePackInfo;
 use crate::utils::shaderpack_utils::ShaderPackInfo;
+use crate::utils::path_security;
 use crate::utils::world_utils;
 use crate::utils::{
     datapack_utils, path_utils, profile_utils, repair_utils, resourcepack_utils, shaderpack_utils,
@@ -984,6 +985,52 @@ pub async fn open_profile_folder(
                 profile_full_path,
                 e
             );
+            Err(CommandError::from(AppError::Other(format!(
+                "Failed to open folder: {}",
+                e
+            ))))
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn open_world_folder(
+    app_handle: tauri::AppHandle,
+    profile_id: Uuid,
+    world_folder: String,
+) -> Result<(), CommandError> {
+    info!(
+        "Received command open_world_folder for profile {} world '{}'",
+        profile_id, world_folder
+    );
+
+    let state = State::get().await?;
+    let instance_path = state
+        .profile_manager
+        .get_profile_instance_path(profile_id)
+        .await?;
+    let saves_path = path_security::join_validated_segment(&instance_path, "saves")
+        .map_err(CommandError::from)?;
+    let world_path = path_security::join_validated_segment(&saves_path, &world_folder)
+        .map_err(CommandError::from)?;
+
+    if !world_path.is_dir() {
+        return Err(CommandError::from(AppError::Other(format!(
+            "World directory not found: {}",
+            world_path.display()
+        ))));
+    }
+
+    match app_handle
+        .opener()
+        .open_path(world_path.to_string_lossy(), None::<&str>)
+    {
+        Ok(_) => {
+            info!("Successfully requested to open world folder: {:?}", world_path);
+            Ok(())
+        }
+        Err(e) => {
+            error!("Failed to open world folder {:?}: {}", world_path, e);
             Err(CommandError::from(AppError::Other(format!(
                 "Failed to open folder: {}",
                 e

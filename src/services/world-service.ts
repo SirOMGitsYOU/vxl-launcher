@@ -65,6 +65,14 @@ export const deleteWorld = (profileId: string, worldFolder: string): Promise<voi
 };
 
 /**
+ * Opens a world's save folder in the system file explorer.
+ */
+export const openWorldFolder = (profileId: string, worldFolder: string): Promise<void> => {
+  console.debug(`[WorldService] Opening world folder: ${worldFolder} in profile ${profileId}`);
+  return invoke('open_world_folder', { profileId, worldFolder });
+};
+
+/**
  * Checks if a world's session.lock file can be acquired, indicating if it's likely in use.
  * @returns A promise that resolves with true if the world is locked, false otherwise.
  */
