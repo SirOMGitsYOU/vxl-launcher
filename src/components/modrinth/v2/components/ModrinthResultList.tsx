@@ -258,7 +258,7 @@ export function ModrinthResultList({
                   searchResults.length >= totalHits
                 ) {
                   return (
-                    <div className="p-4 text-center text-xl lowercase text-gray-400">
+                    <div className="p-4 text-center text-xl text-gray-400">
                       No more results.
                     </div>
                   );

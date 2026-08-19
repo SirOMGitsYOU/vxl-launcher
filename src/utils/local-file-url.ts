@@ -12,6 +12,36 @@ export function isDisplayableRemoteUrl(url: string): boolean {
   );
 }
 
+export function isUnsafeLocalResourceUrl(url: string): boolean {
+  return (
+    url.startsWith("file:") ||
+    /^[A-Za-z]:[\\/]/.test(url) ||
+    url.startsWith("\\\\")
+  );
+}
+
+/**
+ * Converts a `file://` URL or Windows path into a filesystem path for backend reads.
+ * Chromium/WebView2 cannot load `file://` URLs from the Tauri origin.
+ */
+export function toFilesystemPath(filePath: string): string {
+  const trimmed = filePath.trim();
+  if (!trimmed.startsWith("file:")) {
+    return trimmed;
+  }
+
+  try {
+    const url = new URL(trimmed);
+    let pathname = decodeURIComponent(url.pathname);
+    if (/^\/[A-Za-z]:/.test(pathname)) {
+      pathname = pathname.slice(1);
+    }
+    return pathname.replace(/\//g, "\\");
+  } catch {
+    return trimmed.replace(/^file:\/\//i, "");
+  }
+}
+
 function mimeTypeForPath(filePath: string): string {
   const lower = filePath.toLowerCase();
   if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
@@ -35,17 +65,20 @@ export async function localFileToDisplayUrl(filePath: string): Promise<string> {
   if (!filePath) return "";
   if (isDisplayableRemoteUrl(filePath)) return filePath;
 
-  const cached = blobUrlCache.get(filePath);
+  const normalizedPath = toFilesystemPath(filePath);
+  const cacheKey = normalizedPath || filePath;
+
+  const cached = blobUrlCache.get(cacheKey);
   if (cached) return cached;
 
   const rawBytes = await invoke<Uint8Array | number[] | ArrayBuffer>(
     "read_file_bytes",
-    { filePath },
+    { filePath: normalizedPath },
   );
   const bytes = toUint8Array(rawBytes);
-  const blob = new Blob([bytes], { type: mimeTypeForPath(filePath) });
+  const blob = new Blob([bytes], { type: mimeTypeForPath(normalizedPath) });
   const url = URL.createObjectURL(blob);
-  blobUrlCache.set(filePath, url);
+  blobUrlCache.set(cacheKey, url);
   return url;
 }
 

@@ -57,8 +57,12 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       return;
     }
 
+    const isInitialLoad = !get().profilesLoaded;
+
     try {
-      set({ error: null, loading: true });
+      // Keep showing existing profiles during background refreshes so detail
+      // views don't get stuck on "Loading profile..." after install/create.
+      set({ error: null, ...(isInitialLoad ? { loading: true } : {}) });
       const response = await ProfileService.getAllProfilesAndLastPlayed();
       const { all_profiles, last_played_profile_id } = response;
 
@@ -225,7 +229,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
           group: "CUSTOM",
         });
       }
-      await get().fetchProfiles();
+      await get().fetchProfiles(true);
       return newProfileId;
     } catch (error) {
       console.error(`Failed to copy profile ${sourceId}:`, error);

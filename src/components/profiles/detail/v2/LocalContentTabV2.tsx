@@ -1400,7 +1400,7 @@ export function LocalContentTabV2<T extends LocalContentItem>({
                   //toast.error(`Failed to set group for '${newName}'.`);
                 });
 
-              fetchProfiles(); // Refresh profiles list in the store
+              void fetchProfiles(true);
               if (onRefreshRequired) onRefreshRequired(); // Refresh parent view if callback provided
               navigate(`/profiles/${newProfileId}`); // Navigate to the new profile's detail view
               return `Profile '${newName}' cloned successfully!`; // Toast for cloning success

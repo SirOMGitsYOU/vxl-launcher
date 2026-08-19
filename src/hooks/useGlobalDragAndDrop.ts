@@ -86,7 +86,7 @@ export function useGlobalDragAndDrop() {
                   `Profile import initiated for ${fileName}. Opening profile...`,
                   { id: loadingToastId, duration: 3000 }
                 );
-                useProfileStore.getState().fetchProfiles(); // Fetch profiles after successful import
+                await useProfileStore.getState().fetchProfiles(true);
 
                 // Navigate to the new profile
                 navigate(`/profiles/${newProfileId}`);

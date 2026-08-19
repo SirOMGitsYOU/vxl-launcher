@@ -67,9 +67,9 @@ export function GenericContentTab<T>({
   const effectiveLoadingItemCount = showSkeletons ? loadingItemCount : 0;
 
   return (
-    <div className="flex flex-col select-none pt-[7px] h-full">
+    <div className="flex flex-col select-none pt-[7px] h-full min-h-0">
       {/* Header with search, actions etc. */}
-      <div className="flex items-center justify-between mb-1 gap-2">
+      <div className="flex items-center justify-between mb-1 gap-2 flex-shrink-0">
         <div className="flex items-center gap-2 flex-grow min-w-0">
           {primaryLeftActions}
         </div>
@@ -101,19 +101,21 @@ export function GenericContentTab<T>({
         </div>
       )}
 
-      <GenericList<T>
-        items={items}
-        renderItem={renderListItem}
-        isLoading={isLoading}
-        error={error}
-        searchQuery={searchQuery}
-        accentColor={accentColor}
-        emptyStateIcon={emptyStateIcon}
-        emptyStateMessage={emptyStateMessage}
-        emptyStateDescription={emptyStateDescription}
-        emptyStateAction={emptyStateAction}
-        loadingItemCount={effectiveLoadingItemCount}
-      />
+      <div className="flex-1 min-h-0">
+        <GenericList<T>
+          items={items}
+          renderItem={renderListItem}
+          isLoading={isLoading}
+          error={error}
+          searchQuery={searchQuery}
+          accentColor={accentColor}
+          emptyStateIcon={emptyStateIcon}
+          emptyStateMessage={emptyStateMessage}
+          emptyStateDescription={emptyStateDescription}
+          emptyStateAction={emptyStateAction}
+          loadingItemCount={effectiveLoadingItemCount}
+        />
+      </div>
     </div>
   );
 }

@@ -11,9 +11,15 @@ import { useProfileSettingsStore } from "../../store/profile-settings-store";
 export function ProfileDetailViewV2Wrapper() {
   const { profileId } = useParams<{ profileId: string }>();
   const navigate = useNavigate();
-  const { profiles, loading, fetchProfiles, profilesLoaded, getProfile } = useProfileStore();
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const { profiles, loading, fetchProfiles, profilesLoaded, getProfile } =
+    useProfileStore();
+  const [fetchedProfile, setFetchedProfile] = useState<Profile | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
+
+  const profileFromList = profileId
+    ? profiles.find((p) => p.id === profileId) ?? null
+    : null;
+  const profile = profileFromList ?? fetchedProfile;
 
   // Only fetch profiles once on initial mount if not already loaded
   useEffect(() => {
@@ -24,17 +30,20 @@ export function ProfileDetailViewV2Wrapper() {
 
   useEffect(() => {
     if (!profileId) {
-      setProfile(null);
+      setFetchedProfile(null);
+      setProfileLoading(false);
       return;
     }
 
     const foundProfile = profiles.find((p) => p.id === profileId);
     if (foundProfile) {
-      setProfile(foundProfile);
+      setFetchedProfile(foundProfile);
+      setProfileLoading(false);
       return;
     }
 
-    if (!profilesLoaded || loading) {
+    // Wait for the initial list fetch; do not abort lookup when a background refresh sets loading.
+    if (!profilesLoaded) {
       return;
     }
 
@@ -44,12 +53,12 @@ export function ProfileDetailViewV2Wrapper() {
     void getProfile(profileId)
       .then((loadedProfile) => {
         if (!cancelled) {
-          setProfile(loadedProfile);
+          setFetchedProfile(loadedProfile);
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setProfile(null);
+          setFetchedProfile(null);
         }
       })
       .finally(() => {
@@ -61,7 +70,7 @@ export function ProfileDetailViewV2Wrapper() {
     return () => {
       cancelled = true;
     };
-  }, [profileId, profiles, profilesLoaded, loading, getProfile]);
+  }, [profileId, profiles, profilesLoaded, getProfile]);
 
   const { openModal } = useProfileSettingsStore();
 
@@ -75,10 +84,6 @@ export function ProfileDetailViewV2Wrapper() {
     }
   };
 
-  if (loading || profileLoading) {
-    return <LoadingState message="Loading profile..." />;
-  }
-
   if (!profileId) {
     return (
       <EmptyState
@@ -89,21 +94,25 @@ export function ProfileDetailViewV2Wrapper() {
     );
   }
 
-  if (!profile) {
+  if (profile) {
     return (
-      <EmptyState
-        icon="solar:widget-bold"
-        title="Profile not found"
-        description="This profile may have been deleted or moved."
+      <ProfileDetailViewV2
+        profile={profile}
+        onClose={handleClose}
+        onEdit={handleEdit}
       />
     );
   }
 
+  if (!profilesLoaded || profileLoading || loading) {
+    return <LoadingState message="Loading profile..." />;
+  }
+
   return (
-    <ProfileDetailViewV2
-      profile={profile}
-      onClose={handleClose}
-      onEdit={handleEdit}
+    <EmptyState
+      icon="solar:widget-bold"
+      title="Profile not found"
+      description="This profile may have been deleted or moved."
     />
   );
 }

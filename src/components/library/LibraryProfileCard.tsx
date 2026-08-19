@@ -207,7 +207,7 @@ export function LibraryProfileCard({
         modpackName={targetProfile.name}
         profileId={targetProfile.id}
         onSwitchComplete={async () => {
-          await useProfileStore.getState().fetchProfiles();
+          await useProfileStore.getState().fetchProfiles(true);
         }}
       />
     ));
@@ -223,7 +223,7 @@ export function LibraryProfileCard({
           modpackName={targetProfile.name}
           profileId={targetProfile.id}
           onSwitchComplete={async () => {
-            await useProfileStore.getState().fetchProfiles();
+            await useProfileStore.getState().fetchProfiles(true);
           }}
         />
       ));

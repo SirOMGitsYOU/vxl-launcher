@@ -86,12 +86,14 @@ export function GenericList<T>({
 
       return (
         <div
-        className={`${listContainerClassName} h-full`}
+        className={`${listContainerClassName} h-full min-h-0`}
         >
           <Virtuoso
             data={Array.from({ length: effectiveLoadingCount })}
             itemContent={(index) => (
-              <GenericListItemSkeleton key={`skeleton-${index}`} accentColor={effectiveAccentColor} />
+              <div className="pb-2">
+                <GenericListItemSkeleton key={`skeleton-${index}`} accentColor={effectiveAccentColor} />
+              </div>
             )}
             style={{ height: '100%' }}
           />
@@ -160,11 +162,16 @@ export function GenericList<T>({
   if (!isEmpty) {
     return (
         <div
-        className={`${listContainerClassName} h-full`}
+        className={`${listContainerClassName} h-full min-h-0`}
         >
         <Virtuoso
+          style={{ height: "100%" }}
           data={items}
-          itemContent={(index) => renderItem(items[index], index)}
+          itemContent={(index) => (
+            <div className="pb-2">
+              {renderItem(items[index], index)}
+            </div>
+          )}
         />
         </div>
     );

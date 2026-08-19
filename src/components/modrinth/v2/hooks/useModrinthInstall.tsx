@@ -1124,7 +1124,7 @@ export function useModrinthInstall({
 
       try {
         // Wait for the profile list to be updated in the global store
-        await useProfileStore.getState().fetchProfiles();
+        await useProfileStore.getState().fetchProfiles(true);
         const updatedProfiles = useProfileStore.getState().profiles;
         setInternalProfiles(updatedProfiles); // Sync local state
 
@@ -1216,7 +1216,7 @@ export function useModrinthInstall({
 
       try {
         // Wait for the profile list to be updated in the global store
-        await useProfileStore.getState().fetchProfiles();
+        await useProfileStore.getState().fetchProfiles(true);
         const updatedProfiles = useProfileStore.getState().profiles;
         setInternalProfiles(updatedProfiles); // Sync local state
 

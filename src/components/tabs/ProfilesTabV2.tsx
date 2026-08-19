@@ -135,7 +135,7 @@ export function ProfilesTabV2() {
   }, [fetchProfiles]);
 
   const handleImportComplete = () => {
-    fetchProfiles();
+    void fetchProfiles(true);
     hideModal("profile-import");
     navigate("/profiles");
   };

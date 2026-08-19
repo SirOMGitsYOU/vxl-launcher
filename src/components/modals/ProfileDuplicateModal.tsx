@@ -47,7 +47,7 @@ export function ProfileDuplicateModal() {
       toast.success(`Profile '${newProfileName.trim()}' created successfully!`);
       
       // Refresh profiles and close modal
-      await fetchProfiles();
+      await fetchProfiles(true);
       closeModal();
       setNewProfileName("");
     } catch (err) {

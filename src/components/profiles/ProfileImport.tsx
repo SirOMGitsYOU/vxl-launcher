@@ -60,7 +60,7 @@ export function ProfileImport({ onClose, onImportComplete }: ProfileImportProps)
           id: loadingToastId,
           duration: 3000,
         });
-        useProfileStore.getState().fetchProfiles();
+        await useProfileStore.getState().fetchProfiles(true);
         onImportComplete();
         navigate(`/profiles/${newProfileId}`);
       } else if (selectedPath !== null) {

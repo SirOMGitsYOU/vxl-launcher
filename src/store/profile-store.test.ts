@@ -46,7 +46,41 @@ describe("profile-store fetchProfiles", () => {
     await useProfileStore.getState().fetchProfiles(false);
     expect(ProfileService.getAllProfilesAndLastPlayed).not.toHaveBeenCalled();
 
+    vi.mocked(ProfileService.getAllProfilesAndLastPlayed).mockResolvedValue({
+      all_profiles: [],
+      last_played_profile_id: null,
+    });
     await useProfileStore.getState().fetchProfiles(true);
     expect(ProfileService.getAllProfilesAndLastPlayed).toHaveBeenCalledTimes(1);
+    expect(useProfileStore.getState().loading).toBe(false);
+  });
+
+  it("does not flip loading true on a background refresh", async () => {
+    vi.mocked(ProfileService.getAllProfilesAndLastPlayed).mockResolvedValue({
+      all_profiles: [],
+      last_played_profile_id: null,
+    });
+
+    await useProfileStore.getState().fetchProfiles(true);
+    expect(useProfileStore.getState().loading).toBe(false);
+    expect(useProfileStore.getState().profilesLoaded).toBe(true);
+
+    let resolveFetch!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      resolveFetch = resolve;
+    });
+    vi.mocked(ProfileService.getAllProfilesAndLastPlayed).mockImplementation(
+      async () => {
+        await pending;
+        return { all_profiles: [], last_played_profile_id: null };
+      },
+    );
+
+    const refreshPromise = useProfileStore.getState().fetchProfiles(true);
+    expect(useProfileStore.getState().loading).toBe(false);
+
+    resolveFetch();
+    await refreshPromise;
+    expect(useProfileStore.getState().loading).toBe(false);
   });
 });

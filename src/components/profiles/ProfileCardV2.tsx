@@ -128,7 +128,7 @@ export function ProfileCardV2({
               console.log("Modpack version switched successfully for:", prof.name);
               try {
                 const { fetchProfiles } = useProfileStore.getState();
-                await fetchProfiles();
+                await fetchProfiles(true);
               } catch (err) {
                 console.error("Failed to refresh profiles after modpack switch:", err);
               }

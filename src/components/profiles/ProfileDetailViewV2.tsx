@@ -174,7 +174,7 @@ export function ProfileDetailViewV2({
       await toast.promise(deletePromise, {
         loading: `Deleting profile '${currentProfile.name}'...`,
         success: () => {
-          fetchProfiles();
+          void fetchProfiles(true);
           navigate("/profiles");
           setIsDeleteModalOpen(false);
           return `Profile '${currentProfile.name}' deleted successfully!`;
@@ -241,7 +241,7 @@ export function ProfileDetailViewV2({
         onSwitchComplete={async () => {
           // Refresh profile data after modpack switch
           try {
-            await fetchProfiles();
+            await fetchProfiles(true);
             // Force reload the current profile from the updated profiles list
             const updatedProfiles = useProfileStore.getState().profiles;
             const updatedProfile = updatedProfiles.find(p => p.id === currentProfile.id);
@@ -426,7 +426,7 @@ export function ProfileDetailViewV2({
 
   return (
     <div className="h-full flex flex-col overflow-hidden p-4 relative">
-      <div className={`flex-1 ${activeMainTab === "logs" ? "flex flex-col min-h-0" : "overflow-y-auto no-scrollbar"}`}>
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Profile Header Section */}
         <div className="mb-1 flex-shrink-0">
           <div className="flex items-center gap-4 mb-4">
@@ -595,11 +595,11 @@ export function ProfileDetailViewV2({
 
 
         {/* Content Area */}
-        <div className="flex-1 min-h-0 h-full">
+        <div className="flex-1 min-h-0 overflow-hidden">
           {activeMainTab === "content" && (
-            <div className="flex h-full">
+            <div className="flex h-full min-h-0 overflow-hidden">
               {/* Content Display Area */}
-              <div className="flex-1 min-w-0 mr-6">
+              <div className="flex flex-col flex-1 min-w-0 min-h-0 mr-6 overflow-hidden">
                 {activeContentTab === "mods" && (
                   <LocalContentTabV2<LocalContentItem>
                     profile={currentProfile}
@@ -669,7 +669,7 @@ export function ProfileDetailViewV2({
                       // Force refresh of profile data when NoRisk pack changes
                       try {
                         // Fetch the updated profile from the store
-                        await fetchProfiles();
+                        await fetchProfiles(true);
                         // Force re-render by creating a new object reference
                         setCurrentProfile(prev => ({ ...prev }));
                       } catch (err) {
@@ -746,7 +746,7 @@ export function ProfileDetailViewV2({
           )}
 
           {activeMainTab === "worlds" && (
-            <div className="h-full">
+            <div className="h-full min-h-0 overflow-hidden">
               <WorldsTabV2
                 key={`worlds-${currentProfile.id}`}
                 profile={currentProfile}
@@ -759,7 +759,7 @@ export function ProfileDetailViewV2({
           )}
 
           {activeMainTab === "servers" && (
-            <div className="h-full">
+            <div className="h-full min-h-0 overflow-hidden">
               <ServersTabV2
                 key={`servers-${currentProfile.id}`}
                 profile={currentProfile}
@@ -771,7 +771,7 @@ export function ProfileDetailViewV2({
           )}
 
           {activeMainTab === "screenshots" && (
-            <div className="h-full">
+            <div className="h-full min-h-0 overflow-hidden">
               <ScreenshotsTabV2
                 profile={currentProfile}
                 isActive={true}
@@ -784,7 +784,7 @@ export function ProfileDetailViewV2({
           )}
 
           {activeMainTab === "logs" && (
-            <div className="h-full">
+            <div className="h-full min-h-0 overflow-hidden">
               <LogsTabV2
                 profile={currentProfile}
                 isActive={true}

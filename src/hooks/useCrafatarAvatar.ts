@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
-import { localFileToDisplayUrl } from "../utils/local-file-url";
+import {
+  isUnsafeLocalResourceUrl,
+  localFileToDisplayUrl,
+} from "../utils/local-file-url";
 import { MinecraftSkinService } from "../services/minecraft-skin-service";
 import { getAvatarUrl, getFallbackAvatarUrl } from "../lib/avatar-utils";
 
@@ -16,15 +19,43 @@ function buildCacheKey(uuid: string, overlay: boolean): string {
   return `${uuid}-${AVATAR_FETCH_SIZE}-${overlay}`;
 }
 
+function isUsableAvatarUrl(url: string): boolean {
+  return Boolean(url) && !isUnsafeLocalResourceUrl(url);
+}
+
 // Export cache population function for pre-fetching
 export function populateAvatarCache(uuid: string, url: string, overlay = true) {
+  if (!isUsableAvatarUrl(url)) {
+    return;
+  }
   avatarCache.set(buildCacheKey(uuid, overlay), url);
+}
+
+export function resetCrafatarAvatarCache(): void {
+  avatarCache.clear();
+  loadingPromises.clear();
 }
 
 interface UseCrafatarAvatarOptions {
   uuid: string | null | undefined;
   overlay?: boolean;
   fallbackToDefault?: boolean;
+}
+
+async function loadCrafatarAvatarUrl(
+  uuid: string,
+  overlay: boolean,
+): Promise<string> {
+  const localPath = await MinecraftSkinService.getCrafatarAvatar({
+    uuid,
+    size: AVATAR_FETCH_SIZE,
+    overlay,
+  });
+  const url = await localFileToDisplayUrl(localPath);
+  if (!isUsableAvatarUrl(url)) {
+    throw new Error("Avatar resolved to a blocked local resource URL");
+  }
+  return url;
 }
 
 /**
@@ -45,59 +76,68 @@ export function useCrafatarAvatar({
     }
 
     const cacheKey = buildCacheKey(uuid, overlay);
-
-    if (avatarCache.has(cacheKey)) {
-      setAvatarUrl(avatarCache.get(cacheKey)!);
+    const cached = avatarCache.get(cacheKey);
+    if (cached && isUsableAvatarUrl(cached)) {
+      setAvatarUrl(cached);
       return;
     }
 
-    if (loadingPromises.has(cacheKey)) {
-      loadingPromises
-        .get(cacheKey)!
-        .then((url) => setAvatarUrl(url))
-        .catch(() => {
-          if (fallbackToDefault) {
-            setAvatarUrl(
-              getFallbackAvatarUrl(DEFAULT_STEVE_UUID, {
-                overlay: true,
-                size: AVATAR_FETCH_SIZE,
-              }),
-            );
-          }
-        });
-      return;
-    }
+    let cancelled = false;
 
-    const loadAvatar = async () => {
-      try {
-        const loadingPromise = MinecraftSkinService.getCrafatarAvatar({
-          uuid,
-          size: AVATAR_FETCH_SIZE,
-          overlay,
-        });
-
-        loadingPromises.set(cacheKey, loadingPromise);
-
-        const localPath = await loadingPromise;
-        const url = await localFileToDisplayUrl(localPath);
-
-        avatarCache.set(cacheKey, url);
+    const applyUrl = (url: string) => {
+      if (!cancelled) {
         setAvatarUrl(url);
-      } catch (error) {
-        console.error("[useCrafatarAvatar] Failed to load avatar:", error);
+      }
+    };
 
+    const applyFallback = () => {
+      if (!fallbackToDefault) {
+        if (!cancelled) {
+          setAvatarUrl(null);
+        }
+        return;
+      }
+      applyUrl(
+        getFallbackAvatarUrl(DEFAULT_STEVE_UUID, {
+          overlay: true,
+          size: AVATAR_FETCH_SIZE,
+        }),
+      );
+    };
+
+    const existingPromise = loadingPromises.get(cacheKey);
+    if (existingPromise) {
+      existingPromise.then(applyUrl).catch(applyFallback);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const loadingPromise = loadCrafatarAvatarUrl(uuid, overlay)
+      .then((url) => {
+        avatarCache.set(cacheKey, url);
+        applyUrl(url);
+        return url;
+      })
+      .catch((error) => {
+        console.error("[useCrafatarAvatar] Failed to load avatar:", error);
         const remoteUrl = getAvatarUrl(uuid, {
           overlay,
           size: AVATAR_FETCH_SIZE,
         });
         avatarCache.set(cacheKey, remoteUrl);
-        setAvatarUrl(remoteUrl);
-      } finally {
+        applyUrl(remoteUrl);
+        return remoteUrl;
+      })
+      .finally(() => {
         loadingPromises.delete(cacheKey);
-      }
-    };
+      });
 
-    loadAvatar();
+    loadingPromises.set(cacheKey, loadingPromise);
+
+    return () => {
+      cancelled = true;
+    };
   }, [uuid, overlay, fallbackToDefault]);
 
   return avatarUrl;

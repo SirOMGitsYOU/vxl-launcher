@@ -41,6 +41,17 @@ export function BrowseTabWrapper() {
     }
   };
 
+  if (profile) {
+    return (
+      <BrowseTab
+        profile={profile}
+        initialContentType={contentType || "mods"}
+        onRefresh={handleRefresh}
+        parentTransitionActive={false}
+      />
+    );
+  }
+
   if (loading) {
     return <LoadingState message="Loading profile..." />;
   }
@@ -54,21 +65,10 @@ export function BrowseTabWrapper() {
     );
   }
 
-  if (!profile) {
-    return (
-      <EmptyState
-        icon="solar:widget-bold"
-        message="Profile not found"
-      />
-    );
-  }
-
   return (
-    <BrowseTab
-      profile={profile}
-      initialContentType={contentType || "mods"}
-      onRefresh={handleRefresh}
-      parentTransitionActive={false}
+    <EmptyState
+      icon="solar:widget-bold"
+      message="Profile not found"
     />
   );
 }
