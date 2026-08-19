@@ -695,17 +695,8 @@ async fn try_update_profile(id: Uuid, params: UpdateProfileParams) -> Result<(),
         info!("Mods directory migration needed for profile {}", id);
         
         // Get old and new mods paths
-        let old_mods_path = if original_profile.is_standard_version || !original_profile.should_use_shared_minecraft_folder() {
-            state.profile_manager.get_profile_mods_path_single(&original_profile)?
-        } else {
-            state.profile_manager.get_profile_mods_path_shared(&original_profile)?
-        };
-        
-        let new_mods_path = if profile.is_standard_version || !profile.should_use_shared_minecraft_folder() {
-            state.profile_manager.get_profile_mods_path_single(&profile)?
-        } else {
-            state.profile_manager.get_profile_mods_path_shared(&profile)?
-        };
+        let old_mods_path = state.profile_manager.get_profile_mods_path(&original_profile)?;
+        let new_mods_path = state.profile_manager.get_profile_mods_path(&profile)?;
         
         // Only migrate if paths are actually different
         if old_mods_path != new_mods_path {
