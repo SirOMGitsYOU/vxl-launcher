@@ -203,7 +203,7 @@ export function ProfileSettings({ profile, onClose }: ProfileSettingsProps) {
           />
         );
       case "nrc":
-        return <AdvancedTab profile={profile} />;
+        return <AdvancedTab profile={currentProfile} onRefresh={handleRefresh} />;
 
       case "designer":
         if (showDesignerTab) {

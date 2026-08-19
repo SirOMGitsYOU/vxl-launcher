@@ -37,6 +37,87 @@ class UnifiedService {
         });
     }
 
+    static buildModpackSwitchRequest(
+        version: UnifiedVersion,
+        profileId: string,
+    ): ModpackSwitchRequest {
+        const primaryFile = version.files.find((file) => file.primary) ?? version.files[0];
+        if (!primaryFile) {
+            throw new Error("No downloadable file found for this modpack version");
+        }
+
+        if (version.source === ModPlatform.Modrinth) {
+            return {
+                download_url: primaryFile.url,
+                modpack_source: {
+                    source: "modrinth",
+                    project_id: version.project_id,
+                    version_id: version.id,
+                },
+                profile_id: profileId,
+            };
+        }
+
+        if (version.source === ModPlatform.CurseForge) {
+            const fileId = Number.parseInt(version.id, 10);
+            if (!Number.isFinite(fileId) || fileId <= 0) {
+                throw new Error("CurseForge file ID not found");
+            }
+
+            return {
+                download_url: primaryFile.url,
+                modpack_source: {
+                    source: "curse_forge",
+                    project_id: Number.parseInt(version.project_id, 10),
+                    file_id: fileId,
+                },
+                profile_id: profileId,
+            };
+        }
+
+        throw new Error(`Unsupported modpack source: ${version.source}`);
+    }
+
+    static isInstalledModpackVersion(
+        version: UnifiedVersion,
+        versions: UnifiedModpackVersionsResponse | null,
+        installedSource?: ModPackSource | null,
+    ): boolean {
+        if (installedSource?.source === "modrinth") {
+            return version.id === installedSource.version_id;
+        }
+
+        if (installedSource?.source === "curse_forge") {
+            const storedFileId = String(installedSource.file_id);
+            if (version.id === storedFileId) {
+                return true;
+            }
+            return version.files.some(
+                (file) =>
+                    file.fingerprint != null &&
+                    (String(file.fingerprint) === storedFileId ||
+                        (file.fingerprint >>> 0) === installedSource.file_id),
+            );
+        }
+
+        if (versions?.installed_version?.id === version.id) {
+            return true;
+        }
+
+        const installedFingerprints = versions?.installed_version?.files
+            .map((file) => file.fingerprint)
+            .filter((fingerprint): fingerprint is number => fingerprint != null);
+        if (installedFingerprints && installedFingerprints.length > 0) {
+            return version.files.some(
+                (file) =>
+                    file.fingerprint != null &&
+                    installedFingerprints.includes(file.fingerprint),
+            );
+        }
+
+        return false;
+    }
+
     static async switchContentVersion(
         profileId: string,
         contentType: ContentType,

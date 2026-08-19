@@ -758,6 +758,18 @@ pub async fn get_mod_versions_unified(
     })
 }
 
+fn curseforge_version_matches_file_id(version: &UnifiedVersion, file_id: u32) -> bool {
+    if version.id == file_id.to_string() {
+        return true;
+    }
+
+    version.files.iter().any(|file| {
+        file.fingerprint.is_some_and(|fingerprint| {
+            fingerprint == u64::from(file_id) || fingerprint as u32 == file_id
+        })
+    })
+}
+
 /// Get specific modpack version and all available versions
 /// This is optimized for modpack management - gets the installed version plus all available versions
 pub async fn get_modpack_versions_unified(
@@ -827,9 +839,11 @@ pub async fn get_modpack_versions_unified(
                 Ok(response) => {
                     all_versions = response.versions;
 
-                    // Find the installed version
-                    installed_version = all_versions.iter()
-                        .find(|v| v.id == file_id.to_string())
+                    // Find the installed version by file ID, with fingerprint fallback
+                    // for profiles that previously stored a Murmur fingerprint as file_id
+                    installed_version = all_versions
+                        .iter()
+                        .find(|v| curseforge_version_matches_file_id(v, *file_id))
                         .cloned();
 
                     // Find latest version (first in list is usually newest for CurseForge)

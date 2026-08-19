@@ -5,7 +5,7 @@ import ReactMarkdown from "react-markdown";
 import { Modal } from "../ui/Modal";
 import { Icon } from "@iconify/react";
 import { Button } from "../ui/buttons/Button";
-import type { UnifiedModpackVersionsResponse, UnifiedVersion, ModpackSwitchRequest } from "../../types/unified";
+import type { UnifiedModpackVersionsResponse, UnifiedVersion } from "../../types/unified";
 import { UnifiedVersionType } from "../../types/unified";
 import type { ModPackSource } from "../../types/profile";
 import UnifiedService from "../../services/unified-service";
@@ -300,6 +300,7 @@ This release focuses on stability and performance improvements.
   });
   const [isLoadingVersions, setIsLoadingVersions] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState<UnifiedVersion | null>(null);
+  const [installedSource, setInstalledSource] = useState<ModPackSource | null>(null);
 
   // Reset selection when modal closes
   React.useEffect(() => {
@@ -320,6 +321,7 @@ This release focuses on stability and performance improvements.
       ProfileService.getProfile(profileId)
         .then(profile => {
           if (profile.modpack_info?.source) {
+            setInstalledSource(profile.modpack_info.source);
             return UnifiedService.getModpackVersions(profile.modpack_info.source);
           } else {
             throw new Error("No modpack source found in profile");
@@ -397,11 +399,9 @@ This release focuses on stability and performance improvements.
     (a, b) => new Date(b.date_published).getTime() - new Date(a.date_published).getTime()
   );
 
-  const installedVersionId = versions.installed_version?.id;
-
   const handleVersionSelect = (version: UnifiedVersion) => {
     // Don't allow selecting already installed version
-    if (version.id === installedVersionId) return;
+    if (UnifiedService.isInstalledModpackVersion(version, versions, installedSource)) return;
     setSelectedVersion(version);
   };
 
@@ -411,37 +411,7 @@ This release focuses on stability and performance improvements.
     // Check if we have all required information for the new modpack switching
     if (profileId && selectedVersion.files.length > 0) {
       try {
-        // Find the primary file
-        const primaryFile = selectedVersion.files.find(f => f.primary) || selectedVersion.files[0];
-
-        // Create new ModPackSource based on selected version
-        let newModpackSource: ModPackSource;
-        if (selectedVersion.source === "Modrinth") {
-          newModpackSource = {
-            source: "modrinth",
-            project_id: selectedVersion.project_id,
-            version_id: selectedVersion.id,
-          };
-        } else if (selectedVersion.source === "CurseForge") {
-          // For CurseForge, we need the file_id from the primary file
-          const fileId = primaryFile.fingerprint; // CurseForge uses fingerprint as file_id
-          if (!fileId) {
-            throw new Error("CurseForge file fingerprint (file_id) not found");
-          }
-          newModpackSource = {
-            source: "curse_forge",
-            project_id: parseInt(selectedVersion.project_id), // CurseForge project_id is number
-            file_id: fileId,
-          };
-        } else {
-          throw new Error(`Unsupported modpack source: ${selectedVersion.source}`);
-        }
-
-        const request: ModpackSwitchRequest = {
-          download_url: primaryFile.url,
-          modpack_source: newModpackSource,
-          profile_id: profileId,
-        };
+        const request = UnifiedService.buildModpackSwitchRequest(selectedVersion, profileId);
 
         // Show loading toast
         const loadingToast = toast.loading(`Switching ${modpackName} to version ${selectedVersion.version_number}...`);
@@ -451,6 +421,8 @@ This release focuses on stability and performance improvements.
         // Dismiss loading toast and show success
         toast.dismiss(loadingToast);
         toast.success(`Successfully switched ${modpackName} to version ${selectedVersion.version_number}!`);
+
+        setInstalledSource(request.modpack_source);
 
         // Don't refresh here - let parent components handle the refresh
 
@@ -534,7 +506,7 @@ This release focuses on stability and performance improvements.
             <VersionItem
               key={version.id}
               version={version}
-              isInstalled={version.id === installedVersionId}
+              isInstalled={UnifiedService.isInstalledModpackVersion(version, versions, installedSource)}
               isSelected={selectedVersion?.id === version.id}
               onSelect={handleVersionSelect}
             />

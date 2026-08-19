@@ -256,6 +256,7 @@ export interface UpdateProfileParams {
   norisk_information?: NoriskInformation | null;
   preferred_account_id?: string | null;
   clear_preferred_account?: boolean;
+  clear_modpack_info?: boolean;
 }
 
 export interface CopyProfileParams {

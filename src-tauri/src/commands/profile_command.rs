@@ -61,6 +61,7 @@ pub struct UpdateProfileParams {
     use_shared_minecraft_folder: Option<bool>,
     preferred_account_id: Option<String>,
     clear_preferred_account: Option<bool>,
+    clear_modpack_info: Option<bool>,
 }
 
 // Neue DTO für den copy_profile Command
@@ -675,6 +676,16 @@ async fn try_update_profile(id: Uuid, params: UpdateProfileParams) -> Result<(),
             "preferred_account_id not explicitly changed or cleared for profile {}. Current: {:?}",
             id, profile.preferred_account_id
         );
+    }
+
+    if params.clear_modpack_info == Some(true) {
+        info!("Clearing modpack_info for profile {}", id);
+        profile.modpack_info = None;
+        for profile_mod in &mut profile.mods {
+            if profile_mod.modpack_origin.is_some() {
+                profile_mod.modpack_origin = None;
+            }
+        }
     }
 
     // Check if mods directory location needs to change (using the params copy from above)

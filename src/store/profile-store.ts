@@ -115,18 +115,44 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   updateProfile: async (id: string, updates: UpdateProfileParams) => {
     try {
       await ProfileService.updateProfile(id, updates);
-      const { profiles } = get();
-      const updatedProfiles = profiles.map((profile) =>
-        profile.id === id ? { ...profile, ...updates } : profile,
-      );
-      //@ts-ignore
-      set({ profiles: updatedProfiles });
+      const { profiles, selectedProfile } = get();
 
-      const { selectedProfile } = get();
-      if (selectedProfile && selectedProfile.id === id) {
-        //@ts-ignore
-        set({ selectedProfile: { ...selectedProfile, ...updates } });
-      }
+      const applyUpdates = (profile: Profile): Profile => ({
+        ...profile,
+        name: updates.name ?? profile.name,
+        game_version: updates.game_version ?? profile.game_version,
+        loader: (updates.loader as Profile["loader"]) ?? profile.loader,
+        loader_version:
+          updates.loader_version !== undefined
+            ? updates.loader_version ?? null
+            : profile.loader_version,
+        settings: updates.settings ?? profile.settings,
+        group: updates.clear_group ? null : updates.group !== undefined ? updates.group : profile.group,
+        use_shared_minecraft_folder:
+          updates.use_shared_minecraft_folder ?? profile.use_shared_minecraft_folder,
+        description:
+          updates.description !== undefined ? updates.description : profile.description,
+        norisk_information:
+          updates.norisk_information !== undefined
+            ? updates.norisk_information
+            : profile.norisk_information,
+        preferred_account_id: updates.clear_preferred_account
+          ? null
+          : updates.preferred_account_id !== undefined
+            ? updates.preferred_account_id
+            : profile.preferred_account_id,
+        modpack_info: updates.clear_modpack_info ? null : profile.modpack_info,
+      });
+
+      set({
+        profiles: profiles.map((profile) =>
+          profile.id === id ? applyUpdates(profile) : profile,
+        ),
+        selectedProfile:
+          selectedProfile && selectedProfile.id === id
+            ? applyUpdates(selectedProfile)
+            : selectedProfile,
+      });
     } catch (error) {
       console.error(`Failed to update profile ${id}:`, error);
       throw error;

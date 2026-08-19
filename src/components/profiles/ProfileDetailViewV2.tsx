@@ -247,6 +247,7 @@ export function ProfileDetailViewV2({
             const updatedProfile = updatedProfiles.find(p => p.id === currentProfile.id);
             if (updatedProfile) {
               setCurrentProfile(updatedProfile);
+              setModpackVersions(null);
               console.log("Profile refreshed after modpack version switch:", updatedProfile.modpack_info);
             } else {
               console.error("Could not find updated profile after switch");
@@ -611,6 +612,7 @@ export function ProfileDetailViewV2({
                     emptyStateIconOverride="solar:bolt-bold-duotone"
                     onRefreshRequired={handleRefresh}
                     onBrowseContentRequest={handleBrowseContent}
+                    onChangeModpackVersion={handleModpackVersionsClick}
                   />
                 )}
 

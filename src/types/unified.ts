@@ -159,6 +159,8 @@ export interface UnifiedModpackVersionsResponse {
   all_versions: UnifiedVersion[];
   /// Whether updates are available for the installed version
   updates_available?: boolean;
+  /// Newest available version, if known
+  latest_version?: UnifiedVersion | null;
 }
 
 /// Request structure for switching modpack versions
