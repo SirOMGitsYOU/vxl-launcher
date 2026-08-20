@@ -1,3 +1,4 @@
+use crate::config::{ProjectDirsExt, LAUNCHER_DIRECTORY};
 use crate::error::{AppError, CommandError};
 use crate::utils::file_utils;
 use crate::utils::path_security;
@@ -648,5 +649,152 @@ pub async fn get_image_preview(
         original_height,
         preview_width,
         preview_height,
+    })
+}
+
+const ALLOWED_BACKGROUND_EXTENSIONS: &[&str] =
+    &["png", "jpg", "jpeg", "webp", "gif", "mp4", "webm"];
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ImportCustomBackgroundResult {
+    pub path: String,
+    pub media_type: String,
+    pub file_size_bytes: u64,
+}
+
+/// Returns the size of a validated local file in bytes.
+#[tauri::command]
+pub async fn get_file_size_bytes(file_path: String) -> Result<u64, CommandError> {
+    let path = path_security::validate_path(&file_path).map_err(CommandError::from)?;
+
+    if !path.exists() {
+        return Err(CommandError::from(AppError::FileNotFound(path)));
+    }
+    if !path.is_file() {
+        return Err(CommandError::from(AppError::Other(format!(
+            "Path is not a file: {}",
+            path.display()
+        ))));
+    }
+
+    let metadata = fs::metadata(&path).await.map_err(|e| {
+        error!("Failed to get metadata for {}: {}", path.display(), e);
+        CommandError::from(AppError::Io(e))
+    })?;
+
+    Ok(metadata.len())
+}
+
+/// Copies a user-selected background image or video into launcher app data.
+#[tauri::command]
+pub async fn import_custom_background(
+    source_path: String,
+) -> Result<ImportCustomBackgroundResult, CommandError> {
+    let source = PathBuf::from(&source_path);
+    if !source.is_absolute() {
+        return Err(CommandError::from(AppError::Other(
+            "Background source path must be absolute".to_string(),
+        )));
+    }
+
+    if !source.exists() {
+        return Err(CommandError::from(AppError::FileNotFound(source.clone())));
+    }
+
+    if !source.is_file() {
+        return Err(CommandError::from(AppError::Other(format!(
+            "Path is not a file: {}",
+            source.display()
+        ))));
+    }
+
+    let extension = source
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| ext.to_lowercase())
+        .ok_or_else(|| {
+            CommandError::from(AppError::Other(
+                "Background file must have an extension".to_string(),
+            ))
+        })?;
+
+    if !ALLOWED_BACKGROUND_EXTENSIONS.contains(&extension.as_str()) {
+        return Err(CommandError::from(AppError::Other(format!(
+            "Unsupported background file type: .{}",
+            extension
+        ))));
+    }
+
+    let media_type = if extension == "mp4" || extension == "webm" {
+        "video"
+    } else {
+        "image"
+    };
+
+    let dest_dir = LAUNCHER_DIRECTORY.data_dir().join("backgrounds");
+    fs::create_dir_all(&dest_dir)
+        .await
+        .map_err(|e| CommandError::from(AppError::Io(e)))?;
+
+    let file_name = source
+        .file_name()
+        .ok_or_else(|| {
+            CommandError::from(AppError::Other(
+                "Background file has no name".to_string(),
+            ))
+        })?
+        .to_string_lossy()
+        .to_string();
+
+    let sanitized_name = file_name
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect::<String>();
+
+    let mut dest_path = dest_dir.join(&sanitized_name);
+    if dest_path.exists() {
+        let stem = dest_path
+            .file_stem()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_else(|| "background".to_string());
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis())
+            .unwrap_or(0);
+        dest_path = dest_dir.join(format!("{}_{}.{}", stem, timestamp, extension));
+    }
+
+    fs::copy(&source, &dest_path).await.map_err(|e| {
+        error!(
+            "Failed to copy background from {} to {}: {}",
+            source.display(),
+            dest_path.display(),
+            e
+        );
+        CommandError::from(AppError::Io(e))
+    })?;
+
+    let file_size_bytes = fs::metadata(&dest_path)
+        .await
+        .map_err(|e| CommandError::from(AppError::Io(e)))?
+        .len();
+
+    info!(
+        "Imported custom background to {} (type: {}, size: {} bytes)",
+        dest_path.display(),
+        media_type,
+        file_size_bytes
+    );
+
+    Ok(ImportCustomBackgroundResult {
+        path: dest_path.to_string_lossy().to_string(),
+        media_type: media_type.to_string(),
+        file_size_bytes,
     })
 }

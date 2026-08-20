@@ -7,6 +7,7 @@ import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
 import { useProfileStore } from "../../store/profile-store";
 import { PlayHero } from "../play/PlayHero";
 import { PlayBackgroundEffect } from "../play/PlayBackgroundEffect";
+import { useBackgroundEffectStore } from "../../store/background-effect-store";
 import { LoadingState } from "../ui-v2";
 
 export function PlayTab() {
@@ -19,6 +20,12 @@ export function PlayTab() {
   } = useProfileStore();
 
   const { activeAccount } = useMinecraftAuthStore();
+  const { customMediaUrl, customMediaType, customMediaHideEffects, presetBackgroundId } =
+    useBackgroundEffectStore();
+  const shouldShowEffects = !(
+    (customMediaUrl || (customMediaType === "youtube" && presetBackgroundId)) &&
+    customMediaHideEffects
+  );
 
   useEffect(() => {
     if (!storeSelectedProfile && profiles.length > 0) {
@@ -43,7 +50,7 @@ export function PlayTab() {
     <div className="flex h-full relative">
       <div className="flex-grow flex flex-col items-center justify-center p-8 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none z-0">
-          <PlayBackgroundEffect />
+          {shouldShowEffects && <PlayBackgroundEffect />}
         </div>
 
         <div className="relative z-10">

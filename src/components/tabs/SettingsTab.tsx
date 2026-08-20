@@ -19,6 +19,17 @@ import {
   type QualityLevel,
   useQualitySettingsStore,
 } from "../../store/quality-settings-store";
+import {
+  PRESET_BACKGROUNDS,
+  getPresetThumbnailUrl,
+} from "../../config/preset-backgrounds";
+import {
+  getFileSizeBytes,
+  importCustomBackground,
+  isLargeBackgroundVideo,
+  largeBackgroundVideoWarning,
+} from "../../services/background-media-service";
+import { open } from "@tauri-apps/plugin-dialog";
 import { cn } from "../../lib/utils";
 import { toast } from "react-hot-toast";
 import type { GroupTab } from ".././ui/GroupTabs";
@@ -85,8 +96,31 @@ export function SettingsTab() {
     toggleStaticBackground,
     toggleBackgroundAnimation,
   } = useThemeStore();
-  const { currentEffect, setCurrentEffect } = useBackgroundEffectStore();
-  const { qualityLevel, setQualityLevel } = useQualitySettingsStore();
+  const {
+    currentEffect,
+    setCurrentEffect,
+    customMediaUrl,
+    customMediaType,
+    customMediaOpacity,
+    customMediaBlur,
+    customMediaQuality,
+    customMediaOnlyOnPlay,
+    customMediaHideEffects,
+    presetBackgroundId,
+    setCustomMedia,
+    setPresetBackground,
+    clearCustomBackground,
+    setCustomMediaOpacity,
+    setCustomMediaBlur,
+    setCustomMediaQuality,
+    setCustomMediaOnlyOnPlay,
+    setCustomMediaHideEffects,
+  } = useBackgroundEffectStore();
+  const [customBackgroundSizeBytes, setCustomBackgroundSizeBytes] = useState<
+    number | null
+  >(null);
+  const { qualityLevel, setQualityLevel, skinRenderer3d, setSkinRenderer3d } =
+    useQualitySettingsStore();
   const { borderRadius, setBorderRadius } = useThemeStore();
 
   const { confirm, confirmDialog } = useConfirmDialog();
@@ -213,6 +247,27 @@ export function SettingsTab() {
       autoSaveConfig(tempConfig);
     }
   }, [tempConfig, config, autoSaveConfig]);
+
+  useEffect(() => {
+    if (customMediaType !== "video" || !customMediaUrl) {
+      setCustomBackgroundSizeBytes(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    getFileSizeBytes(customMediaUrl)
+      .then((size) => {
+        if (!cancelled) setCustomBackgroundSizeBytes(size);
+      })
+      .catch(() => {
+        if (!cancelled) setCustomBackgroundSizeBytes(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [customMediaUrl, customMediaType]);
 
   const handleConcurrentDownloadsChange = (value: number) => {
     if (tempConfig) {
@@ -456,71 +511,325 @@ export function SettingsTab() {
     </div>
   );
 
-  const renderAppearanceTab = () => (
-    <div className="space-y-6">
-      <div>
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Icon icon="solar:stars-bold" className="w-6 h-6 text-white" />
-              <h3 className="text-lg font-semibold text-white">
-                Background Effect
-              </h3>
-            </div>
-            <div className="flex flex-col items-end gap-2" style={{ transform: 'translateY(16px)' }}>
+  const renderAppearanceTab = () => {
+    const hasCustomMedia =
+      Boolean(customMediaUrl) ||
+      (customMediaType === "youtube" && Boolean(presetBackgroundId));
+
+    const handleSelectCustomBackground = async () => {
+      try {
+        const selected = await open({
+          multiple: false,
+          filters: [
+            {
+              name: "Media",
+              extensions: ["png", "jpg", "jpeg", "webp", "gif", "mp4", "webm"],
+            },
+          ],
+        });
+
+        if (!selected || typeof selected !== "string") return;
+
+        const result = await importCustomBackground(selected);
+        setCustomMedia(result.path, result.media_type);
+        setCustomBackgroundSizeBytes(result.file_size_bytes);
+        toast.success("Custom background applied");
+        if (isLargeBackgroundVideo(result.media_type, result.file_size_bytes)) {
+          toast(largeBackgroundVideoWarning(result.file_size_bytes), {
+            icon: "⚠️",
+            duration: 6000,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to import custom background:", error);
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Failed to import custom background",
+        );
+      }
+    };
+
+    const handleSelectPreset = (presetId: string) => {
+      const preset = PRESET_BACKGROUNDS.find((item) => item.id === presetId);
+      if (!preset?.youtubeId.trim()) {
+        toast.error("This preset has not been configured yet");
+        return;
+      }
+      setPresetBackground(presetId);
+      toast.success(`Applied ${preset.name}`);
+    };
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-white/70 ">Animations</span>
-                <ToggleSwitch
-                  checked={!staticBackground}
-                  onChange={() => {
-                    toggleStaticBackground();
-                    toggleBackgroundAnimation();
+                <Icon icon="solar:stars-bold" className="w-6 h-6 text-white" />
+                <h3 className="text-lg font-semibold text-white">
+                  Background Effect
+                </h3>
+              </div>
+              <div
+                className="flex flex-col items-end gap-2"
+                style={{ transform: "translateY(16px)" }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-white/70">Animations</span>
+                  <ToggleSwitch
+                    checked={!staticBackground}
+                    onChange={() => {
+                      toggleStaticBackground();
+                      toggleBackgroundAnimation();
+                    }}
+                    disabled={saving}
+                    size="sm"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-white/70">Skin animation</span>
+                  <ToggleSwitch
+                    checked={skinRenderer3d}
+                    onChange={() => setSkinRenderer3d(!skinRenderer3d)}
+                    disabled={saving}
+                    size="sm"
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-white/60">Quality: Low</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="2"
+                    step="1"
+                    value={
+                      qualityLevel === "low" ? 0 : qualityLevel === "medium" ? 1 : 2
+                    }
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value, 10);
+                      const levels = ["low", "medium", "high"] as const;
+                      setQualityLevel(levels[value] || "medium");
+                    }}
+                    className="w-16 h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider accent-white hover:accent-white/80 transition-colors"
+                    disabled={saving}
+                  />
+                  <span className="text-xs text-white/60">High</span>
+                </div>
+              </div>
+            </div>
+            <p className="text-sm text-[var(--text-secondary)] mt-1">
+              Choose a background effect for the launcher
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+            {backgroundOptions.map((option) => (
+              <EffectPreviewCard
+                key={option.id}
+                effectId={option.id}
+                name={option.name}
+                icon={option.icon}
+                isActive={currentEffect === option.id}
+                onClick={() => setCurrentEffect(option.id)}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Icon icon="solar:gallery-bold" className="w-6 h-6 text-white" />
+              <h3 className="text-lg font-semibold text-white">Custom Background</h3>
+            </div>
+            <p className="text-sm text-[var(--text-secondary)] mt-1">
+              Use your own image, GIF, or video on the Play screen
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 mb-4">
+            {hasCustomMedia && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  clearCustomBackground();
+                  toast.success("Custom background cleared");
+                }}
+              >
+                <Icon icon="solar:trash-bin-trash-bold" className="w-4 h-4" />
+                Clear
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={handleSelectCustomBackground}>
+              <Icon icon="solar:folder-open-bold" className="w-4 h-4" />
+              {hasCustomMedia ? "Change file" : "Select file"}
+            </Button>
+          </div>
+
+          {customMediaType === "video" &&
+            customBackgroundSizeBytes !== null &&
+            isLargeBackgroundVideo("video", customBackgroundSizeBytes) && (
+              <Alert
+                tone="info"
+                className="mb-4 border-amber-500/30 bg-amber-500/10 text-amber-100"
+              >
+                {largeBackgroundVideoWarning(customBackgroundSizeBytes)}
+              </Alert>
+            )}
+
+          {hasCustomMedia && (
+            <div className="space-y-5 rounded-xl border border-[var(--surface-border)] bg-[var(--surface-overlay)] p-4">
+              <div>
+                <span className="mb-2 block text-sm text-[var(--text-secondary)]">
+                  Opacity
+                </span>
+                <RangeSlider
+                  value={Math.round(customMediaOpacity * 100)}
+                  onChange={(value) => setCustomMediaOpacity(value / 100)}
+                  min={0}
+                  max={100}
+                  step={1}
+                  minLabel="0%"
+                  maxLabel="100%"
+                  unit="%"
+                  size="sm"
+                  variant="flat"
+                />
+              </div>
+
+              <div>
+                <span className="mb-2 block text-sm text-[var(--text-secondary)]">
+                  Blur
+                </span>
+                <RangeSlider
+                  value={customMediaBlur}
+                  onChange={setCustomMediaBlur}
+                  min={0}
+                  max={20}
+                  step={1}
+                  minLabel="0"
+                  maxLabel="20"
+                  unit="px"
+                  size="sm"
+                  variant="flat"
+                />
+              </div>
+
+              <div>
+                <div className="mb-2 flex items-center justify-between gap-4">
+                  <span className="text-sm text-[var(--text-secondary)]">Quality</span>
+                  <span className="text-sm font-medium text-white capitalize">
+                    {customMediaQuality}
+                  </span>
+                </div>
+                <RangeSlider
+                  value={
+                    customMediaQuality === "low"
+                      ? 0
+                      : customMediaQuality === "medium"
+                        ? 1
+                        : 2
+                  }
+                  onChange={(value) => {
+                    const levels = ["low", "medium", "high"] as const;
+                    setCustomMediaQuality(levels[value] ?? "medium");
                   }}
-                  disabled={saving}
+                  min={0}
+                  max={2}
+                  step={1}
+                  minLabel="Low"
+                  maxLabel="High"
+                  showValue={false}
+                  size="sm"
+                  variant="flat"
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-sm text-[var(--text-secondary)]">
+                  Only on Play tab
+                </span>
+                <ToggleSwitch
+                  checked={customMediaOnlyOnPlay}
+                  onChange={() => setCustomMediaOnlyOnPlay(!customMediaOnlyOnPlay)}
                   size="sm"
                 />
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-white/60 ">Quality: Low</span>
-                <input
-                  type="range"
-                  min="0"
-                  max="2"
-                  step="1"
-                  value={qualityLevel === "low" ? 0 : qualityLevel === "medium" ? 1 : 2}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value);
-                    const levels = ["low", "medium", "high"] as const;
-                    setQualityLevel(levels[value] || "medium");
-                  }}
-                  className="w-16 h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider accent-white hover:accent-white/80 transition-colors"
-                  disabled={saving}
+
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-sm text-[var(--text-secondary)]">
+                  Hide background effects
+                </span>
+                <ToggleSwitch
+                  checked={customMediaHideEffects}
+                  onChange={() => setCustomMediaHideEffects(!customMediaHideEffects)}
+                  size="sm"
                 />
-                <span className="text-xs text-white/60 ">High</span>
               </div>
             </div>
-          </div>
-          <p className="text-sm text-[var(--text-secondary)] mt-1">
-            Choose a background effect for the launcher
-          </p>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-          {backgroundOptions.map((option) => (
-            <EffectPreviewCard
-              key={option.id}
-              effectId={option.id}
-              name={option.name}
-              icon={option.icon}
-              isActive={currentEffect === option.id}
-              onClick={() => setCurrentEffect(option.id)}
-            />
-          ))}
+        <div>
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Icon icon="solar:video-frame-bold" className="w-6 h-6 text-white" />
+              <h3 className="text-lg font-semibold text-white">Preset Backgrounds</h3>
+            </div>
+            <p className="text-sm text-[var(--text-secondary)] mt-1">
+              Looping video backgrounds via YouTube (configure IDs in preset config)
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {PRESET_BACKGROUNDS.map((preset) => {
+              const thumbnail = getPresetThumbnailUrl(preset);
+              const isActive = presetBackgroundId === preset.id;
+              const isConfigured = Boolean(preset.youtubeId.trim());
+
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => handleSelectPreset(preset.id)}
+                  className={cn(
+                    "relative overflow-hidden rounded-xl border text-left transition-all h-28",
+                    isActive
+                      ? "border-[var(--accent)] bg-[rgba(var(--accent-rgb),0.08)]"
+                      : "border-[var(--surface-border)] bg-[var(--surface-overlay)] hover:border-[var(--surface-border-strong)]",
+                  )}
+                >
+                  {thumbnail ? (
+                    <img
+                      src={thumbnail}
+                      alt={preset.name}
+                      className="absolute inset-0 w-full h-full object-cover opacity-60"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-[var(--surface-base)] flex items-center justify-center">
+                      <Icon
+                        icon="solar:video-frame-bold"
+                        className="w-8 h-8 text-[var(--text-muted)]"
+                      />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-3">
+                    <p className="text-sm font-medium text-white">{preset.name}</p>
+                    <p className="text-xs text-white/60">
+                      {isConfigured ? "YouTube preset" : "Not configured"}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
-
-    </div>
-  );
+    );
+  };
 
   const renderAdvancedTab = () => (
     <div className="space-y-6">

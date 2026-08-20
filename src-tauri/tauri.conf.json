@@ -54,7 +54,10 @@
           "https://starlightskins.lunareclipse.studio",
           "https://namemc.com",
           "https://laby.net",
-          "https://crafty.gg"
+          "https://crafty.gg",
+          "https://www.youtube.com",
+          "https://www.youtube-nocookie.com",
+          "https://*.googlevideo.com"
         ],
         "img-src": [
           "'self'",
@@ -73,7 +76,21 @@
           "https://namemc.com",
           "https://laby.net",
           "https://crafty.gg",
+          "https://i.ytimg.com",
+          "https://img.youtube.com",
           "data:"
+        ],
+        "media-src": [
+          "'self'",
+          "asset:",
+          "http://asset.localhost",
+          "blob:",
+          "https://*.googlevideo.com"
+        ],
+        "frame-src": [
+          "'self'",
+          "https://www.youtube.com",
+          "https://www.youtube-nocookie.com"
         ],
         "style-src": ["'self'", "'unsafe-inline'"],
         "script-src": ["'self'"],
@@ -87,10 +104,13 @@
           "requireLiteralLeadingDot": false,
           "allow": [
             "$APPDATA/vxl/**",
+            "$APPDATA/vxl/VXLLauncher/**",
             "$APPDATA/com.vxl.VXLLauncher/**",
             "$APPLOCALDATA/vxl/**",
+            "$APPLOCALDATA/vxl/VXLLauncher/**",
             "$APPLOCALDATA/com.vxl.VXLLauncher/**",
             "$APPCONFIG/vxl/**",
+            "$APPCONFIG/vxl/VXLLauncher/**",
             "$APPCONFIG/com.vxl.VXLLauncher/**",
             "$TEMP/**"
           ]

@@ -38,6 +38,15 @@ jobs:
       - name: Install flatpak-node-generator
         run: pipx install git+https://github.com/flatpak/flatpak-builder-tools.git#subdirectory=node
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          registry-url: https://npm.voxelstudios.co.uk
+          always-auth: true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.VOXEL_NPM_TOKEN }}
+
       - name: Generate node-sources.json (Yarn)
         run: |
           if [ -f yarn.lock ]; then

@@ -1,6 +1,7 @@
 pub mod changelog_command;
 pub mod config_commands;
 pub mod content_command;
+pub mod cosmetic_command;
 pub mod curseforge_commands;
 pub mod discord_command;
 pub mod file_command;
@@ -17,4 +18,5 @@ pub mod path_commands;
 pub mod process_command;
 pub mod profile_command;
 pub mod skin_preview_command;
+pub mod skin_render_command;
 pub mod vanilla_cape_command;

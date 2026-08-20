@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { localFileToDisplayUrl } from "../../utils/local-file-url";
 import { Icon } from "@iconify/react";
 import { Button } from "../ui-v2";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
@@ -9,15 +8,19 @@ import { useVanillaCapeStore } from "../../store/useVanillaCapeStore";
 import type { VanillaCape } from "../../types/vanillaCapes";
 import { preloadIcons } from "../../lib/icon-utils";
 import { toast } from "react-hot-toast";
-import { SkinView3DWrapper } from "../common/SkinView3DWrapper";
+import { VxlSkinPreview } from "../common/VxlSkinPreview";
+import { DEFAULT_RENDER_PROFILE } from "vxl-skin-renderer/core";
 import { CapePreview2D } from "./CapePreview2D";
-import { useLivePlayerSkin, parseLiveSkinFromProfile } from "../../hooks/useLivePlayerSkin";
-import { getCachedCapeTexturePath } from "../../services/vanilla-cape-service";
+import { useLivePlayerSkin } from "../../hooks/useLivePlayerSkin";
 import { ToggleSwitch } from "../ui/ToggleSwitch";
 import { BrowseDetailLayout } from "../layout/BrowseDetailLayout";
 import { DetailPanelBody, DetailPanelHero, DetailPanelActions } from "../layout/DetailPanel";
 import { useShellSearchTab } from "../../hooks/useShellSearchTab";
 import { useShellSearch } from "../../contexts/ShellSearchContext";
+
+/** 180° from the default skins preview yaw so the cape faces the camera. */
+const CAPE_PLAYER_PREVIEW_ROTATION =
+  DEFAULT_RENDER_PROFILE.rig.restYaw + Math.PI;
 
 export function CapeBrowser(): JSX.Element {
   const { activeAccount } = useMinecraftAuthStore();
@@ -28,19 +31,40 @@ export function CapeBrowser(): JSX.Element {
   const { query: searchQuery } = useShellSearch();
   useShellSearchTab("Search capes...");
   const { skinUrl: playerSkin, variant: playerSkinVariant, isLoading: isPlayerSkinLoading } = useLivePlayerSkin(activeAccount);
-  const [cachedSelectedCapeUrl, setCachedSelectedCapeUrl] = useState<string | undefined>(undefined);
   const activeAccountId = activeAccount?.id;
 
   const canShowPlayerSkin = Boolean(playerSkin) && !isPlayerSkinLoading;
 
-  // Get equipped cape
-  const equippedCape = vanillaCapes.find(cape => cape.equipped);
+  const equippedCape = vanillaCapes.find((cape) => cape.equipped);
+
+  const activeSelection = useMemo((): VanillaCape | null => {
+    if (selectedCape) return selectedCape;
+    if (equippedCape) return equippedCape;
+    if (isLoading) return null;
+    return {
+      id: "no-cape",
+      name: "No Cape",
+      description: "Remove your equipped cape",
+      url: "",
+      equipped: !equippedCape,
+      category: "special",
+      active: !equippedCape,
+    };
+  }, [selectedCape, equippedCape, isLoading]);
+
+  const previewCape = useMemo(() => {
+    if (!activeSelection || activeSelection.id === "no-cape") return null;
+    if (!(activeSelection.url ?? "").trim()) return null;
+    return {
+      texture: activeSelection.url,
+      elytra: showElytra,
+    };
+  }, [activeSelection?.id, activeSelection?.url, showElytra]);
 
   useEffect(() => {
-    if (equippedCape) {
-      setSelectedCape(equippedCape);
-    }
-  }, [equippedCape, activeAccountId]);
+    if (!equippedCape) return;
+    setSelectedCape(equippedCape);
+  }, [equippedCape?.id, activeAccountId]);
 
   // Add "No Cape" option at the beginning of capes list
   const filteredCapes = useMemo(() => {
@@ -83,35 +107,6 @@ export function CapeBrowser(): JSX.Element {
     fetchOwnedCapes({ accountId: activeAccountId });
   }, [activeAccountId, clearData, fetchOwnedCapes]);
 
-  useEffect(() => {
-    if (!selectedCape || selectedCape.id === "no-cape" || !(selectedCape.url ?? "").trim()) {
-      setCachedSelectedCapeUrl(undefined);
-      return;
-    }
-
-    let cancelled = false;
-
-    const resolveCachedCapeUrl = async () => {
-      try {
-        const localPath = await getCachedCapeTexturePath(selectedCape.id, selectedCape.url);
-        if (!cancelled) {
-          setCachedSelectedCapeUrl(await localFileToDisplayUrl(localPath));
-        }
-      } catch (error) {
-        console.warn("[CapeBrowser] Failed to resolve cached cape texture, using remote URL:", error);
-        if (!cancelled) {
-          setCachedSelectedCapeUrl(selectedCape.url);
-        }
-      }
-    };
-
-    resolveCachedCapeUrl();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedCape]);
-
   const handleSelectCape = useCallback((cape: VanillaCape) => {
     setSelectedCape(cape);
   }, []);
@@ -152,7 +147,7 @@ export function CapeBrowser(): JSX.Element {
           </Button>
         </div>
       }
-      detailEmpty={!selectedCape}
+      detailEmpty={!activeSelection}
       browseContent={
         error ? (
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">{error}</div>
@@ -172,9 +167,9 @@ export function CapeBrowser(): JSX.Element {
                 type="button"
                 key={cape.id}
                 onClick={() => handleSelectCape(cape)}
-                aria-pressed={selectedCape?.id === cape.id}
+                aria-pressed={activeSelection?.id === cape.id}
                 className={`p-3 rounded-xl cursor-pointer transition-all border text-left ${
-                  selectedCape?.id === cape.id
+                  activeSelection?.id === cape.id
                     ? "border-[var(--accent)] bg-[rgba(var(--accent-rgb),0.06)] vxl-accent-glow"
                     : "border-[var(--surface-border)] bg-[var(--surface-overlay)] hover:border-[var(--surface-border-strong)]"
                 }`}
@@ -201,7 +196,7 @@ export function CapeBrowser(): JSX.Element {
         )
       }
       detailContent={
-        selectedCape ? (
+        activeSelection ? (
           <>
             <DetailPanelHero className="flex-1 min-h-64">
               <div className="w-full h-full min-h-64 flex items-center justify-center bg-[var(--surface-base)]">
@@ -211,45 +206,35 @@ export function CapeBrowser(): JSX.Element {
                     className="w-6 h-6 animate-spin text-[var(--text-secondary)]"
                   />
                 ) : (
-                  <SkinView3DWrapper
+                  <VxlSkinPreview
                     key={
                       showPlayer
-                        ? `${activeAccountId ?? "none"}-${playerSkinVariant}-${playerSkin}`
-                        : "cape-only"
+                        ? `capes-player-${activeAccountId ?? "none"}`
+                        : `cape-only-${showElytra ? "elytra" : "cape"}`
                     }
-                    skinUrl={showPlayer ? playerSkin : null}
-                    playerUuid={activeAccount?.id}
-                    skinVariant={playerSkinVariant}
-                    capeUrl={
-                      selectedCape.id === "no-cape"
-                        ? undefined
-                        : cachedSelectedCapeUrl ?? selectedCape.url
-                    }
-                    enableAutoRotate
-                    autoRotateSpeed={0.3}
-                    displayAsElytra={showElytra}
-                    zoom={0.9}
-                    enableRotate
-                    enableZoom={false}
-                    enablePan={false}
-                    horizontalRotationOnly
+                    textureUrl={showPlayer ? (playerSkin ?? null) : "/skins/steve.png"}
+                    variant={showPlayer ? playerSkinVariant : "slim"}
+                    cape={previewCape}
+                    rotation={CAPE_PLAYER_PREVIEW_ROTATION}
+                    zoom={1.6}
+                    style={{ width: "100%", height: "100%", minHeight: "16rem" }}
                   />
                 )}
               </div>
             </DetailPanelHero>
             <DetailPanelBody>
               <div>
-                <h3 className="text-lg font-semibold text-white">{selectedCape.name}</h3>
-                {selectedCape.description && (
-                  <p className="text-sm text-[var(--text-secondary)] mt-2">{selectedCape.description}</p>
+                <h3 className="text-lg font-semibold text-white">{activeSelection.name}</h3>
+                {activeSelection.description && (
+                  <p className="text-sm text-[var(--text-secondary)] mt-2">{activeSelection.description}</p>
                 )}
               </div>
             </DetailPanelBody>
             <DetailPanelActions>
-              {selectedCape.id !== "no-cape" ? (
+              {activeSelection.id !== "no-cape" ? (
                 <Button
-                  onClick={() => handleEquipCape(selectedCape)}
-                  disabled={isLoading || selectedCape.equipped}
+                  onClick={() => handleEquipCape(activeSelection)}
+                  disabled={isLoading || activeSelection.equipped}
                   className="flex-1"
                 >
                   {isLoading ? (
@@ -257,7 +242,7 @@ export function CapeBrowser(): JSX.Element {
                       <Icon icon="solar:refresh-bold" className="w-4 h-4 animate-spin" />
                       Equipping...
                     </>
-                  ) : selectedCape.equipped ? (
+                  ) : activeSelection.equipped ? (
                     "Currently Equipped"
                   ) : (
                     <>
@@ -268,7 +253,7 @@ export function CapeBrowser(): JSX.Element {
                 </Button>
               ) : (
                 <Button
-                  onClick={() => handleEquipCape(selectedCape)}
+                  onClick={() => handleEquipCape(activeSelection)}
                   disabled={isLoading || !equippedCape}
                   className="flex-1"
                   variant="secondary"

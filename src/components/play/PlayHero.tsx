@@ -2,18 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { cn } from "../../lib/utils";
-import { SkinViewer } from "../launcher/SkinViewer";
 import { useThemeStore } from "../../store/useThemeStore";
-import { MinecraftSkinService } from "../../services/minecraft-skin-service";
-import type { GetStarlightSkinRenderPayload } from "../../types/localSkin";
-import { localFileToDisplayUrl } from "../../utils/local-file-url";
 import { useProfileStore } from "../../store/profile-store";
 import { ProfileCardV2 } from "../profiles/ProfileCardV2";
 import { PlayLaunchControl } from "./PlayLaunchControl";
+import { PlayerRig } from "./PlayerRig";
 
-import { getDefaultFullbodyRenderUrl, getFullbodyRenderUrl } from "../../lib/avatar-utils";
-
-const DEFAULT_FALLBACK_SKIN_URL = getDefaultFullbodyRenderUrl();
 const FEATURED_PROFILE_ID: string | null = "d2332f66-9117-4cf3-b35b-6bac4262f984";
 
 interface PlayHeroProps {
@@ -30,6 +24,8 @@ interface PlayHeroProps {
   className?: string;
 }
 
+const PLAYER_OUTLINE = { strength: 4, thickness: 3, sensitivity: 0.1 };
+
 export function PlayHero({
   playerName,
   launchButtonDefaultVersion,
@@ -39,8 +35,6 @@ export function PlayHero({
 }: PlayHeroProps) {
   const featureMode = useThemeStore((state) => state.featureMode);
   const setFeatureMode = useThemeStore((state) => state.setFeatureMode);
-  const [resolvedSkinUrl, setResolvedSkinUrl] = useState<string>(DEFAULT_FALLBACK_SKIN_URL);
-  const [fallbackSkinUrl, setFallbackSkinUrl] = useState<string>(DEFAULT_FALLBACK_SKIN_URL);
 
   const { profiles } = useProfileStore();
   const featuredProfile = FEATURED_PROFILE_ID
@@ -53,40 +47,6 @@ export function PlayHero({
       setFeatureMode(false);
     }
   }, [featureMode, setFeatureMode]);
-
-  useEffect(() => {
-    const fetchAndSetSkin = async () => {
-      const remoteFallback = playerName
-        ? getFullbodyRenderUrl(playerName)
-        : DEFAULT_FALLBACK_SKIN_URL;
-      setFallbackSkinUrl(remoteFallback);
-
-      if (playerName) {
-        try {
-          const payload: GetStarlightSkinRenderPayload = {
-            player_name: playerName,
-            render_type: "fullbody",
-            render_view: "full",
-          };
-          const localPath = await MinecraftSkinService.getStarlightSkinRender(payload);
-          if (localPath) {
-            setResolvedSkinUrl(await localFileToDisplayUrl(localPath));
-          } else {
-            setResolvedSkinUrl(remoteFallback);
-          }
-        } catch {
-          setResolvedSkinUrl(remoteFallback);
-        }
-      } else {
-        setResolvedSkinUrl(DEFAULT_FALLBACK_SKIN_URL);
-      }
-    };
-
-    fetchAndSetSkin();
-  }, [playerName]);
-
-  const skinViewerDisplayHeight = 420;
-  const skinViewerMaxDisplayWidth = 220;
 
   const selectedVersionLabel = launchButtonVersions.find(
     (v) => v.id === launchButtonDefaultVersion,
@@ -104,24 +64,11 @@ export function PlayHero({
         </button>
       )}
 
-      <h2 className="text-3xl font-semibold tracking-tight text-white mb-6 text-center">
-        {playerName || "No account"}
-      </h2>
-
       <div className="relative w-full flex flex-col items-center">
-        <SkinViewer
-          skinUrl={resolvedSkinUrl}
-          fallbackSkinUrl={fallbackSkinUrl}
-          playerName={playerName?.toString()}
-          width={skinViewerMaxDisplayWidth}
-          height={skinViewerDisplayHeight}
-          className="bg-transparent flex-shrink-0"
-          style={{
-            filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.45))",
-            height: `${skinViewerDisplayHeight}px`,
-            width: "auto",
-            maxWidth: `${skinViewerMaxDisplayWidth}px`,
-          }}
+        <PlayerRig
+          playerName={playerName}
+          outline={PLAYER_OUTLINE}
+          className="relative flex-shrink-0 mb-2"
         />
 
         {!isLoadingProfiles && (

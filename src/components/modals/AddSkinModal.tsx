@@ -5,11 +5,13 @@ import type { MinecraftSkin, SkinVariant } from "../../types/localSkin";
 import type { TexturesData } from "../../types/minecraft";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
 import { useGlobalModal } from "../../hooks/useGlobalModal";
-import { SkinView3DWrapper } from "../common/SkinView3DWrapper";
+import { VxlSkinPreview } from "../common/VxlSkinPreview";
 import { toast } from "react-hot-toast";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { MinecraftSkinService } from "../../services/minecraft-skin-service";
+import { fetchLivePlayerSkin } from "../../services/live-player-skin-cache";
+import { useSkinStore } from "../../store/useSkinStore";
 import { Modal } from "../ui/Modal";
 import { Button, IconButton } from "../ui-v2";
 import { Icon } from "@iconify/react";
@@ -66,10 +68,15 @@ export const AddSkinModal = memo(
 
       setImportingCurrentSkin(true);
       try {
-        const skinData = await MinecraftSkinService.getUserSkinData(activeAccount.id);
+        const revision = useSkinStore.getState().skinRevision;
+        const skinData = await fetchLivePlayerSkin(
+          activeAccount.id,
+          revision,
+          false,
+        );
 
-        if (skinData?.properties) {
-          const texturesProp = skinData.properties.find(
+        if (skinData.profile?.properties) {
+          const texturesProp = skinData.profile.properties.find(
             (prop: { name: string; value: string }) => prop.name === "textures",
           );
 
@@ -592,12 +599,11 @@ export const AddSkinModal = memo(
             />
 
             <div className="mx-auto aspect-[4/5] w-full max-w-[220px] rounded-xl border border-[var(--surface-border)] bg-[var(--surface-base)] overflow-hidden">
-              <SkinView3DWrapper
-                skinUrl={previewBase64Url || undefined}
-                skinVariant={variant}
-                enableAutoRotate
-                autoRotateSpeed={0.2}
-                zoom={0.9}
+              <VxlSkinPreview
+                textureUrl={previewBase64Url}
+                variant={variant}
+                zoom={1.75}
+                style={{ width: "100%", height: "100%" }}
               />
             </div>
 
@@ -623,12 +629,11 @@ export const AddSkinModal = memo(
             {skin && (
               <div className="space-y-5">
                 <div className="mx-auto aspect-[4/5] w-full max-w-[180px] rounded-xl border border-[var(--surface-border)] bg-[var(--surface-base)] overflow-hidden">
-                  <SkinView3DWrapper
-                    skinUrl={previewBase64Url || undefined}
-                    skinVariant={variant}
-                    enableAutoRotate
-                    autoRotateSpeed={0.3}
-                    zoom={0.8}
+                  <VxlSkinPreview
+                    textureUrl={previewBase64Url}
+                    variant={variant}
+                    zoom={1.75}
+                    style={{ width: "100%", height: "100%" }}
                   />
                 </div>
 

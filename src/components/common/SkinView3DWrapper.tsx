@@ -3,11 +3,14 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import * as skinview3d from 'skinview3d';
 import { cn } from '../../lib/utils';
+import { useWindowFocus } from '../../hooks/useWindowFocus';
 import {
   getDefaultSkinTextureUrl,
   getSkinUrl,
   normalizeMinecraftTextureUrl,
 } from '../../lib/avatar-utils';
+
+export type SkinViewAnimation = 'none' | 'idle' | 'walk';
 
 interface SkinView3DWrapperProps {
   skinUrl?: string | null;
@@ -28,6 +31,11 @@ interface SkinView3DWrapperProps {
   enableZoom?: boolean;
   enablePan?: boolean;
   horizontalRotationOnly?: boolean;
+  animation?: SkinViewAnimation;
+  animationSpeed?: number;
+  pauseWhenUnfocused?: boolean;
+  /** When false (default for hero), player faces the camera instead of spinning */
+  faceCamera?: boolean;
 }
 
 const getModelType = (variant: 'classic' | 'slim' = 'classic') =>
@@ -56,6 +64,24 @@ function buildSkinLoadCandidates(
   return [...new Set(candidates)];
 }
 
+function applyViewerAnimation(
+  viewer: skinview3d.SkinViewer,
+  animation: SkinViewAnimation,
+  speed: number,
+) {
+  if (animation === 'none') {
+    viewer.animation = null;
+    return;
+  }
+
+  const anim =
+    animation === 'idle'
+      ? new skinview3d.IdleAnimation()
+      : new skinview3d.WalkingAnimation();
+  anim.speed = speed;
+  viewer.animation = anim;
+}
+
 export const SkinView3DWrapper: React.FC<SkinView3DWrapperProps> = ({
   skinUrl,
   playerUuid,
@@ -73,11 +99,16 @@ export const SkinView3DWrapper: React.FC<SkinView3DWrapperProps> = ({
   enableZoom = true,
   enablePan = true,
   horizontalRotationOnly = false,
+  animation = 'none',
+  animationSpeed = 0.85,
+  pauseWhenUnfocused = true,
+  faceCamera = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const skinViewerRef = useRef<skinview3d.SkinViewer | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastSkinUrlRef = useRef<string | null>(null);
+  const isWindowFocused = useWindowFocus();
 
   const loadSkinWithFallback = useCallback(
     async (viewer: skinview3d.SkinViewer, url: string | null | undefined) => {
@@ -126,8 +157,11 @@ export const SkinView3DWrapper: React.FC<SkinView3DWrapperProps> = ({
       viewer.autoRotateSpeed = autoRotateSpeed;
     }
     viewer.zoom = zoom;
+    applyViewerAnimation(viewer, animation, animationSpeed);
 
     if (startFromBack && viewer.playerObject) {
+      viewer.playerObject.rotation.y = Math.PI;
+    } else if (faceCamera && viewer.playerObject) {
       viewer.playerObject.rotation.y = Math.PI;
     } else if (!enableAutoRotate && viewer.playerObject) {
       viewer.playerObject.rotation.y = Math.PI;
@@ -148,9 +182,10 @@ export const SkinView3DWrapper: React.FC<SkinView3DWrapperProps> = ({
 
     return () => {
       resizeObserver.disconnect();
+      skinViewerRef.current?.dispose();
       skinViewerRef.current = null;
     };
-  }, [propWidth, propHeight, enableAutoRotate, zoom, autoRotateSpeed, startFromBack, displayAsElytra]);
+  }, [propWidth, propHeight, enableAutoRotate, zoom, autoRotateSpeed, startFromBack, displayAsElytra, faceCamera]);
 
   useEffect(() => {
     if (!skinViewerRef.current) return;
@@ -193,6 +228,11 @@ export const SkinView3DWrapper: React.FC<SkinView3DWrapperProps> = ({
   }, [zoom]);
 
   useEffect(() => {
+    if (!skinViewerRef.current) return;
+    applyViewerAnimation(skinViewerRef.current, animation, animationSpeed);
+  }, [animation, animationSpeed]);
+
+  useEffect(() => {
     if (!skinViewerRef.current?.controls) return;
 
     skinViewerRef.current.controls.enableRotate = enableRotate;
@@ -205,6 +245,18 @@ export const SkinView3DWrapper: React.FC<SkinView3DWrapperProps> = ({
       skinViewerRef.current.controls.maxPolarAngle = middlePolarAngle;
     }
   }, [enableRotate, enableZoom, enablePan, horizontalRotationOnly]);
+
+  useEffect(() => {
+    if (!skinViewerRef.current || !pauseWhenUnfocused) return;
+
+    const shouldPause = !isWindowFocused;
+    if (skinViewerRef.current.animation) {
+      skinViewerRef.current.animation.paused = shouldPause;
+    }
+    if (enableAutoRotate) {
+      skinViewerRef.current.autoRotate = !shouldPause;
+    }
+  }, [isWindowFocused, pauseWhenUnfocused, enableAutoRotate]);
 
   return (
     <div ref={containerRef} className={cn('h-full w-full', className)}>

@@ -21,11 +21,30 @@ export function isUnsafeLocalResourceUrl(url: string): boolean {
 }
 
 /**
- * Converts a `file://` URL or Windows path into a filesystem path for backend reads.
- * Chromium/WebView2 cannot load `file://` URLs from the Tauri origin.
+ * Converts a `file://` URL, asset protocol URL, or Windows path into a filesystem path for backend reads.
+ * Chromium/WebView2 cannot load `file://` or blocked asset URLs from the Tauri origin.
  */
 export function toFilesystemPath(filePath: string): string {
   const trimmed = filePath.trim();
+
+  if (trimmed.includes("asset.localhost") || trimmed.startsWith("asset://")) {
+    try {
+      const withProtocol = trimmed.startsWith("asset://")
+        ? trimmed
+        : trimmed.startsWith("http")
+          ? trimmed
+          : `https://${trimmed.replace(/^\/\//, "")}`;
+      const url = new URL(withProtocol);
+      let pathname = decodeURIComponent(url.pathname.replace(/^\//, ""));
+      if (/^[A-Za-z]:/.test(pathname)) {
+        return pathname.replace(/\//g, "\\");
+      }
+      return pathname;
+    } catch {
+      return trimmed;
+    }
+  }
+
   if (!trimmed.startsWith("file:")) {
     return trimmed;
   }
@@ -44,6 +63,8 @@ export function toFilesystemPath(filePath: string): string {
 
 function mimeTypeForPath(filePath: string): string {
   const lower = filePath.toLowerCase();
+  if (lower.endsWith(".mp4")) return "video/mp4";
+  if (lower.endsWith(".webm")) return "video/webm";
   if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
   if (lower.endsWith(".webp")) return "image/webp";
   if (lower.endsWith(".gif")) return "image/gif";
@@ -63,9 +84,15 @@ function toUint8Array(bytes: Uint8Array | number[] | ArrayBuffer): Uint8Array {
  */
 export async function localFileToDisplayUrl(filePath: string): Promise<string> {
   if (!filePath) return "";
-  if (isDisplayableRemoteUrl(filePath)) return filePath;
 
   const normalizedPath = toFilesystemPath(filePath);
+  const isRemoteDisplayUrl =
+    isDisplayableRemoteUrl(filePath) &&
+    !filePath.includes("asset.localhost") &&
+    !filePath.startsWith("asset://");
+
+  if (isRemoteDisplayUrl) return filePath;
+
   const cacheKey = normalizedPath || filePath;
 
   const cached = blobUrlCache.get(cacheKey);

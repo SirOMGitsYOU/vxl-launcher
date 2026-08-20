@@ -74,6 +74,8 @@ use commands::profile_command::{
 };
 
 use commands::skin_preview_command::{get_skin_preview_path, save_skin_preview};
+use commands::skin_render_command::{get_cached_skin_render, store_skin_render};
+use commands::cosmetic_command::get_random_local_emote;
 
 // Use statements for registered commands only
 use commands::curseforge_commands::{get_curseforge_mods_by_ids, import_curseforge_pack, download_and_install_curseforge_modpack_command, get_curseforge_file_changelog_command, get_curseforge_mod_description_command};
@@ -88,7 +90,7 @@ use commands::modrinth_commands::{
 };
 
 use commands::file_command::{
-    delete_file, get_icons_for_archives, open_file, open_file_directory,
+    delete_file, get_file_size_bytes, get_icons_for_archives, import_custom_background, open_file, open_file_directory,
     read_file_bytes, set_file_enabled,
 };
 
@@ -488,6 +490,9 @@ async fn main() {
             fetch_crafty_gg_skin_texture,
             get_skin_preview_path,
             save_skin_preview,
+            get_cached_skin_render,
+            store_skin_render,
+            get_random_local_emote,
             set_discord_state,
             get_owned_vanilla_capes,
             get_currently_equipped_vanilla_cape,
@@ -520,6 +525,8 @@ async fn main() {
             list_profile_screenshots,
             open_file,
             read_file_bytes,
+            get_file_size_bytes,
+            import_custom_background,
             get_app_version,
             is_launcher_ready,
             check_update_available_command,

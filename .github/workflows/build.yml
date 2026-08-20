@@ -55,12 +55,6 @@ jobs:
             -o Acquire::https::Timeout=20 \
             install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
 
-      - name: setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-          cache: 'yarn' # Switch cache to yarn
-
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -76,6 +70,16 @@ jobs:
 
       - name: Clean workspace (including node_modules)
         run: git clean -fdx
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: yarn
+          registry-url: https://npm.voxelstudios.co.uk
+          always-auth: true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.VOXEL_NPM_TOKEN }}
 
       - name: install frontend dependencies
         # If you don't have `beforeBuildCommand` configured you may want to build your frontend here too.

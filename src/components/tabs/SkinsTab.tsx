@@ -12,7 +12,8 @@ import { MinecraftSkinService } from "../../services/minecraft-skin-service";
 import { Button, IconButton } from "../ui-v2";
 import { Icon } from "@iconify/react";
 import { StatusMessage } from "../ui/StatusMessage";
-import { useLivePlayerSkin, parseLiveSkinFromProfile } from "../../hooks/useLivePlayerSkin";
+import { useLivePlayerSkin } from "../../hooks/useLivePlayerSkin";
+import { fetchLivePlayerSkin } from "../../services/live-player-skin-cache";
 import { SkinPreview } from "../skins/SkinPreview";
 import { useDebounce } from "../../hooks/useDebounce";
 import { useThemeStore } from "../../store/useThemeStore";
@@ -24,7 +25,9 @@ import { useShellSearchTab } from "../../hooks/useShellSearchTab";
 import { useShellSearch } from "../../contexts/ShellSearchContext";
 import { useGlobalModal } from "../../hooks/useGlobalModal";
 import { AddSkinModal } from "../modals/AddSkinModal";
-import { SkinView3DWrapper } from "../common/SkinView3DWrapper";
+import { VxlSkinPreview } from "../common/VxlSkinPreview";
+import { useEquippedCapePreview } from "../../hooks/useEquippedCapePreview";
+import { useVanillaCapeStore } from "../../store/useVanillaCapeStore";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragOverlay } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -118,7 +121,7 @@ const SortableSkinCard = ({ skin, selectedLocalSkin, accentColor, loading, onSel
       </div>
 
       <div className="text-center">
-        <h3 className="text-sm font-medium text-white truncate">
+        <h3 className="text-sm font-medium text-white leading-snug break-words [overflow-wrap:anywhere]">
           {skin.name}
         </h3>
         <div className="mt-1">
@@ -139,7 +142,11 @@ export function SkinsTab() {
     initializeAccounts,
   } = useMinecraftAuthStore();
   const { showModal, hideModal } = useGlobalModal();
-  const { selectedSkinId, setSelectedSkinId } = useSkinStore();
+  const {
+    selectedSkinId,
+    setSelectedSkinId,
+    bumpSkinRevision,
+  } = useSkinStore();
   const [skinData, setSkinData] = useState<MinecraftProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [localSkins, setLocalSkins] = useState<MinecraftSkin[]>([]);
@@ -150,16 +157,32 @@ export function SkinsTab() {
   const [currentSkinId, setCurrentSkinId] = useState<string | null>(null);
   const {
     skinUrl: playerCurrentSkin,
-    variant: playerCurrentSkinVariant,
     isLoading: isPlayerSkinLoading,
-    refresh: refreshLivePlayerSkin,
   } = useLivePlayerSkin(activeAccount);
+  const fetchOwnedCapes = useVanillaCapeStore((state) => state.fetchOwnedCapes);
+  const equippedCapePreview = useEquippedCapePreview();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [delayedActiveId, setDelayedActiveId] = useState<string | null>(null);
   const [draggedItem, setDraggedItem] = useState<{oldIndex: number, newIndex: number, skin: MinecraftSkin} | null>(null);
 
   const debouncedSearch = useDebounce(search ?? "", 250);
   const accentColor = useThemeStore((state) => state.accentColor);
+
+  const selectedLocalSkinPreviewUrl = useMemo(
+    () =>
+      selectedLocalSkin
+        ? `data:image/png;base64,${selectedLocalSkin.base64_data}`
+        : null,
+    [selectedLocalSkin?.id, selectedLocalSkin?.base64_data],
+  );
+
+  const previewTextureUrl = selectedLocalSkin
+    ? selectedLocalSkinPreviewUrl
+    : playerCurrentSkin ?? null;
+
+  const isPreviewLoading = selectedLocalSkin
+    ? !selectedLocalSkinPreviewUrl
+    : isPlayerSkinLoading || (Boolean(activeAccount) && !playerCurrentSkin);
 
   useShellSearchTab("Search skins...");
 
@@ -237,18 +260,21 @@ export function SkinsTab() {
     }
   };
 
-  const loadSkinData = useCallback(async () => {
+  const loadSkinData = useCallback(async (force = false) => {
     if (!activeAccount) return;
 
     setLoading(true);
 
     try {
-      const data = await MinecraftSkinService.getUserSkinData(activeAccount.id);
-      setSkinData(data);
-
-      const parsed = parseLiveSkinFromProfile(data?.properties);
-      if (parsed.skinId) {
-        setCurrentSkinId(parsed.skinId);
+      const revision = useSkinStore.getState().skinRevision;
+      const data = await fetchLivePlayerSkin(
+        activeAccount.id,
+        revision,
+        force,
+      );
+      setSkinData(data.profile);
+      if (data.skinId) {
+        setCurrentSkinId(data.skinId);
       }
     } catch (err) {
       console.error("Error loading skin data:", err);
@@ -281,6 +307,12 @@ export function SkinsTab() {
       setLocalSkinsLoading(false);
     }
   }, [selectedSkinId]);
+
+  useEffect(() => {
+    if (activeAccount?.id) {
+      void fetchOwnedCapes({ accountId: activeAccount.id });
+    }
+  }, [activeAccount?.id, fetchOwnedCapes]);
 
   useEffect(() => {
     if (activeAccount) {
@@ -428,8 +460,8 @@ export function SkinsTab() {
       toast.success(
         `Successfully applied skin: ${skin.name} (${skin.variant} model)`,
       );
-      await loadSkinData();
-      await refreshLivePlayerSkin();
+      bumpSkinRevision();
+      await loadSkinData(true);
     } catch (err) {
       console.error("Error applying local skin:", err);
       toast.error(err instanceof Error ? err.message : String(err.message));
@@ -543,7 +575,7 @@ export function SkinsTab() {
                       />
                     </div>
                     <div className="text-center">
-                      <h3 className="text-sm font-medium text-white truncate">
+                      <h3 className="text-sm font-medium text-white leading-snug break-words [overflow-wrap:anywhere]">
                         {filteredSkins.find((skin) => skin.id === delayedActiveId)?.name}
                       </h3>
                     </div>
@@ -558,38 +590,19 @@ export function SkinsTab() {
         <>
           <DetailPanelHero className="flex-1 min-h-64">
             <div className="w-full h-full min-h-64 flex items-center justify-center bg-[var(--surface-base)]">
-              {selectedLocalSkin ? (
-                <SkinView3DWrapper
-                  skinUrl={`data:image/png;base64,${selectedLocalSkin.base64_data}`}
-                  skinVariant={
-                    selectedLocalSkin.variant === "slim" ? "slim" : "classic"
-                  }
-                  enableAutoRotate
-                  autoRotateSpeed={0.3}
-                  zoom={0.9}
-                  enableRotate
-                  enableZoom={false}
-                  enablePan={false}
-                  horizontalRotationOnly
-                />
-              ) : isPlayerSkinLoading || (activeAccount && !playerCurrentSkin) ? (
+              {isPreviewLoading ? (
                 <Icon
                   icon="solar:refresh-bold"
                   className="w-6 h-6 animate-spin text-[var(--text-secondary)]"
                 />
-              ) : playerCurrentSkin ? (
-                <SkinView3DWrapper
-                  key={`${activeAccount?.id}-${playerCurrentSkinVariant}-${playerCurrentSkin}`}
-                  skinUrl={playerCurrentSkin}
-                  playerUuid={activeAccount?.id}
-                  skinVariant={playerCurrentSkinVariant}
-                  enableAutoRotate
-                  autoRotateSpeed={0.3}
-                  zoom={0.9}
-                  enableRotate
-                  enableZoom={false}
-                  enablePan={false}
-                  horizontalRotationOnly
+              ) : previewTextureUrl ? (
+                <VxlSkinPreview
+                  key={`skins-live-${activeAccount?.id ?? "none"}`}
+                  textureUrl={previewTextureUrl}
+                  cape={equippedCapePreview}
+                  skeletonOnSkinChange={false}
+                  zoom={1.75}
+                  style={{ width: "100%", height: "100%", minHeight: "16rem" }}
                 />
               ) : (
                 <Icon icon="solar:clothing-bold" className="w-12 h-12 text-[var(--text-muted)]" />
@@ -598,7 +611,7 @@ export function SkinsTab() {
           </DetailPanelHero>
           <DetailPanelBody>
             <div>
-              <h3 className="text-lg font-semibold text-white">
+              <h3 className="text-lg font-semibold text-white leading-snug break-words [overflow-wrap:anywhere]">
                 {selectedLocalSkin?.name || (playerCurrentSkin ? "Current Skin" : "No Skin Selected")}
               </h3>
               {selectedLocalSkin && (

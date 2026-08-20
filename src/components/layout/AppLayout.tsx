@@ -7,6 +7,7 @@ import { Icon } from "@iconify/react";
 
 import { VerticalNavbar } from ".././navigation/VerticalNavbar";
 import { UserProfileBar } from ".././header/UserProfileBar";
+import CustomMediaBackground from "../effects/CustomMediaBackground";
 import { useThemeStore } from "../../store/useThemeStore";
 import { useMinecraftAuthStore } from "../../store/minecraft-auth-store";
 import { checkUpdateAvailable, downloadAndInstallUpdate } from "../../services/vxl-service";
@@ -154,6 +155,7 @@ export function AppLayout({
         />
 
         <div className="flex-1 relative overflow-hidden">
+          <CustomMediaBackground activeTab={activeTab} />
           <div className="relative z-10 h-full overflow-hidden custom-scrollbar">
             {children}
           </div>
