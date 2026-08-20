@@ -17,7 +17,6 @@ export default function CustomMediaBackground({ activeTab }: CustomMediaBackgrou
   const {
     customMediaUrl,
     customMediaType,
-    customMediaOpacity,
     customMediaBlur,
     customMediaQuality,
     customMediaOnlyOnPlay,
@@ -133,8 +132,6 @@ export default function CustomMediaBackground({ activeTab }: CustomMediaBackgrou
   };
 
   const containerStyle: React.CSSProperties = {
-    opacity: customMediaOpacity,
-    transition: "opacity 0.3s ease",
     display: hiddenByTab ? "none" : undefined,
     filter: customMediaBlur > 0 ? `blur(${customMediaBlur}px)` : undefined,
     transform: customMediaBlur > 0 ? `scale(${1 + customMediaBlur * 0.006})` : undefined,

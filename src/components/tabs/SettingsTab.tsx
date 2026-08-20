@@ -1,189 +1,166 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Icon } from "@iconify/react";
-import { Button, SelectTab, LoadingState, Alert, SectionHeader, EmptyState } from "../ui-v2";
-import { Card } from ".././ui/Card";
-import { ToggleSwitch } from ".././ui/ToggleSwitch";
-import { Input } from "../ui-v2/Input";
-import { ColorPicker } from ".././ColorPicker";
-import { RadiusPicker } from ".././RadiusPicker";
+import { toast } from "react-hot-toast";
+import { invoke } from "@tauri-apps/api/core";
 import type { LauncherConfig } from "../../types/launcherConfig";
 import * as ConfigService from "../../services/launcher-config-service";
 import { useThemeStore } from "../../store/useThemeStore";
-import {
-  BACKGROUND_EFFECTS,
-  useBackgroundEffectStore,
-} from "../../store/background-effect-store";
-import {
-  type QualityLevel,
-  useQualitySettingsStore,
-} from "../../store/quality-settings-store";
-import {
-  PRESET_BACKGROUNDS,
-  getPresetThumbnailUrl,
-} from "../../config/preset-backgrounds";
-import {
-  getFileSizeBytes,
-  importCustomBackground,
-  isLargeBackgroundVideo,
-  largeBackgroundVideoWarning,
-} from "../../services/background-media-service";
-import { open } from "@tauri-apps/plugin-dialog";
 import { cn } from "../../lib/utils";
-import { toast } from "react-hot-toast";
-import type { GroupTab } from ".././ui/GroupTabs";
-import { Tooltip } from ".././ui/Tooltip";
-import { SimpleTooltip } from ".././ui/Tooltip";
-import { CompactSettingsGrid } from ".././ui/CompactSettingsGrid";
-import EffectPreviewCard from ".././EffectPreviewCard";
-import { RangeSlider } from ".././ui/RangeSlider";
-import { openExternalUrl } from "../../services/tauri-service";
+import { Modal } from "../ui/Modal";
+import { SearchWithFilters } from "../ui/SearchWithFilters";
+import { SettingsSearchContext } from "../ui/settings/SettingsSearchContext";
 import { openLauncherDirectory } from "../../services/tauri-service";
-import { useConfirmDialog } from "../../hooks/useConfirmDialog";
-import { useGlobalModal } from "../../hooks/useGlobalModal";
-import { ColorPickerModal } from "../modals/ColorPickerModal";
+import { GeneralTab } from "./settings/GeneralTab";
+import { AppearanceTab } from "./settings/AppearanceTab";
+import { AdvancedTab } from "./settings/AdvancedTab";
+import { SettingsConfigProvider } from "./settings/settings-context";
+import { Button, LoadingState, Alert, EmptyState } from "../ui-v2";
 
-export function SettingsTab() {
+type SettingsTabId = "general" | "appearance" | "advanced";
+
+interface SettingsTabProps {
+  onClose: () => void;
+}
+
+export function SettingsTab({ onClose }: SettingsTabProps) {
   const [config, setConfig] = useState<LauncherConfig | null>(null);
   const [tempConfig, setTempConfig] = useState<LauncherConfig | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState<boolean>(false); const [activeTab, setActiveTab] = useState<"general" | "appearance" | "advanced">(
-    "general",
-  );
+  const [saving, setSaving] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<SettingsTabId>("general");
+  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [sidebarSearch, setSidebarSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(sidebarSearch), 150);
+    return () => clearTimeout(id);
+  }, [sidebarSearch]);
 
-  // Create groups array for tabs
-  const createGroups = (): GroupTab[] => {
-    const groups: GroupTab[] = [
-      {
-        id: "general",
-        name: "General",
-        count: 0,
-      },
-      {
-        id: "appearance",
-        name: "Background",
-        count: 0,
-      },
-      {
-        id: "advanced",
-        name: "Advanced",
-        count: 0,
-      },
-    ];
-    return groups;
+  const sidebarQuery = debouncedSearch.trim().toLowerCase();
+
+  useEffect(() => {
+    void invoke("set_discord_state_tinkering").catch((err) => {
+      console.error("[SettingsTab] Failed to update Discord state:", err);
+    });
+  }, []);
+
+  const sectionDefs: Record<SettingsTabId, { id: string; label: string }[]> = {
+    general: [
+      { id: "accent", label: "Accent Color" },
+      { id: "behaviour", label: "Behaviour" },
+      { id: "interface", label: "Interface" },
+    ],
+    appearance: [
+      { id: "background", label: "Background Effect" },
+      { id: "custom-background", label: "Custom Background" },
+      { id: "presets", label: "Preset Backgrounds" },
+    ],
+    advanced: [
+      { id: "login", label: "Login" },
+      { id: "gamedir", label: "Game Data Directory" },
+      { id: "hooks", label: "Game Hooks" },
+      { id: "licenses", label: "Third-party Code" },
+    ],
   };
 
-  const groups = createGroups();
-  const [customColor, setCustomColor] = useState("#4f8eff");
-  const contentRef = useRef<HTMLDivElement>(null);
-  const tabRef = useRef<HTMLDivElement>(null);
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const [isHooksExpanded, setIsHooksExpanded] = useState<boolean>(false);
-  const [isPreLaunchEditEnabled, setIsPreLaunchEditEnabled] = useState<boolean>(false);
-  const [isWrapperEditEnabled, setIsWrapperEditEnabled] = useState<boolean>(false);
-  const [isPostExitEditEnabled, setIsPostExitEditEnabled] = useState<boolean>(false);
-  const isResettingRef = useRef<boolean>(false);
-  const {
-    accentColor,
-    setCustomAccentColor,
-    customColorHistory,
-    isBackgroundAnimationEnabled,
-    staticBackground,
-    toggleStaticBackground,
-    toggleBackgroundAnimation,
-  } = useThemeStore();
-  const {
-    currentEffect,
-    setCurrentEffect,
-    customMediaUrl,
-    customMediaType,
-    customMediaOpacity,
-    customMediaBlur,
-    customMediaQuality,
-    customMediaOnlyOnPlay,
-    customMediaHideEffects,
-    presetBackgroundId,
-    setCustomMedia,
-    setPresetBackground,
-    clearCustomBackground,
-    setCustomMediaOpacity,
-    setCustomMediaBlur,
-    setCustomMediaQuality,
-    setCustomMediaOnlyOnPlay,
-    setCustomMediaHideEffects,
-  } = useBackgroundEffectStore();
-  const [customBackgroundSizeBytes, setCustomBackgroundSizeBytes] = useState<
-    number | null
-  >(null);
-  const { qualityLevel, setQualityLevel, skinRenderer3d, setSkinRenderer3d } =
-    useQualitySettingsStore();
-  const { borderRadius, setBorderRadius } = useThemeStore();
-
-  const { confirm, confirmDialog } = useConfirmDialog();
-  const { showModal, hideModal } = useGlobalModal();
-
-  const canShowExperimental = false; // Always show experimental features
-
-  const backgroundOptions = [
+  const tabConfig: {
+    id: SettingsTabId;
+    label: string;
+    icon: string;
+    children?: { id: string; label: string }[];
+  }[] = [
     {
-      id: BACKGROUND_EFFECTS.ENCHANTMENT_PARTICLES,
-      name: "Enchantment Table",
-      icon: "solar:magic-stick-bold",
+      id: "general",
+      label: "General",
+      icon: "solar:settings-bold",
+      children: sectionDefs.general,
     },
     {
-      id: BACKGROUND_EFFECTS.NEBULA_GRID,
-      name: "Nebula Grid",
-      icon: "solar:widget-bold",
-    },
-    {
-      id: BACKGROUND_EFFECTS.NEBULA_VOXELS,
-      name: "Nebula Voxels",
-      icon: "solar:asteroid-bold",
-    },
-    {
-      id: BACKGROUND_EFFECTS.RETRO_GRID,
-      name: "Retro Grid",
-      icon: "solar:widget-5-bold",
-    },
-    {
-      id: BACKGROUND_EFFECTS.RETRO_VOXEL_GRID,
-      name: "Retro Voxel Grid",
-      icon: "solar:widget-5-bold",
-    },
-    {
-      id: BACKGROUND_EFFECTS.VOXEL_GRID,
-      name: "Voxel Grid",
-      icon: "solar:widget-bold",
-    },
-    {
-      id: BACKGROUND_EFFECTS.PLAIN_BACKGROUND,
-      name: "Plain Color",
+      id: "appearance",
+      label: "Appearance",
       icon: "solar:palette-bold",
+      children: sectionDefs.appearance,
+    },
+    {
+      id: "advanced",
+      label: "Advanced",
+      icon: "solar:tuning-bold",
+      children: sectionDefs.advanced,
     },
   ];
 
-  const qualityOptions: { value: QualityLevel; label: string; icon: string }[] =
-    [
-      {
-        value: "low",
-        label: "Low",
-        icon: "solar:battery-half-bold",
-      },
-      {
-        value: "medium",
-        label: "Medium",
-        icon: "solar:battery-full-bold",
-      },
-      { value: "high", label: "High", icon: "solar:battery-charge-bold" },
-    ];
+  const selectTab = (id: SettingsTabId) => {
+    setSidebarSearch("");
+    setActiveTab(id);
+  };
+
+  const contentRef = useRef<HTMLDivElement>(null);
+  const sidebarListRef = useRef<HTMLDivElement>(null);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isResettingRef = useRef<boolean>(false);
+  const spySuppressRef = useRef(false);
+  const spyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { accentColor } = useThemeStore();
+
+  useEffect(() => {
+    if (contentRef.current) contentRef.current.scrollTop = 0;
+  }, [activeTab, sidebarQuery]);
+
+  useEffect(() => {
+    if (!activeSection) return;
+    const el = sidebarListRef.current?.querySelector(
+      `[data-section-id="${activeSection}"]`,
+    );
+    el?.scrollIntoView({ block: "nearest" });
+  }, [activeSection]);
+
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(`settings-section-${id}`);
+    if (!el) return;
+    spySuppressRef.current = true;
+    setActiveSection(id);
+    if (spyTimeoutRef.current) clearTimeout(spyTimeoutRef.current);
+    spyTimeoutRef.current = setTimeout(() => {
+      spySuppressRef.current = false;
+    }, 500);
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  useEffect(() => {
+    if (sidebarQuery) return;
+    const root = contentRef.current;
+    const defs = sectionDefs[activeTab];
+    if (!root || !defs) {
+      setActiveSection(null);
+      return;
+    }
+    const onScroll = () => {
+      if (spySuppressRef.current) return;
+      const rootTop = root.getBoundingClientRect().top;
+      const line = 80;
+      let current = defs[0].id;
+      for (const d of defs) {
+        const el = document.getElementById(`settings-section-${d.id}`);
+        if (!el) continue;
+        if (el.getBoundingClientRect().top - rootTop <= line) current = d.id;
+      }
+      setActiveSection(current);
+    };
+    onScroll();
+    root.addEventListener("scroll", onScroll, { passive: true });
+    return () => root.removeEventListener("scroll", onScroll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, sidebarQuery, config, tempConfig]);
 
   const loadConfig = useCallback(async () => {
     setLoading(true);
-    setError(null); try {
+    setError(null);
+    try {
       const loadedConfig = await ConfigService.getLauncherConfig();
       const configWithHooks = {
         ...loadedConfig,
@@ -206,9 +183,7 @@ export function SettingsTab() {
   }, []);
 
   const autoSaveConfig = useCallback(async (configToSave: LauncherConfig) => {
-    if (isResettingRef.current) {
-      return;
-    }
+    if (isResettingRef.current) return;
 
     if (autoSaveTimeoutRef.current) {
       clearTimeout(autoSaveTimeoutRef.current);
@@ -217,8 +192,7 @@ export function SettingsTab() {
     autoSaveTimeoutRef.current = setTimeout(async () => {
       setSaving(true);
       try {
-        const updatedConfig =
-          await ConfigService.setLauncherConfig(configToSave);
+        const updatedConfig = await ConfigService.setLauncherConfig(configToSave);
         setConfig(updatedConfig);
         toast.success("Settings auto-saved!", {
           duration: 2000,
@@ -248,953 +222,6 @@ export function SettingsTab() {
     }
   }, [tempConfig, config, autoSaveConfig]);
 
-  useEffect(() => {
-    if (customMediaType !== "video" || !customMediaUrl) {
-      setCustomBackgroundSizeBytes(null);
-      return;
-    }
-
-    let cancelled = false;
-
-    getFileSizeBytes(customMediaUrl)
-      .then((size) => {
-        if (!cancelled) setCustomBackgroundSizeBytes(size);
-      })
-      .catch(() => {
-        if (!cancelled) setCustomBackgroundSizeBytes(null);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [customMediaUrl, customMediaType]);
-
-  const handleConcurrentDownloadsChange = (value: number) => {
-    if (tempConfig) {
-      setTempConfig({ ...tempConfig, concurrent_downloads: value });
-    }
-  };
-  const handleConcurrentIoLimitChange = (value: number) => {
-    if (tempConfig) {
-      setTempConfig({ ...tempConfig, concurrent_io_limit: value });
-    }
-  };
-  const handleCustomColorSubmit = () => {
-    const isValidHex = /^#[0-9A-F]{6}$/i.test(customColor);
-    if (isValidHex) {
-      setCustomAccentColor(customColor);
-      toast.success("Custom color applied!");
-    } else {
-      toast.error("Please enter a valid 6-digit hex color (e.g., #FF5733)");
-    }
-  };
-
-  const resetChanges = () => {
-    if (config) {
-      isResettingRef.current = true;
-      setTempConfig({ ...config });
-      setError(null);
-      toast.success("Settings reset to saved values");
-
-      setTimeout(() => {
-        isResettingRef.current = false;
-      }, 100);
-    }
-  };
-
-  const hasChanges =
-    config &&
-    tempConfig &&
-    JSON.stringify(config) !== JSON.stringify(tempConfig);
-
-  const renderGeneralTab = () => (
-    <div className="space-y-6">
-      <div>
-        <div className="flex items-center gap-2 mb-2">
-          <Icon icon="solar:palette-bold" className="w-6 h-6 text-white" />
-          <h3 className="text-lg font-semibold text-white">
-            Accent Color
-          </h3>
-        </div>
-        <p className="text-sm text-[var(--text-secondary)] mt-1">
-          Choose your preferred accent color for the launcher
-        </p>
-      </div>
-
-      <div className="mt-6 flex items-center gap-6">
-        <div className="flex-1">
-          <ColorPicker shape="square" size="md" showCustomOption={false} />
-        </div>
-
-        <button
-          onClick={() => {
-            showModal('color-picker-modal',
-              <ColorPickerModal
-                onClose={() => hideModal('color-picker-modal')}
-              />
-            );
-          }}
-          className="group flex items-center gap-3 px-4 py-3 rounded-lg border-2 border-dashed border-[#ffffff30] hover:border-[#ffffff50] transition-all duration-200 cursor-pointer"
-          title="Click to open advanced color picker"
-        >
-          <div
-            className="w-8 h-8 rounded-md border-2 border-white/20 shadow-lg group-hover:scale-105 transition-transform"
-            style={{ backgroundColor: accentColor.value }}
-          />
-          <div className="flex flex-col items-start">
-            <span className=" text-base text-white/80 group-hover:text-white transition-colors">
-              Custom
-            </span>
-            <span className="text-xs text-white/60 ">
-              {accentColor.value}
-            </span>
-          </div>
-          <Icon
-            icon="solar:palette-bold"
-            className="w-5 h-5 text-white/60 group-hover:text-white transition-colors"
-          />
-        </button>
-      </div>
-
-
-      {/* Settings Grid */}
-      <CompactSettingsGrid
-        settings={[
-          {
-            id: "auto-updates",
-            label: "Auto Updates",
-            tooltip: "Automatically check for and download launcher updates when available.",
-            type: "toggle",
-            value: tempConfig?.auto_check_updates || false,
-            onChange: (checked) =>
-              tempConfig &&
-              setTempConfig({ ...tempConfig, auto_check_updates: checked }),
-          },
-          {
-            id: "browser-based-login",
-            label: "Browser-Based Login",
-            tooltip: "Use external browser for Microsoft login instead of embedded window. Recommended for Flatpak or if you experience issues with the login window.",
-            type: "toggle",
-            value: tempConfig?.use_browser_based_login || false,
-            onChange: (checked) =>
-              tempConfig &&
-              setTempConfig({ ...tempConfig, use_browser_based_login: checked }),
-          },
-          {
-            id: "discord-presence",
-            label: "Discord Presence",
-            tooltip: "Show your current game and launcher status in Discord. Displays what you're playing to friends.",
-            type: "toggle",
-            value: tempConfig?.enable_discord_presence || false,
-            onChange: (checked) =>
-              tempConfig &&
-              setTempConfig({
-                ...tempConfig,
-                enable_discord_presence: checked,
-              }),
-          },
-          {
-            id: "beta-updates",
-            label: "Beta Updates",
-            tooltip: "Receive beta versions and pre-release updates. These may be unstable and contain bugs.",
-            type: "toggle",
-            value: tempConfig?.check_beta_channel || false,
-            onChange: (checked) =>
-              tempConfig &&
-              setTempConfig({ ...tempConfig, check_beta_channel: checked }),
-          },
-          ...(canShowExperimental ? [{
-            id: "experimental-mode",
-            label: "Experimental Mode",
-            tooltip: "Enable experimental features and unstable functionality. May cause crashes or unexpected behavior.",
-            type: "toggle" as const,
-            value: tempConfig?.is_experimental || false,
-            onChange: (checked: boolean) => {
-              if (tempConfig) {
-                setTempConfig({
-                  ...tempConfig,
-                  is_experimental: checked,
-                });
-              }
-            },
-          }] : []),
-          {
-            id: "open-logs",
-            label: "Open Logs After Starting",
-            tooltip: "Automatically open the game logs window when launching Minecraft. Useful for debugging issues.",
-            type: "toggle",
-            value: tempConfig?.open_logs_after_starting || false,
-            onChange: (checked) =>
-              tempConfig &&
-              setTempConfig({
-                ...tempConfig,
-                open_logs_after_starting: checked,
-              }),
-          },
-          {
-            id: "hide-window",
-            label: "Hide Window on Launch",
-            tooltip: "Automatically hide the launcher window when Minecraft starts. Reduces desktop clutter during gameplay.",
-            type: "toggle",
-            value: tempConfig?.hide_on_process_start || false,
-            onChange: (checked) =>
-              tempConfig &&
-              setTempConfig({
-                ...tempConfig,
-                hide_on_process_start: checked,
-              }),
-          },
-          {
-            id: "multiple-log-windows",
-            label: "Multiple Log Windows",
-            tooltip: "Allow multiple log windows to be open simultaneously. When disabled, opening logs will re-focus the existing window.",
-            type: "toggle",
-            value: tempConfig?.multiple_log_windows || false,
-            onChange: (checked) =>
-              tempConfig &&
-              setTempConfig({
-                ...tempConfig,
-                multiple_log_windows: checked,
-              }),
-          },
-        ]}
-        disabled={saving}
-      />
-
-      <CompactSettingsGrid
-        settings={[
-          {
-            id: "concurrent-downloads",
-            label: "Concurrent Downloads",
-            tooltip: "Maximum number of files downloaded simultaneously. Lower values reduce bandwidth usage but slow downloads.",
-            type: "range",
-            value: tempConfig?.concurrent_downloads || 3,
-            onChange: handleConcurrentDownloadsChange,
-            min: 1,
-            max: 10,
-            step: 1,
-            icon: "solar:multiple-forward-right-bold",
-            minLabel: "1",
-            maxLabel: "10",
-          },
-          {
-            id: "concurrent-io",
-            label: "Concurrent I/O Operations",
-            tooltip: "Maximum number of files written to disk simultaneously. Lower values reduce disk stress and I/O errors.",
-            type: "range",
-            value: tempConfig?.concurrent_io_limit || 10,
-            onChange: handleConcurrentIoLimitChange,
-            min: 1,
-            max: 20,
-            step: 1,
-            icon: "solar:server-bold",
-            minLabel: "1",
-            maxLabel: "20",
-          },
-          {
-            id: "border-radius",
-            label: "Border Radius",
-            tooltip: "Adjust the corner roundness of all UI elements. 0px is square (Minecraft-style), higher values make corners more rounded.",
-            type: "range",
-            value: borderRadius,
-            onChange: setBorderRadius,
-            min: 0,
-            max: 20,
-            step: 1,
-            icon: "solar:widget-bold",
-            minLabel: "0px",
-            maxLabel: "20px",
-          },
-        ]}
-        disabled={saving}
-      />
-    </div>
-  );
-
-  const renderAppearanceTab = () => {
-    const hasCustomMedia =
-      Boolean(customMediaUrl) ||
-      (customMediaType === "youtube" && Boolean(presetBackgroundId));
-
-    const handleSelectCustomBackground = async () => {
-      try {
-        const selected = await open({
-          multiple: false,
-          filters: [
-            {
-              name: "Media",
-              extensions: ["png", "jpg", "jpeg", "webp", "gif", "mp4", "webm"],
-            },
-          ],
-        });
-
-        if (!selected || typeof selected !== "string") return;
-
-        const result = await importCustomBackground(selected);
-        setCustomMedia(result.path, result.media_type);
-        setCustomBackgroundSizeBytes(result.file_size_bytes);
-        toast.success("Custom background applied");
-        if (isLargeBackgroundVideo(result.media_type, result.file_size_bytes)) {
-          toast(largeBackgroundVideoWarning(result.file_size_bytes), {
-            icon: "⚠️",
-            duration: 6000,
-          });
-        }
-      } catch (error) {
-        console.error("Failed to import custom background:", error);
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "Failed to import custom background",
-        );
-      }
-    };
-
-    const handleSelectPreset = (presetId: string) => {
-      const preset = PRESET_BACKGROUNDS.find((item) => item.id === presetId);
-      if (!preset?.youtubeId.trim()) {
-        toast.error("This preset has not been configured yet");
-        return;
-      }
-      setPresetBackground(presetId);
-      toast.success(`Applied ${preset.name}`);
-    };
-
-    return (
-      <div className="space-y-6">
-        <div>
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Icon icon="solar:stars-bold" className="w-6 h-6 text-white" />
-                <h3 className="text-lg font-semibold text-white">
-                  Background Effect
-                </h3>
-              </div>
-              <div
-                className="flex flex-col items-end gap-2"
-                style={{ transform: "translateY(16px)" }}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-white/70">Animations</span>
-                  <ToggleSwitch
-                    checked={!staticBackground}
-                    onChange={() => {
-                      toggleStaticBackground();
-                      toggleBackgroundAnimation();
-                    }}
-                    disabled={saving}
-                    size="sm"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-white/70">Skin animation</span>
-                  <ToggleSwitch
-                    checked={skinRenderer3d}
-                    onChange={() => setSkinRenderer3d(!skinRenderer3d)}
-                    disabled={saving}
-                    size="sm"
-                  />
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-white/60">Quality: Low</span>
-                  <input
-                    type="range"
-                    min="0"
-                    max="2"
-                    step="1"
-                    value={
-                      qualityLevel === "low" ? 0 : qualityLevel === "medium" ? 1 : 2
-                    }
-                    onChange={(e) => {
-                      const value = parseInt(e.target.value, 10);
-                      const levels = ["low", "medium", "high"] as const;
-                      setQualityLevel(levels[value] || "medium");
-                    }}
-                    className="w-16 h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider accent-white hover:accent-white/80 transition-colors"
-                    disabled={saving}
-                  />
-                  <span className="text-xs text-white/60">High</span>
-                </div>
-              </div>
-            </div>
-            <p className="text-sm text-[var(--text-secondary)] mt-1">
-              Choose a background effect for the launcher
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-            {backgroundOptions.map((option) => (
-              <EffectPreviewCard
-                key={option.id}
-                effectId={option.id}
-                name={option.name}
-                icon={option.icon}
-                isActive={currentEffect === option.id}
-                onClick={() => setCurrentEffect(option.id)}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <div className="mb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Icon icon="solar:gallery-bold" className="w-6 h-6 text-white" />
-              <h3 className="text-lg font-semibold text-white">Custom Background</h3>
-            </div>
-            <p className="text-sm text-[var(--text-secondary)] mt-1">
-              Use your own image, GIF, or video on the Play screen
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 mb-4">
-            {hasCustomMedia && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  clearCustomBackground();
-                  toast.success("Custom background cleared");
-                }}
-              >
-                <Icon icon="solar:trash-bin-trash-bold" className="w-4 h-4" />
-                Clear
-              </Button>
-            )}
-            <Button variant="ghost" size="sm" onClick={handleSelectCustomBackground}>
-              <Icon icon="solar:folder-open-bold" className="w-4 h-4" />
-              {hasCustomMedia ? "Change file" : "Select file"}
-            </Button>
-          </div>
-
-          {customMediaType === "video" &&
-            customBackgroundSizeBytes !== null &&
-            isLargeBackgroundVideo("video", customBackgroundSizeBytes) && (
-              <Alert
-                tone="info"
-                className="mb-4 border-amber-500/30 bg-amber-500/10 text-amber-100"
-              >
-                {largeBackgroundVideoWarning(customBackgroundSizeBytes)}
-              </Alert>
-            )}
-
-          {hasCustomMedia && (
-            <div className="space-y-5 rounded-xl border border-[var(--surface-border)] bg-[var(--surface-overlay)] p-4">
-              <div>
-                <span className="mb-2 block text-sm text-[var(--text-secondary)]">
-                  Opacity
-                </span>
-                <RangeSlider
-                  value={Math.round(customMediaOpacity * 100)}
-                  onChange={(value) => setCustomMediaOpacity(value / 100)}
-                  min={0}
-                  max={100}
-                  step={1}
-                  minLabel="0%"
-                  maxLabel="100%"
-                  unit="%"
-                  size="sm"
-                  variant="flat"
-                />
-              </div>
-
-              <div>
-                <span className="mb-2 block text-sm text-[var(--text-secondary)]">
-                  Blur
-                </span>
-                <RangeSlider
-                  value={customMediaBlur}
-                  onChange={setCustomMediaBlur}
-                  min={0}
-                  max={20}
-                  step={1}
-                  minLabel="0"
-                  maxLabel="20"
-                  unit="px"
-                  size="sm"
-                  variant="flat"
-                />
-              </div>
-
-              <div>
-                <div className="mb-2 flex items-center justify-between gap-4">
-                  <span className="text-sm text-[var(--text-secondary)]">Quality</span>
-                  <span className="text-sm font-medium text-white capitalize">
-                    {customMediaQuality}
-                  </span>
-                </div>
-                <RangeSlider
-                  value={
-                    customMediaQuality === "low"
-                      ? 0
-                      : customMediaQuality === "medium"
-                        ? 1
-                        : 2
-                  }
-                  onChange={(value) => {
-                    const levels = ["low", "medium", "high"] as const;
-                    setCustomMediaQuality(levels[value] ?? "medium");
-                  }}
-                  min={0}
-                  max={2}
-                  step={1}
-                  minLabel="Low"
-                  maxLabel="High"
-                  showValue={false}
-                  size="sm"
-                  variant="flat"
-                />
-              </div>
-
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-sm text-[var(--text-secondary)]">
-                  Only on Play tab
-                </span>
-                <ToggleSwitch
-                  checked={customMediaOnlyOnPlay}
-                  onChange={() => setCustomMediaOnlyOnPlay(!customMediaOnlyOnPlay)}
-                  size="sm"
-                />
-              </div>
-
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-sm text-[var(--text-secondary)]">
-                  Hide background effects
-                </span>
-                <ToggleSwitch
-                  checked={customMediaHideEffects}
-                  onChange={() => setCustomMediaHideEffects(!customMediaHideEffects)}
-                  size="sm"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div>
-          <div className="mb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Icon icon="solar:video-frame-bold" className="w-6 h-6 text-white" />
-              <h3 className="text-lg font-semibold text-white">Preset Backgrounds</h3>
-            </div>
-            <p className="text-sm text-[var(--text-secondary)] mt-1">
-              Looping video backgrounds via YouTube (configure IDs in preset config)
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {PRESET_BACKGROUNDS.map((preset) => {
-              const thumbnail = getPresetThumbnailUrl(preset);
-              const isActive = presetBackgroundId === preset.id;
-              const isConfigured = Boolean(preset.youtubeId.trim());
-
-              return (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => handleSelectPreset(preset.id)}
-                  className={cn(
-                    "relative overflow-hidden rounded-xl border text-left transition-all h-28",
-                    isActive
-                      ? "border-[var(--accent)] bg-[rgba(var(--accent-rgb),0.08)]"
-                      : "border-[var(--surface-border)] bg-[var(--surface-overlay)] hover:border-[var(--surface-border-strong)]",
-                  )}
-                >
-                  {thumbnail ? (
-                    <img
-                      src={thumbnail}
-                      alt={preset.name}
-                      className="absolute inset-0 w-full h-full object-cover opacity-60"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 bg-[var(--surface-base)] flex items-center justify-center">
-                      <Icon
-                        icon="solar:video-frame-bold"
-                        className="w-8 h-8 text-[var(--text-muted)]"
-                      />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-3">
-                    <p className="text-sm font-medium text-white">{preset.name}</p>
-                    <p className="text-xs text-white/60">
-                      {isConfigured ? "YouTube preset" : "Not configured"}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderAdvancedTab = () => (
-    <div className="space-y-6">
-      <div>
-        <div className="mb-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Icon icon="solar:folder-bold" className="w-6 h-6 text-white" />
-            <SimpleTooltip content="This setting allows you to store game data on a different drive or location. Useful if your main drive is running out of space. The launcher will automatically handle the location change for new downloads and installations.">
-              <h3 className="text-lg font-semibold text-white cursor-help">
-                Game Data Directory
-              </h3>
-            </SimpleTooltip>
-          </div>
-          <p className="text-sm text-[var(--text-secondary)] mt-1">
-            Choose a custom location to store game data (worlds, mods, libraries, etc.)
-          </p>
-
-          <div className="flex gap-3 mt-4">
-            <input
-              type="text"
-              value={tempConfig?.custom_game_directory || ""}
-              placeholder="Default location will be used"
-              className="flex-1 p-3 rounded-md bg-black/40 border border-[#ffffff20] text-white placeholder-white/40  focus:outline-none focus:ring-2 focus:ring-white/30"
-              disabled={saving}
-              readOnly
-            />
-            {tempConfig?.custom_game_directory && (
-              <Button
-                variant="ghost"
-                className="px-4 py-3 border border-[#ffffff20] hover:bg-red-500/20 hover:border-red-500/30 transition-colors"
-                disabled={saving}
-                onClick={() => {
-                  if (tempConfig) {
-                    setTempConfig({
-                      ...tempConfig,
-                      custom_game_directory: null,
-                    });
-                  }
-                }}
-                title="Reset to default location"
-              >
-                <Icon icon="solar:close-circle-bold" className="w-5 h-5 text-red-400" />
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              className="px-4 py-3 border border-[#ffffff20] hover:bg-white/5 transition-colors"
-              disabled={saving}
-              onClick={async () => {
-                try {
-                  const { open } = await import('@tauri-apps/plugin-dialog');
-                  const directory = await open({
-                    multiple: false,
-                    directory: true,
-                  });
-
-                  if (directory && tempConfig) {
-                    setTempConfig({
-                      ...tempConfig,
-                      custom_game_directory: directory,
-                    });
-                  }
-                } catch (error) {
-                  console.error('Fehler beim Ordner-Dialog:', error);
-                }
-              }}
-              title="Select custom directory"
-            >
-              <Icon icon="solar:folder-open-bold" className="w-5 h-5" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <div className="mb-4">
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <div className="flex items-center gap-2">
-              <Icon icon="solar:code-bold" className="w-6 h-6 text-white" />
-              <h3 className="text-lg font-semibold text-white">
-                Game Hooks
-              </h3>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsHooksExpanded((v) => !v)}
-              icon={
-                <Icon
-                  icon={isHooksExpanded ? "solar:alt-arrow-up-bold" : "solar:alt-arrow-down-bold"}
-                  className="w-5 h-5"
-                />
-              }
-            >
-              {isHooksExpanded ? "Hide configuration" : "Show configuration"}
-            </Button>
-          </div>
-          <p className="text-sm text-[var(--text-secondary)] mt-1">
-            Configure custom commands to run before, during, and after game launch
-          </p>
-        </div>
-
-        {isHooksExpanded && (
-          <div className="space-y-6 mt-6">
-            <div className="p-4 rounded-lg border border-[#ffffff20] hover:bg-black/30 transition-colors">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Icon icon="solar:play-circle-bold" className="w-5 h-5 text-white" />
-                  <h5 className="text-sm font-medium text-white">Pre-Launch Hook</h5>
-                </div>
-                <Button
-                  variant={isPreLaunchEditEnabled ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={async () => {
-                    if (isPreLaunchEditEnabled) {
-                      setIsPreLaunchEditEnabled(false);
-                      return;
-                    }
-                    const confirmed = await confirm({
-                      title: "enable pre-launch editing",
-                      message:
-                        "Editing the Pre-Launch hook can prevent the game from starting if misconfigured. Proceed only if you know what you're doing.",
-                      confirmText: "ENABLE",
-                      cancelText: "CANCEL",
-                      type: "warning",
-                      fullscreen: true,
-                    });
-                    if (confirmed) {
-                      setIsPreLaunchEditEnabled(true);
-                      toast.success("Pre-Launch editing enabled");
-                    }
-                  }}
-                  icon={
-                    <Icon
-                      icon={isPreLaunchEditEnabled ? "solar:lock-unlocked-bold" : "solar:lock-keyhole-bold"}
-                      className="w-4 h-4"
-                    />
-                  }
-                >
-                  {isPreLaunchEditEnabled ? "Disable editing" : "Enable editing"}
-                </Button>
-              </div>
-              <p className="text-sm text-white/60  mb-4">
-                Command to run before Minecraft starts. If this command fails, the launch will be aborted.
-              </p>
-              <input
-                type="text"
-                value={tempConfig?.hooks?.pre_launch || ""}
-                onChange={(e) => {
-                  if (tempConfig) {
-                    setTempConfig({
-                      ...tempConfig,
-                      hooks: {
-                        ...tempConfig.hooks,
-                        pre_launch: e.target.value || null,
-                      },
-                    });
-                  }
-                }}
-                placeholder='Example: echo "Starting Minecraft..."'
-                className="w-full p-3 rounded-md bg-black/40 border border-[#ffffff20] text-white placeholder-white/40  focus:outline-none focus:ring-2 focus:ring-white/30"
-                disabled={saving || !isPreLaunchEditEnabled}
-                title={!isPreLaunchEditEnabled ? "Enable editing to modify this field" : undefined}
-              />
-            </div>
-
-            <div className="p-4 rounded-lg border border-[#ffffff20] hover:bg-black/30 transition-colors">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Icon icon="solar:shield-bold" className="w-5 h-5 text-white" />
-                  <h5 className="text-sm font-medium text-white">Wrapper Hook</h5>
-                </div>
-                <Button
-                  variant={isWrapperEditEnabled ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={async () => {
-                    if (isWrapperEditEnabled) {
-                      setIsWrapperEditEnabled(false);
-                      return;
-                    }
-                    const confirmed = await confirm({
-                      title: "enable wrapper editing",
-                      message:
-                        "Changing the Wrapper hook affects how Java is executed. Misconfiguration may prevent launching.",
-                      confirmText: "ENABLE",
-                      cancelText: "CANCEL",
-                      type: "warning",
-                      fullscreen: true,
-                    });
-                    if (confirmed) {
-                      setIsWrapperEditEnabled(true);
-                      toast.success("Wrapper editing enabled");
-                    }
-                  }}
-                  icon={
-                    <Icon
-                      icon={isWrapperEditEnabled ? "solar:lock-unlocked-bold" : "solar:lock-keyhole-bold"}
-                      className="w-4 h-4"
-                    />
-                  }
-                >
-                  {isWrapperEditEnabled ? "Disable editing" : "Enable editing"}
-                </Button>
-              </div>
-              <p className="text-sm text-white/60  mb-4">
-                Wrapper command to run Java through (e.g., sandboxing tools). The Java path will be passed as an argument.
-              </p>
-              <input
-                type="text"
-                value={tempConfig?.hooks?.wrapper || ""}
-                onChange={(e) => {
-                  if (tempConfig) {
-                    setTempConfig({
-                      ...tempConfig,
-                      hooks: {
-                        ...tempConfig.hooks,
-                        wrapper: e.target.value || null,
-                      },
-                    });
-                  }
-                }}
-                placeholder="Example: firejail or gamemoderun"
-                className="w-full p-3 rounded-md bg-black/40 border border-[#ffffff20] text-white placeholder-white/40  focus:outline-none focus:ring-2 focus:ring-white/30"
-                disabled={saving || !isWrapperEditEnabled}
-                title={!isWrapperEditEnabled ? "Enable editing to modify this field" : undefined}
-              />
-            </div>
-
-            <div className="p-4 rounded-lg border border-[#ffffff20] hover:bg-black/30 transition-colors">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Icon icon="solar:stop-circle-bold" className="w-5 h-5 text-white" />
-                  <h5 className="text-sm font-medium text-white">Post-Exit Hook</h5>
-                </div>
-                <Button
-                  variant={isPostExitEditEnabled ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={async () => {
-                    if (isPostExitEditEnabled) {
-                      setIsPostExitEditEnabled(false);
-                      return;
-                    }
-                    const confirmed = await confirm({
-                      title: "enable post-exit editing",
-                      message:
-                        "Post-Exit hook runs system commands after the game closes. Proceed only if you trust the command.",
-                      confirmText: "ENABLE",
-                      cancelText: "CANCEL",
-                      type: "warning",
-                      fullscreen: true,
-                    });
-                    if (confirmed) {
-                      setIsPostExitEditEnabled(true);
-                      toast.success("Post-Exit editing enabled");
-                    }
-                  }}
-                  icon={
-                    <Icon
-                      icon={isPostExitEditEnabled ? "solar:lock-unlocked-bold" : "solar:lock-keyhole-bold"}
-                      className="w-4 h-4"
-                    />
-                  }
-                >
-                  {isPostExitEditEnabled ? "Disable editing" : "Enable editing"}
-                </Button>
-              </div>
-              <p className="text-sm text-white/60  mb-4">
-                Command to run after Minecraft exits successfully. Runs in the background without blocking.
-              </p>
-              <input
-                type="text"
-                value={tempConfig?.hooks?.post_exit || ""}
-                onChange={(e) => {
-                  if (tempConfig) {
-                    setTempConfig({
-                      ...tempConfig,
-                      hooks: {
-                        ...tempConfig.hooks,
-                        post_exit: e.target.value || null,
-                      },
-                    });
-                  }
-                }}
-                placeholder='Example: echo "Minecraft closed"'
-                className="w-full p-3 rounded-md bg-black/40 border border-[#ffffff20] text-white placeholder-white/40  focus:outline-none focus:ring-2 focus:ring-white/30"
-                disabled={saving || !isPostExitEditEnabled}
-                title={!isPostExitEditEnabled ? "Enable editing to modify this field" : undefined}
-              />
-            </div>
-
-            <div className="mt-6 p-4 rounded-lg border border-orange-500/30 bg-orange-900/20">
-              <div className="flex items-start gap-3">
-                <Icon icon="solar:danger-triangle-bold" className="w-6 h-6 text-orange-400 flex-shrink-0 mt-1" />
-                <div>
-                  <h4 className="text-base font-semibold text-orange-300 mb-2">
-                    Warning
-                  </h4>
-                  <p className="text-sm text-orange-200/80 ">
-                    These hooks execute system commands with full permissions. Only use commands you trust and understand.
-                    Invalid commands may prevent Minecraft from launching or cause security issues.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 p-4 rounded-lg border border-[#ffffff20] bg-black/10">
-              <div className="flex items-start gap-3">
-                <Icon icon="solar:info-circle-bold" className="w-6 h-6 text-blue-400 flex-shrink-0 mt-1" />
-                <div>
-                  <h4 className="text-base font-semibold text-blue-300 mb-2">
-                    Examples
-                  </h4>
-                  <div className="space-y-2 text-sm text-blue-200/80 ">
-                    <p><strong>Pre-Launch:</strong> <code>echo "Starting game..."</code></p>
-                    <p><strong>Wrapper:</strong> <code>firejail</code> or <code>gamemoderun</code></p>
-                    <p><strong>Post-Exit:</strong> <code>notify-send "Game finished"</code></p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div>
-        <div className="mb-4">
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <div className="flex items-center gap-2">
-              <Icon icon="solar:document-text-bold" className="w-6 h-6 text-white" />
-              <h3 className="text-lg font-semibold text-white">
-                Third-party Code
-              </h3>
-            </div>
-            <div className="flex gap-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  openExternalUrl("https://github.com/CCBlueX/LiquidBounce")
-                }}
-                icon={<Icon icon="solar:external-link-bold" className="w-5 h-5" />}
-              >
-                LiquidBounce
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  openExternalUrl("https://github.com/NoRiskClient/noriskclient-launcher")
-                }}
-                icon={<Icon icon="solar:external-link-bold" className="w-5 h-5" />}
-              >
-                NoRiskLauncher
-              </Button>
-            </div>
-          </div>
-          <p className="text-sm text-[var(--text-secondary)] mt-1">
-            View licenses for base code and components from third parties
-          </p>
-        </div>
-      </div>
-
-    </div>
-  );
-
   const renderTabContent = () => {
     if (loading) {
       return <LoadingState message="Loading settings..." />;
@@ -1204,7 +231,10 @@ export function SettingsTab() {
       return (
         <Alert tone="error">
           <div className="flex items-start gap-3">
-            <Icon icon="solar:danger-triangle-bold" className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <Icon
+              icon="solar:danger-triangle-bold"
+              className="w-5 h-5 flex-shrink-0 mt-0.5"
+            />
             <div>
               <p className="font-medium mb-1">Error loading settings</p>
               <p className="opacity-90 mb-3">{error}</p>
@@ -1224,41 +254,42 @@ export function SettingsTab() {
 
     if (!config || !tempConfig) {
       return (
-        <EmptyState
-          icon="solar:settings-bold"
-          title="Could not load configuration"
-        />
+        <EmptyState icon="solar:settings-bold" title="Could not load configuration" />
       );
     }
 
-    switch (activeTab) {
-      case "general":
-        return renderGeneralTab();
-      case "appearance":
-        return renderAppearanceTab();
-      case "advanced":
-        return renderAdvancedTab();
-      default:
-        return null;
-    }
-  };
+    const bodyOf: Partial<Record<SettingsTabId, ReactNode>> = {
+      general: <GeneralTab />,
+      appearance: <AppearanceTab />,
+      advanced: <AdvancedTab />,
+    };
 
-
-  return (
-    <div className="h-full flex flex-col overflow-hidden relative bg-[var(--surface-base)]">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--surface-border)] bg-[var(--surface-raised)]">
-        <div className="flex items-center gap-2 flex-wrap">
-          {groups.map((group) => (
-            <SelectTab
-              key={group.id}
-              active={activeTab === group.id}
-              onClick={() => setActiveTab(group.id as "general" | "appearance" | "advanced")}
-            >
-              {group.name}
-            </SelectTab>
+    if (sidebarQuery) {
+      const order: SettingsTabId[] = ["general", "appearance", "advanced"];
+      const ordered = [activeTab, ...order.filter((id) => id !== activeTab)].filter(
+        (id) => bodyOf[id],
+      ) as SettingsTabId[];
+      return (
+        <div className="space-y-6">
+          {ordered.map((id) => (
+            <Fragment key={id}>{bodyOf[id]}</Fragment>
           ))}
         </div>
+      );
+    }
 
+    return bodyOf[activeTab] ?? null;
+  };
+
+  return (
+    <Modal
+      title="Settings"
+      titleIcon={<Icon icon="solar:settings-bold" className="w-6 h-6" />}
+      onClose={onClose}
+      width="xl"
+      className="!max-w-6xl h-[85vh] min-h-[600px] flex flex-col"
+      contentClassName="overflow-hidden"
+      headerActions={
         <Button
           variant="secondary"
           size="sm"
@@ -1268,22 +299,117 @@ export function SettingsTab() {
               await openLauncherDirectory();
             } catch (err) {
               console.error("Failed to open launcher directory:", err);
-              toast.error("Failed to open launcher directory: " + err);
+              toast.error(
+                `Failed to open launcher directory: ${
+                  err instanceof Error ? err.message : String(err)
+                }`,
+              );
             }
           }}
         >
           Open directory
         </Button>
-      </div>
+      }
+    >
+      <div className="flex h-full p-4 gap-2 min-h-0">
+        <div className="w-64 flex flex-col flex-shrink-0 min-h-0">
+          <div className="px-1 pb-3">
+            <SearchWithFilters
+              placeholder="Search settings..."
+              searchValue={sidebarSearch}
+              onSearchChange={setSidebarSearch}
+              showSort={false}
+              showFilter={false}
+              className="w-full"
+            />
+          </div>
+          <div
+            ref={sidebarListRef}
+            className="space-y-0 flex-1 overflow-y-auto custom-scrollbar"
+          >
+            {tabConfig.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <div key={tab.id}>
+                  <button
+                    type="button"
+                    className={cn(
+                      "w-full text-left px-3 py-2.5 rounded-lg transition-colors border-0 outline-none flex items-center gap-3",
+                      isActive
+                        ? "text-white"
+                        : "bg-transparent text-white/60 hover:bg-white/5 hover:text-white/90",
+                    )}
+                    style={
+                      isActive ? { backgroundColor: `${accentColor.value}26` } : undefined
+                    }
+                    onClick={() => selectTab(tab.id)}
+                  >
+                    <Icon
+                      icon={tab.icon}
+                      className="w-5 h-5 transition-colors duration-200"
+                      style={{ color: isActive ? accentColor.value : undefined }}
+                    />
+                    <span
+                      className={cn(
+                        "text-base transition-colors duration-200",
+                        isActive && "font-medium",
+                      )}
+                    >
+                      {tab.label}
+                    </span>
+                  </button>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-4">
-        {/* Content */}
-        <div ref={contentRef}>
-          {renderTabContent()}
+                  {isActive && !sidebarQuery && tab.children && (
+                    <div className="flex flex-col mt-1 ml-5 border-l border-[var(--surface-border)]">
+                      {tab.children.map((child) => {
+                        const childActive = activeSection === child.id;
+                        return (
+                          <button
+                            key={child.id}
+                            type="button"
+                            data-section-id={child.id}
+                            className={cn(
+                              "w-full text-left pl-4 pr-2 py-1.5 -ml-px border-l-2 outline-none text-sm transition-[color,border-color] duration-150",
+                              childActive
+                                ? "text-white"
+                                : "border-transparent text-[var(--text-secondary)] hover:text-white/75",
+                            )}
+                            style={
+                              childActive ? { borderColor: accentColor.value } : undefined
+                            }
+                            onClick={() => scrollToSection(child.id)}
+                          >
+                            {child.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex items-center flex-shrink-0">
+          <div className="border-l border-[var(--surface-border)] mx-2 my-3 h-[85%]" />
+        </div>
+
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden min-h-0">
+          <div
+            ref={contentRef}
+            className="flex-1 py-2 px-5 overflow-y-auto overflow-x-hidden custom-scrollbar min-w-0"
+          >
+            <SettingsConfigProvider
+              value={{ config, tempConfig, setTempConfig, saving }}
+            >
+              <SettingsSearchContext.Provider value={sidebarQuery}>
+                {renderTabContent()}
+              </SettingsSearchContext.Provider>
+            </SettingsConfigProvider>
+          </div>
         </div>
       </div>
-
-      {confirmDialog}
-    </div>
+    </Modal>
   );
 }

@@ -6,7 +6,7 @@ import ModrinthTabV2 from "../components/tabs/ModrinthTabV2";
 import VXLStudiosTabV2 from "../components/tabs/VXLStudiosTabV2";
 import { SkinsTab } from "../components/tabs/SkinsTab";
 import { StoreTab } from "../components/tabs/StoreTab";
-import { SettingsTab } from "../components/tabs/SettingsTab";
+import { SettingsRedirect } from "../components/settings/SettingsRedirect";
 import { BrowseTab } from "../components/profiles/detail/BrowseTab";
 import { BrowseTabWrapper } from "../components/profiles/BrowseTabWrapper";
 import { ProfilesTabV2 } from "../components/tabs/ProfilesTabV2";
@@ -82,7 +82,7 @@ export const router = createHashRouter([
       },
       {
         path: "settings",
-        element: <SettingsTab />,
+        element: <SettingsRedirect />,
       },
     ],
   },

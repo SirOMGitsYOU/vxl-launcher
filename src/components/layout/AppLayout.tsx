@@ -15,6 +15,7 @@ import type { UpdateInfo } from "../../types/updater";
 import { ProfileWizardV2Modal } from "../modals/ProfileWizardV2Modal";
 import { ProfileSettingsModal } from "../modals/ProfileSettingsModal";
 import { ProfileDuplicateModal } from "../modals/ProfileDuplicateModal";
+import { SettingsModal } from "../modals/SettingsModal";
 import { exit } from '@tauri-apps/plugin-process';
 import { Tooltip } from "../ui/Tooltip";
 import { toast } from 'react-hot-toast';
@@ -29,7 +30,7 @@ const getNavItems = (hasAccount: boolean) => [
   { id: "vxlstudios", icon: "f7:cube-fill", label: "Voxel Studios" },
   { id: "skins", icon: "temaki:clothes-hanger", label: "Skins", disabled: !hasAccount },
   { id: "capes", icon: "game-icons:cape", label: "Capes", disabled: !hasAccount },
-  { id: "settings", icon: "solar:settings-bold", label: "Settings" },
+  { id: "settings", icon: "solar:settings-bold", label: "Settings", isAction: true },
 ];
 
 interface AppLayoutProps {
@@ -165,6 +166,7 @@ export function AppLayout({
       <ProfileWizardV2Modal />
       <ProfileSettingsModal />
       <ProfileDuplicateModal />
+      <SettingsModal />
     </div>
   );
 }

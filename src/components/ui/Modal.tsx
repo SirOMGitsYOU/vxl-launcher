@@ -20,6 +20,8 @@ interface ModalProps {
   headerActions?: React.ReactNode;
   variant?: "default" | "flat" | "3d";
   className?: string;
+  contentClassName?: string;
+  zIndex?: number;
 }
 
 export function Modal({
@@ -34,6 +36,8 @@ export function Modal({
   headerActions,
   variant = "default",
   className,
+  contentClassName,
+  zIndex = 1000,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -121,7 +125,8 @@ export function Modal({
   return (
     <div
       ref={modalRef}
-      className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md-anyos"
+      className="fixed inset-0 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md-anyos"
+      style={{ zIndex }}
       onClick={handleBackdropClick}
     >
       <div
@@ -176,7 +181,7 @@ export function Modal({
 
         <div
           ref={contentRef}
-          className="flex-1 overflow-y-auto custom-scrollbar"
+          className={cn("flex-1 overflow-y-auto custom-scrollbar", contentClassName)}
         >
           {children}
         </div>

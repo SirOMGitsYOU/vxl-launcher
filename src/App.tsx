@@ -33,6 +33,7 @@ import { loadIcons } from '@iconify/react';
 import { invoke } from '@tauri-apps/api/core';
 import { useProfileStore } from "./store/profile-store";
 import { useMinecraftAuthStore } from "./store/minecraft-auth-store";
+import { useSettingsModalStore } from "./store/settings-modal-store";
 
 export type ProfilesTabContext = {
   currentGroupingCriterion: string;
@@ -233,6 +234,16 @@ export function App() {
   };
 
   const handleNavChange = async (tabId: string) => {
+    if (tabId === "settings") {
+      useSettingsModalStore.getState().open();
+      try {
+        await invoke("set_discord_state_tinkering");
+      } catch (error) {
+        console.error("[App.tsx] Failed to update Discord state:", error);
+      }
+      return;
+    }
+
     navigate(`/${tabId}`);
     
     // Update Discord state based on tab
@@ -255,9 +266,6 @@ export function App() {
           break;
         case 'capes':
           await invoke('set_discord_state_browsing_capes');
-          break;
-        case 'settings':
-          await invoke('set_discord_state_tinkering');
           break;
         default:
           // For other tabs, keep current state

@@ -24,7 +24,6 @@ interface BackgroundEffectState {
   currentEffect: string;
   customMediaUrl: string | null;
   customMediaType: CustomMediaType | null;
-  customMediaOpacity: number;
   customMediaBlur: number;
   customMediaQuality: CustomMediaQuality;
   customMediaOnlyOnPlay: boolean;
@@ -34,7 +33,6 @@ interface BackgroundEffectState {
   setCustomMedia: (url: string | null, type: CustomMediaType | null) => void;
   setPresetBackground: (presetId: string | null) => void;
   clearCustomBackground: () => void;
-  setCustomMediaOpacity: (opacity: number) => void;
   setCustomMediaBlur: (blur: number) => void;
   setCustomMediaQuality: (quality: CustomMediaQuality) => void;
   setCustomMediaOnlyOnPlay: (onlyOnPlay: boolean) => void;
@@ -47,11 +45,10 @@ export const useBackgroundEffectStore = create<BackgroundEffectState>()(
       currentEffect: BACKGROUND_EFFECTS.RETRO_GRID,
       customMediaUrl: null,
       customMediaType: null,
-      customMediaOpacity: 0.25,
       customMediaBlur: 0,
       customMediaQuality: "high",
       customMediaOnlyOnPlay: true,
-      customMediaHideEffects: false,
+      customMediaHideEffects: true,
       presetBackgroundId: null,
       setCurrentEffect: (effect) => set({ currentEffect: effect }),
       setCustomMedia: (url, type) =>
@@ -72,7 +69,6 @@ export const useBackgroundEffectStore = create<BackgroundEffectState>()(
           customMediaType: null,
           presetBackgroundId: null,
         }),
-      setCustomMediaOpacity: (opacity) => set({ customMediaOpacity: opacity }),
       setCustomMediaBlur: (blur) => set({ customMediaBlur: blur }),
       setCustomMediaQuality: (quality) => set({ customMediaQuality: quality }),
       setCustomMediaOnlyOnPlay: (onlyOnPlay) =>

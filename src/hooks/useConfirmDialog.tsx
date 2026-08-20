@@ -165,6 +165,7 @@ export function useConfirmDialog() {
             title={options.title}
             onClose={handleClose}
             width="md"
+            zIndex={1100}
             footer={renderFooter()}
           >
             {renderContent()}

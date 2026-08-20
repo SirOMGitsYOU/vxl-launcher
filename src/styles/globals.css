@@ -528,3 +528,35 @@ input[type="text"]:not(.no-radius) {
 .backdrop-blur-md-anyos {
     backdrop-filter: blur(12px);
 }
+
+.settings-slider-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 9999px;
+    background: var(--accent);
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+    margin-top: -5px;
+}
+
+.settings-slider-input::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 9999px;
+}
+
+.settings-slider-input::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 9999px;
+    background: var(--accent);
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+}
+
+.settings-slider-input::-moz-range-track {
+    height: 6px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.15);
+}
