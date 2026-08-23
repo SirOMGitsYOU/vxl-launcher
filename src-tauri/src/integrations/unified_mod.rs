@@ -1,3 +1,4 @@
+use crate::config::ProjectDirsExt;
 use crate::integrations::curseforge;
 use crate::integrations::curseforge::ModpackManifest;
 use crate::integrations::modrinth;
@@ -1268,24 +1269,47 @@ pub struct ModpackSwitchResponse {
 
 /// Extract modpack information using the common trait interface
 /// Returns the extracted information or an error if required fields are missing
-async fn extract_modpack_info<T: ModpackManifest>(manifest: &T, pack_name: &str) -> Result<(String, Option<crate::state::profile_state::ModLoader>, Option<String>, Vec<crate::state::profile_state::Mod>), crate::error::AppError> {
-    let mc_version = manifest.get_minecraft_version()
-        .ok_or_else(|| {
-            error!("Modpack '{}' is missing Minecraft version", pack_name);
-            crate::error::AppError::Other(format!("Modpack '{}' is missing Minecraft version", pack_name))
-        })?;
+async fn extract_modpack_info<T: ModpackManifest>(
+    manifest: &T,
+    pack_name: &str,
+) -> Result<
+    (
+        String,
+        Option<crate::state::profile_state::ModLoader>,
+        Option<String>,
+        crate::utils::profile_utils::ResolvedModpackFiles,
+    ),
+    crate::error::AppError,
+> {
+    let mc_version = manifest.get_minecraft_version().ok_or_else(|| {
+        error!("Modpack '{}' is missing Minecraft version", pack_name);
+        crate::error::AppError::Other(format!(
+            "Modpack '{}' is missing Minecraft version",
+            pack_name
+        ))
+    })?;
 
     let loader = manifest.get_loader();
     let loader_version = manifest.get_loader_version();
-    let mods = manifest.get_mods_structs().await.map_err(|e| {
-        error!("Failed to extract mods from modpack '{}': {}", pack_name, e);
-        crate::error::AppError::Other(format!("Failed to extract mods from modpack '{}': {}", pack_name, e))
+    let resolved = manifest.resolve_modpack_files().await.map_err(|e| {
+        error!("Failed to extract files from modpack '{}': {}", pack_name, e);
+        crate::error::AppError::Other(format!(
+            "Failed to extract files from modpack '{}': {}",
+            pack_name, e
+        ))
     })?;
 
-    info!("Modpack '{}' info - MC: {}, Loader: {:?}, Loader Version: {:?}, Mods: {}",
-          pack_name, mc_version, loader, loader_version, mods.len());
+    info!(
+        "Modpack '{}' info - MC: {}, Loader: {:?}, Loader Version: {:?}, Mods: {}, Assets: {}",
+        pack_name,
+        mc_version,
+        loader,
+        loader_version,
+        resolved.mods.len(),
+        resolved.assets.len()
+    );
 
-    Ok((mc_version, loader, loader_version, mods))
+    Ok((mc_version, loader, loader_version, resolved))
 }
 
 /// Switch to a different version of a modpack
@@ -1328,28 +1352,39 @@ pub async fn switch_modpack_version(request: ModpackSwitchRequest) -> Result<Mod
     info!("Loaded profile '{}' for modpack switching", profile.name);
 
     // Extract platform from modpack_source and process accordingly
-    let (minecraft_version, loader, loader_version, mods, curseforge_manifest) = match &request.modpack_source {
+    let (minecraft_version, loader, loader_version, resolved, curseforge_manifest) =
+        match &request.modpack_source {
         crate::state::profile_state::ModPackSource::Modrinth { .. } => {
             info!("Processing as Modrinth modpack");
-            let (_profile, manifest) = crate::integrations::mrpack::process_mrpack(temp_file_path.clone()).await
-                .map_err(|e| {
-                    error!("Failed to process Modrinth modpack: {}", e);
-                    e
-                })?;
-            let (mc, ldr, ldr_ver, mods) = extract_modpack_info(&manifest, &manifest.name).await?;
-            (mc, ldr, ldr_ver, mods, None)
+            let (_profile, manifest) =
+                crate::integrations::mrpack::process_mrpack(temp_file_path.clone())
+                    .await
+                    .map_err(|e| {
+                        error!("Failed to process Modrinth modpack: {}", e);
+                        e
+                    })?;
+            let (mc, ldr, ldr_ver, resolved) =
+                extract_modpack_info(&manifest, &manifest.name).await?;
+            (mc, ldr, ldr_ver, resolved, None)
         }
         crate::state::profile_state::ModPackSource::CurseForge { .. } => {
             info!("Processing as CurseForge modpack");
-            let (_profile, manifest) = crate::integrations::curseforge::process_curseforge_pack_from_zip(&temp_file_path).await
+            let (_profile, manifest) =
+                crate::integrations::curseforge::process_curseforge_pack_from_zip(
+                    &temp_file_path,
+                )
+                .await
                 .map_err(|e| {
                     error!("Failed to process CurseForge modpack: {}", e);
                     e
                 })?;
-            let (mc, ldr, ldr_ver, mods) = extract_modpack_info(&manifest, &manifest.name).await?;
-            (mc, ldr, ldr_ver, mods, Some(manifest))
+            let (mc, ldr, ldr_ver, resolved) =
+                extract_modpack_info(&manifest, &manifest.name).await?;
+            (mc, ldr, ldr_ver, resolved, Some(manifest))
         }
     };
+
+    let mods = resolved.mods.clone();
 
     // Update the profile with the extracted information
     info!("Updating profile with extracted modpack information");
@@ -1410,6 +1445,32 @@ pub async fn switch_modpack_version(request: ModpackSwitchRequest) -> Result<Mod
             }
         }
     }
+
+    crate::utils::profile_utils::install_modpack_assets(&profile, &resolved.assets).await?;
+    info!("Successfully installed modpack assets for version switch");
+
+    let launcher_config = state.config_manager.get_config().await;
+    let mod_downloader_service =
+        crate::minecraft::downloads::ModDownloadService::with_concurrency(
+            launcher_config.concurrent_downloads,
+        );
+    mod_downloader_service
+        .download_mods_to_cache(&profile)
+        .await?;
+    let profile_mods_path = state.profile_manager.get_profile_mods_path(&profile)?;
+    let mod_cache_dir = crate::config::LAUNCHER_DIRECTORY.meta_dir().join("mod_cache");
+    let target_mods = crate::minecraft::downloads::mod_resolver::resolve_target_mods(
+        &profile,
+        None,
+        &profile.game_version,
+        profile.loader.as_str(),
+        &mod_cache_dir,
+    )
+    .await?;
+    mod_downloader_service
+        .sync_mods_to_profile(&target_mods, &profile_mods_path)
+        .await?;
+    info!("Successfully synced modpack mods after version switch");
 
     // Save the updated profile
     profile_manager.update_profile(request.profile_id, profile).await?;

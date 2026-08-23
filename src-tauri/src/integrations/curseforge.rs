@@ -1198,6 +1198,9 @@ pub trait ModpackManifest {
 
     /// Returns a list of mods as Mod structs (requires API calls)
     async fn get_mods_structs(&self) -> Result<Vec<Mod>>;
+
+    /// Returns manifest files split into mods and typed assets
+    async fn resolve_modpack_files(&self) -> Result<crate::utils::profile_utils::ResolvedModpackFiles>;
 }
 
 impl ModpackManifest for CurseForgeManifest {
@@ -1220,6 +1223,14 @@ impl ModpackManifest for CurseForgeManifest {
     }
 
     async fn get_mods_structs(&self) -> Result<Vec<Mod>> {
+        resolve_curseforge_manifest_files(self)
+            .await
+            .map(|resolved| resolved.mods)
+    }
+
+    async fn resolve_modpack_files(
+        &self,
+    ) -> Result<crate::utils::profile_utils::ResolvedModpackFiles> {
         resolve_curseforge_manifest_files(self).await
     }
 }
@@ -1345,7 +1356,9 @@ async fn read_manifest_from_zip(pack_path: &Path) -> Result<String> {
 }
 
 /// Resolves CurseForge manifest files against the CurseForge API to create Mod structs
-pub async fn resolve_curseforge_manifest_files(manifest: &CurseForgeManifest) -> Result<Vec<Mod>> {
+pub async fn resolve_curseforge_manifest_files(
+    manifest: &CurseForgeManifest,
+) -> Result<crate::utils::profile_utils::ResolvedModpackFiles> {
     info!(
         "Resolving {} files from CurseForge manifest '{}' against CurseForge API...",
         manifest.files.len(),
@@ -1367,7 +1380,7 @@ pub async fn resolve_curseforge_manifest_files(manifest: &CurseForgeManifest) ->
 
     if project_ids.is_empty() {
         info!("No required files found in CurseForge manifest.");
-        return Ok(Vec::new());
+        return Ok(crate::utils::profile_utils::ResolvedModpackFiles::default());
     }
 
     // Get mod information from CurseForge API
@@ -1380,7 +1393,7 @@ pub async fn resolve_curseforge_manifest_files(manifest: &CurseForgeManifest) ->
 
     if file_ids.is_empty() {
         info!("No file IDs found to fetch.");
-        return Ok(Vec::new());
+        return Ok(crate::utils::profile_utils::ResolvedModpackFiles::default());
     }
 
     // Bulk fetch all file details
@@ -1401,6 +1414,7 @@ pub async fn resolve_curseforge_manifest_files(manifest: &CurseForgeManifest) ->
     }
 
     let mut mods_to_add = Vec::new();
+    let mut assets_to_add = Vec::new();
 
     // For each mod, get the specific file details from the bulk response
     for curseforge_mod in mods_response.data {
@@ -1417,46 +1431,72 @@ pub async fn resolve_curseforge_manifest_files(manifest: &CurseForgeManifest) ->
                 }
             };
 
-            // Create Mod struct
-            let mod_source = ModSource::CurseForge {
-                project_id: project_id.to_string(),
-                file_id: file_id.to_string(),
-                file_name: file_details.fileName.clone(),
-                download_url: file_details.downloadUrl.clone(),
-                file_hash_sha1: file_details.hashes.iter()
-                    .find(|h| h.algo == 1) // SHA1 = 1
-                    .map(|h| h.value.clone()),
-                file_fingerprint: Some(file_details.fileFingerprint),
-            };
+            let file_hash_sha1 = file_details
+                .hashes
+                .iter()
+                .find(|h| h.algo == 1)
+                .map(|h| h.value.clone());
+            let content_type = curseforge_mod
+                .classId
+                .map(crate::utils::profile_utils::content_type_from_curseforge_class_id)
+                .unwrap_or(crate::utils::profile_utils::ContentType::Mod);
 
-            let new_mod = Mod {
-                id: Uuid::new_v4(),
-                source: mod_source,
-                enabled: true,
-                display_name: Some(curseforge_mod.name.clone()),
-                version: Some(file_details.displayName.clone()),
-                game_versions: Some(vec![game_version.clone()]),
-                file_name_override: None,
-                associated_loader: Some(determine_loader_from_curseforge_loaders(&manifest.minecraft.mod_loaders).0),
-                modpack_origin: Some(format!("curseforge:{}:{}", project_id, file_id)), // From modpack
-                updates_enabled: false, // Disable updates for modpack mods (updated with pack)
-            };
+            if content_type == crate::utils::profile_utils::ContentType::Mod {
+                let mod_source = ModSource::CurseForge {
+                    project_id: project_id.to_string(),
+                    file_id: file_id.to_string(),
+                    file_name: file_details.fileName.clone(),
+                    download_url: file_details.downloadUrl.clone(),
+                    file_hash_sha1: file_hash_sha1.clone(),
+                    file_fingerprint: Some(file_details.fileFingerprint),
+                };
 
-            info!(
-                "Prepared Mod struct for: {} (Enabled: {}, Loader: {:?})",
-                new_mod.display_name.as_deref().unwrap_or("Unknown"),
-                new_mod.enabled,
-                new_mod.associated_loader
-            );
-            mods_to_add.push(new_mod);
+                let new_mod = Mod {
+                    id: Uuid::new_v4(),
+                    source: mod_source,
+                    enabled: true,
+                    display_name: Some(curseforge_mod.name.clone()),
+                    version: Some(file_details.displayName.clone()),
+                    game_versions: Some(vec![game_version.clone()]),
+                    file_name_override: None,
+                    associated_loader: Some(
+                        determine_loader_from_curseforge_loaders(&manifest.minecraft.mod_loaders).0,
+                    ),
+                    modpack_origin: Some(format!("curseforge:{}:{}", project_id, file_id)),
+                    updates_enabled: false,
+                };
+
+                info!(
+                    "Prepared Mod struct for: {} (Enabled: {}, Loader: {:?})",
+                    new_mod.display_name.as_deref().unwrap_or("Unknown"),
+                    new_mod.enabled,
+                    new_mod.associated_loader
+                );
+                mods_to_add.push(new_mod);
+            } else {
+                info!(
+                    "Prepared modpack asset for: {} ({:?})",
+                    file_details.fileName, content_type
+                );
+                assets_to_add.push(crate::utils::profile_utils::ModpackManifestAsset {
+                    content_type,
+                    file_name: file_details.fileName.clone(),
+                    download_url: file_details.downloadUrl.clone(),
+                    file_hash_sha1,
+                });
+            }
         }
     }
 
     info!(
-        "Successfully resolved {} mods from the CurseForge manifest.",
-        mods_to_add.len()
+        "Successfully resolved {} mods and {} assets from the CurseForge manifest.",
+        mods_to_add.len(),
+        assets_to_add.len()
     );
-    Ok(mods_to_add)
+    Ok(crate::utils::profile_utils::ResolvedModpackFiles {
+        mods: mods_to_add,
+        assets: assets_to_add,
+    })
 }
 
 /// Extracts files from the "overrides" directory within a CurseForge modpack archive
@@ -1795,12 +1835,13 @@ pub async fn import_curseforge_pack_as_profile(
     );
 
     // 2. Resolve mods from manifest files
-    let resolved_mods = resolve_curseforge_manifest_files(&manifest).await?;
+    let resolved = resolve_curseforge_manifest_files(&manifest).await?;
     info!(
-        "Successfully resolved {} mods from manifest.",
-        resolved_mods.len()
+        "Successfully resolved {} mods and {} assets from manifest.",
+        resolved.mods.len(),
+        resolved.assets.len()
     );
-    profile.mods = resolved_mods;
+    profile.mods = resolved.mods;
 
     // 2.5. Create ModPackInfo for this modpack (if we have the required parameters)
     if let (Some(project_id), Some(file_id)) = (project_id, file_id) {
@@ -1868,6 +1909,9 @@ pub async fn import_curseforge_pack_as_profile(
     // Use the absolute path to the pack file for extraction
     extract_curseforge_overrides(&pack_path, &profile, &manifest).await?;
     info!("Successfully extracted overrides.");
+
+    crate::utils::profile_utils::install_modpack_assets(&profile, &resolved.assets).await?;
+    info!("Successfully installed modpack assets.");
 
     // 5. Download mods to cache and sync to profile directory
     info!(

@@ -3,7 +3,7 @@ use crate::error::{AppError, Result};
 use crate::integrations::modrinth::{ModrinthProjectType, ModrinthVersion};
 use crate::integrations::unified_mod::ModPlatform;
 use crate::state::profile_state::ModSource;
-use crate::state::profile_state::Profile;
+use crate::state::profile_state::{Mod, Profile};
 use crate::state::state_manager::State;
 use crate::utils::download_utils::DownloadUtils;
 use crate::utils::file_utils;
@@ -54,6 +54,91 @@ impl From<ModrinthProjectType> for ContentType {
             _ => panic!("Unsupported content type conversion"),
         }
     }
+}
+
+/// A non-mod file listed in a modpack manifest (resource pack, shader pack, datapack).
+#[derive(Debug, Clone)]
+pub struct ModpackManifestAsset {
+    pub content_type: ContentType,
+    pub file_name: String,
+    pub download_url: String,
+    pub file_hash_sha1: Option<String>,
+}
+
+/// Resolved modpack manifest entries split by destination folder.
+#[derive(Debug, Clone, Default)]
+pub struct ResolvedModpackFiles {
+    pub mods: Vec<Mod>,
+    pub assets: Vec<ModpackManifestAsset>,
+}
+
+/// Classifies a Modrinth mrpack manifest path into a launcher content type.
+pub fn classify_mrpack_manifest_path(path: &str) -> ContentType {
+    let normalized = path.replace('\\', "/").trim().to_lowercase();
+    if normalized.starts_with("resourcepacks/") {
+        ContentType::ResourcePack
+    } else if normalized.starts_with("shaderpacks/") {
+        ContentType::ShaderPack
+    } else if normalized.starts_with("datapacks/") {
+        ContentType::DataPack
+    } else {
+        ContentType::Mod
+    }
+}
+
+/// Maps a CurseForge class ID to a launcher content type for modpack files.
+pub fn content_type_from_curseforge_class_id(class_id: u32) -> ContentType {
+    use crate::integrations::unified_mod::UnifiedProjectType;
+
+    match UnifiedProjectType::from_curseforge_class_id(class_id) {
+        Some(UnifiedProjectType::ResourcePack) => ContentType::ResourcePack,
+        Some(UnifiedProjectType::Shader) => ContentType::ShaderPack,
+        Some(UnifiedProjectType::Datapack) => ContentType::DataPack,
+        Some(UnifiedProjectType::Mod)
+        | Some(UnifiedProjectType::Modpack)
+        | None => ContentType::Mod,
+    }
+}
+
+/// Downloads modpack manifest assets into their typed instance folders.
+pub async fn install_modpack_assets(
+    profile: &Profile,
+    assets: &[ModpackManifestAsset],
+) -> Result<()> {
+    if assets.is_empty() {
+        return Ok(());
+    }
+
+    info!(
+        "Installing {} modpack asset(s) into typed content folders for profile '{}'",
+        assets.len(),
+        profile.name
+    );
+
+    for asset in assets {
+        let target_dir = get_content_directory(profile, &asset.content_type).await?;
+        if !target_dir.exists() {
+            fs::create_dir_all(&target_dir)
+                .await
+                .map_err(AppError::Io)?;
+        }
+
+        let file_path = target_dir.join(&asset.file_name);
+        info!(
+            "Installing modpack {} '{}' to {}",
+            content_type_to_string(&asset.content_type),
+            asset.file_name,
+            file_path.display()
+        );
+        download_content(
+            &asset.download_url,
+            &file_path,
+            asset.file_hash_sha1.clone(),
+        )
+        .await?;
+    }
+
+    Ok(())
 }
 
 /// Adds content (resourcepack, shaderpack, datapack) from Modrinth or CurseForge to a profile

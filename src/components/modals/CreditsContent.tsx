@@ -53,12 +53,6 @@ const CREDITS: CreditEntry[] = [
       },
     ],
   },
-  {
-    name: "VXL Skin Renderer",
-    role: "Live Skin Renderer",
-    icon: "solar:server-bold",
-    links: [],
-  },
 ];
 
 async function handleOpenUrl(url: string) {

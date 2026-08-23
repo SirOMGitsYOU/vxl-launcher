@@ -25,8 +25,11 @@ use tokio::io::BufReader;
 use tokio_util::compat::FuturesAsyncReadCompatExt;
 use uuid::Uuid;
 
-// Import the ModpackManifest trait from curseforge integration
 use crate::integrations::curseforge::ModpackManifest;
+use crate::utils::profile_utils::{
+    classify_mrpack_manifest_path, install_modpack_assets, ModpackManifestAsset,
+    ResolvedModpackFiles,
+};
 
 /// Represents the overall structure of a modrinth.index.json file.
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -97,6 +100,10 @@ impl ModpackManifest for ModrinthIndex {
     }
 
     async fn get_mods_structs(&self) -> Result<Vec<Mod>> {
+        resolve_manifest_files(self).await.map(|resolved| resolved.mods)
+    }
+
+    async fn resolve_modpack_files(&self) -> Result<ResolvedModpackFiles> {
         resolve_manifest_files(self).await
     }
 }
@@ -230,7 +237,7 @@ pub async fn process_mrpack(pack_path: PathBuf) -> Result<(Profile, ModrinthInde
 /// Takes a parsed ModrinthIndex manifest and resolves the file entries
 /// against the Modrinth API (using hashes) to create a list of Mod structs.
 /// Determines the pack loader from the manifest dependencies.
-pub async fn resolve_manifest_files(manifest: &ModrinthIndex) -> Result<Vec<Mod>> {
+pub async fn resolve_manifest_files(manifest: &ModrinthIndex) -> Result<ResolvedModpackFiles> {
     // Determine loader internally using the helper function
     let (pack_loader, _) = determine_loader_from_dependencies(&manifest.dependencies);
 
@@ -254,6 +261,7 @@ pub async fn resolve_manifest_files(manifest: &ModrinthIndex) -> Result<Vec<Mod>
         .clone();
 
     let mut mods_to_add = Vec::new();
+    let mut assets_to_add = Vec::new();
     let mut hashes_to_lookup = Vec::new();
     let mut file_info_map: HashMap<String, &ModrinthIndexFile> = HashMap::new();
 
@@ -285,7 +293,7 @@ pub async fn resolve_manifest_files(manifest: &ModrinthIndex) -> Result<Vec<Mod>
 
     if hashes_to_lookup.is_empty() {
         info!("No valid sha1 hashes found for client files. No mods to resolve.");
-        return Ok(mods_to_add);
+        return Ok(ResolvedModpackFiles::default());
     }
 
     // 2. Call Modrinth API (Batch Hash Lookup)
@@ -321,37 +329,60 @@ pub async fn resolve_manifest_files(manifest: &ModrinthIndex) -> Result<Vec<Mod>
                     continue;
                 }
 
-                let mod_source = ModSource::Modrinth {
-                    project_id: version_info.project_id.clone(),
-                    version_id: version_info.id.clone(),
-                    file_name: file_details.filename.clone(),
-                    download_url: original_file_info.downloads.first().cloned().unwrap_or_else(|| {
-                         warn!("Missing download URL in manifest for file: {}. Using API URL as fallback.", original_file_info.path);
-                         file_details.url.clone()
-                    }),
-                    file_hash_sha1: Some(hash.clone()),
-                };
+                let content_type = classify_mrpack_manifest_path(&original_file_info.path);
+                let download_url = original_file_info
+                    .downloads
+                    .first()
+                    .cloned()
+                    .unwrap_or_else(|| {
+                        warn!(
+                            "Missing download URL in manifest for file: {}. Using API URL as fallback.",
+                            original_file_info.path
+                        );
+                        file_details.url.clone()
+                    });
 
-                let new_mod = Mod {
-                    id: Uuid::new_v4(),
-                    source: mod_source,
-                    enabled: !original_file_info.path.ends_with(".disabled"),
-                    display_name: Some(version_info.name.clone()),
-                    version: Some(version_info.version_number.clone()),
-                    game_versions: Some(vec![game_version.clone()]),
-                    file_name_override: None,
-                    associated_loader: Some(pack_loader),
-                    modpack_origin: Some(format!("modrinth:{}", version_info.project_id)), // From modpack
-                    updates_enabled: false, // Disable updates for modpack mods (updated with pack)
-                };
+                if content_type == crate::utils::profile_utils::ContentType::Mod {
+                    let mod_source = ModSource::Modrinth {
+                        project_id: version_info.project_id.clone(),
+                        version_id: version_info.id.clone(),
+                        file_name: file_details.filename.clone(),
+                        download_url,
+                        file_hash_sha1: Some(hash.clone()),
+                    };
 
-                info!(
-                    "Prepared Mod struct for: {} (Enabled: {}, Loader: {:?})",
-                    new_mod.display_name.as_deref().unwrap_or("Unknown"),
-                    new_mod.enabled,
-                    new_mod.associated_loader
-                );
-                mods_to_add.push(new_mod);
+                    let new_mod = Mod {
+                        id: Uuid::new_v4(),
+                        source: mod_source,
+                        enabled: !original_file_info.path.ends_with(".disabled"),
+                        display_name: Some(version_info.name.clone()),
+                        version: Some(version_info.version_number.clone()),
+                        game_versions: Some(vec![game_version.clone()]),
+                        file_name_override: None,
+                        associated_loader: Some(pack_loader),
+                        modpack_origin: Some(format!("modrinth:{}", version_info.project_id)),
+                        updates_enabled: false,
+                    };
+
+                    info!(
+                        "Prepared Mod struct for: {} (Enabled: {}, Loader: {:?})",
+                        new_mod.display_name.as_deref().unwrap_or("Unknown"),
+                        new_mod.enabled,
+                        new_mod.associated_loader
+                    );
+                    mods_to_add.push(new_mod);
+                } else {
+                    info!(
+                        "Prepared modpack asset for: {} ({:?})",
+                        file_details.filename, content_type
+                    );
+                    assets_to_add.push(ModpackManifestAsset {
+                        content_type,
+                        file_name: file_details.filename.clone(),
+                        download_url,
+                        file_hash_sha1: Some(hash),
+                    });
+                }
             } else {
                 error!("Could not find primary file details in API response for version {} (from hash {}). Cannot create Mod.", version_info.id, hash);
             }
@@ -364,10 +395,14 @@ pub async fn resolve_manifest_files(manifest: &ModrinthIndex) -> Result<Vec<Mod>
     }
 
     info!(
-        "Successfully resolved {} mods from the manifest.",
-        mods_to_add.len()
+        "Successfully resolved {} mods and {} assets from the manifest.",
+        mods_to_add.len(),
+        assets_to_add.len()
     );
-    Ok(mods_to_add)
+    Ok(ResolvedModpackFiles {
+        mods: mods_to_add,
+        assets: assets_to_add,
+    })
 }
 
 /// Extracts files from the "overrides" or "client-overrides" directory within a .mrpack archive
@@ -723,14 +758,15 @@ pub async fn test_mrpack_processing() -> Result<()> {
 
     // --- Mods auflösen ---
     println!("Calling resolve_manifest_files...");
-    let resolved_mods = resolve_manifest_files(&manifest).await?;
+    let resolved = resolve_manifest_files(&manifest).await?;
     println!(
-        "resolve_manifest_files successful. Resolved {} mods.",
-        resolved_mods.len()
+        "resolve_manifest_files successful. Resolved {} mods and {} assets.",
+        resolved.mods.len(),
+        resolved.assets.len()
     );
 
     // --- Mods zuweisen und abschließende Prüfung ---
-    profile.mods = resolved_mods;
+    profile.mods = resolved.mods;
 
     println!("Profile: {:#?}", profile);
 
@@ -777,12 +813,13 @@ pub async fn import_mrpack_as_profile(
     );
 
     // 2. Resolve mods from manifest files
-    let resolved_mods = resolve_manifest_files(&manifest).await?;
+    let resolved = resolve_manifest_files(&manifest).await?;
     info!(
-        "Successfully resolved {} mods from manifest.",
-        resolved_mods.len()
+        "Successfully resolved {} mods and {} assets from manifest.",
+        resolved.mods.len(),
+        resolved.assets.len()
     );
-    profile.mods = resolved_mods;
+    profile.mods = resolved.mods;
 
     // 2.5. Create ModPackInfo for this modpack (if we have the required parameters)
     if let (Some(project_id), Some(version_id)) = (project_id, version_id) {
@@ -850,6 +887,9 @@ pub async fn import_mrpack_as_profile(
     // Use the absolute path to the pack file for extraction
     extract_mrpack_overrides(&pack_path, &profile).await?;
     info!("Successfully extracted overrides.");
+
+    install_modpack_assets(&profile, &resolved.assets).await?;
+    info!("Successfully installed modpack assets.");
 
     // 5. Download mods to cache and sync to profile directory
     info!(

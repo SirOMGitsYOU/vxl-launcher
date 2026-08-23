@@ -55,14 +55,15 @@ async fn test_full_mrpack_processing() -> Result<()> {
 
     // --- Mods auflösen ---
     println!("Calling resolve_manifest_files...");
-    let resolved_mods = resolve_manifest_files(&manifest).await?;
+    let resolved = resolve_manifest_files(&manifest).await?;
     println!(
-        "resolve_manifest_files successful. Resolved {} mods.",
-        resolved_mods.len()
+        "resolve_manifest_files successful. Resolved {} mods and {} assets.",
+        resolved.mods.len(),
+        resolved.assets.len()
     );
 
     // --- Mods zuweisen und abschließende Prüfung ---
-    profile.mods = resolved_mods;
+    profile.mods = resolved.mods;
 
     println!("Profile: {:#?}", profile);
 

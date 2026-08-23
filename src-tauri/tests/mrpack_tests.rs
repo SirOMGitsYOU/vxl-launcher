@@ -46,11 +46,15 @@ async fn test_dummy_parsing_integration() -> Result<()> {
     );
 
     // Resolve the mods from the manifest
-    let resolved_mods = resolve_manifest_files(&manifest).await?;
-    info!("Integration Test: Resolved {} mods.", resolved_mods.len());
+    let resolved = resolve_manifest_files(&manifest).await?;
+    info!(
+        "Integration Test: Resolved {} mods and {} assets.",
+        resolved.mods.len(),
+        resolved.assets.len()
+    );
 
     // Assign resolved mods to the profile
-    profile.mods = resolved_mods;
+    profile.mods = resolved.mods;
 
     info!(
         "Integration Test: Parsing finished for profile '{}'",
